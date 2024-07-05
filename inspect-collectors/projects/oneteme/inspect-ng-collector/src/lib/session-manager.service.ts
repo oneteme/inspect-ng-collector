@@ -45,11 +45,8 @@ export class SessionManager implements OnDestroy {
 
         this.scheduledSessionSender = interval(this.delay)
         .pipe(tap(()=> {
-            console.log('time to send')
             if(this.sendSessionfinished){
                 this.sendSessions();
-            }else {
-                console.log('cant send ')
             }}))
         .subscribe();
     }
