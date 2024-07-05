@@ -20,8 +20,9 @@ export function logTraceapi(fn:string ,...args: any[]){
 }
 
 export function prettySessionFormat(session: MainSession){
+  let s="";
   if(WIN['debug']){
-    let s  = `[${session.name}]`;
+     s  = `[${session.name}]`;
     if(session.user != null){
       s+= `<${session.user}>`
     }
@@ -32,8 +33,8 @@ export function prettySessionFormat(session: MainSession){
     session.restRequests.forEach(r => {
       s+= prettyRestRequestFormat(r);
     })
-    return s;
   }
+  return s;
 }
 
 function prettyRestRequestFormat(rest: RestRequest){
@@ -80,7 +81,7 @@ function prettyDurationFormat(start:number,end:number){
 
 
 export function validate(v: string | undefined, pattern: RegExp) {
-   if(v && pattern.exec(v){
+   if(v && pattern.exec(v)){
       return true;
    }
 

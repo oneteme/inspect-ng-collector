@@ -40,7 +40,7 @@ export class SessionManager implements OnDestroy {
             user: undefined, // cannot get user
             type: "CLIENT",
             instant: dateNow(),
-            collector: "ng-collector-0.0.10"
+            collector: "inspect-ng-collector-0.0.1"
         }
 
         this.scheduledSessionSender = interval(this.delay)

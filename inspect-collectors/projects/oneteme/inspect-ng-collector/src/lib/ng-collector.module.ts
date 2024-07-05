@@ -11,19 +11,18 @@ import { SessionManager } from './session-manager.service';
 export class NgCollectorModule {
 
   static forRoot(host: string, configuration: ApplicationConf): ModuleWithProviders<NgCollectorModule> {
-    if (configuration?.enabled 
-        && validate(host, HOST_PATERN) 
-        && validate(getStringOrCall(configuration?.sessionApi), PATH_PATERN) 
+    if (configuration?.enabled
+        && validate(host, HOST_PATERN)
+        && validate(getStringOrCall(configuration?.sessionApi), PATH_PATERN)
         && validate(getStringOrCall(configuration?.instanceApi), PATH_PATERN)) {
-          
+
 
        if(!requirePostitiveValue(getNumberOrCall(configuration?.delay),"delay") ||
           !requirePostitiveValue(getNumberOrCall(configuration?.bufferMaxSize),"bufferMaxSize") ){
             logTraceapi('warn','invalid Configuration, Ng-collector is disabled');
           return {ngModule: NgCollectorModule}
        }
-       
-       console.log('evertthing ggood')
+
       return {
         ngModule: NgCollectorModule,
         providers: [
