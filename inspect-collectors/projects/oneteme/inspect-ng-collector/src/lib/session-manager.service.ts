@@ -8,28 +8,28 @@ const SLASH = '/';
 @Injectable({ providedIn: 'root' })
 export class SessionManager implements OnDestroy {
 
-    logServerMain!: string; 
-    logInstanceEnv!: string; 
-    maxBufferSize!: number; 
+    logServerMain!: string;
+    logInstanceEnv!: string;
+    maxBufferSize!: number;
     delay!:number
-    instanceEnvironment !: InstanceEnvironment; 
+    instanceEnvironment !: InstanceEnvironment;
     scheduledSessionSender!: Subscription;
-    sessionQueue: MainSession[]= []; 
-    sessionSendAttempts: number = 0  
+    sessionQueue: MainSession[]= [];
+    sessionSendAttempts: number = 0
     InstanceEnvSendAttempts: number = 0;
     instance!: BehaviorSubject<string>;
     sendSessionfinished:boolean= true;
     sendInstanceEnvFinished: boolean = true;
     constructor(){
-       
+
     }
 
 
     initialize(config:any, host:string) {
         this.logServerMain = this.sessionApiURL(host,getStringOrCall(config.sessionApi)!);
         this.logInstanceEnv = this.instanceApiURL(host,getStringOrCall(config.instanceApi)!);
-        this.maxBufferSize =  getNumberOrCall(config.bufferMaxSize) || 1000;
-        this.delay = getNumberOrCall(config.delay) || 60000;
+        this.maxBufferSize =  getNumberOrCall(config.bufferMaxSize) ?? 1000;
+        this.delay = getNumberOrCall(config.delay) ?? 60000;
         this.instanceEnvironment = {
             name: getStringOrCall(config.name),
             version: getStringOrCall(config.version),
@@ -41,10 +41,10 @@ export class SessionManager implements OnDestroy {
             type: "CLIENT",
             instant: dateNow(),
             collector: "ng-collector-0.0.10"
-        } 
+        }
 
         this.scheduledSessionSender = interval(this.delay)
-        .pipe(tap(()=> { 
+        .pipe(tap(()=> {
             console.log('time to send')
             if(this.sendSessionfinished){
                 this.sendSessions();
@@ -66,9 +66,9 @@ export class SessionManager implements OnDestroy {
                 if(id) {
                     this.sendSessionfinished = false;
                     let sessions: MainSession[] = [...this.sessionQueue];
-                    this.sessionQueue.splice(0,sessions.length); // add rest of sessions 
+                    this.sessionQueue.splice(0,sessions.length); // add rest of sessions
                     logTraceapi('log',`sending sessions, attempts:${++this.sessionSendAttempts}, queue size : ${sessions.length}`)
-                
+
                     const requestOptions = {
                         method: 'PUT',
                         headers: {
@@ -77,26 +77,26 @@ export class SessionManager implements OnDestroy {
                         },
                         body: JSON.stringify(sessions)
                     };
-                   
+
                     fetch(this.logServerMain, requestOptions)
                     .then(data=> {
                         if(data.ok){
                             logTraceapi('log','sessions sent successfully, queue size reset, new size is: '+this.sessionQueue.length)
                             this.sessionSendAttempts= 0;
                         }else{
-                            logTraceapi('warn',`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)// 
+                            logTraceapi('warn',`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)//
                             this.revertQueueSize(sessions);
                         }
                     })
                     .catch(error => {
-                        logTraceapi('warn',`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)// 
+                        logTraceapi('warn',`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)//
                         logTraceapi('warn',error)
                         this.revertQueueSize(sessions);
                     }).finally( ()=> {
                         this.sendSessionfinished = true;
                     })
 
-                }else { 
+                }else {
                     logTraceapi('warn',`Error while attempting to send Environement instance, attempts ${this.sessionSendAttempts}`);
                 }
             })
@@ -133,7 +133,7 @@ export class SessionManager implements OnDestroy {
                 this.logServerMain =this.logServerMain.replace(':id',id);
                 this.sessionSendAttempts=0;
                 logTraceapi('log','Environement instance sent successfully');
-                return id; // return logserverMain 
+                return id; // return logserverMain
             }) : null)
             .catch(err => {
                 logTraceapi('warn',err)
@@ -148,16 +148,16 @@ export class SessionManager implements OnDestroy {
     instanceApiURL(host:string, path:string){
         return  this.toURL(host,path);
      }
- 
+
      sessionApiURL(host:string, path:string){
         return  this.toURL(host,path);
      }
- 
+
      toURL( host:string,  path:string ){
          return host.endsWith(SLASH) || path.startsWith(SLASH) ? host + path : [host,path].join(SLASH);
-     }   
-     
-     ngOnDestroy(): void { 
+     }
+
+     ngOnDestroy(): void {
         if(this.scheduledSessionSender){
             this.scheduledSessionSender.unsubscribe();
         }

@@ -34,7 +34,6 @@ export function prettySessionFormat(session: MainSession){
     })
     return s;
   }
-  return
 }
 
 function prettyRestRequestFormat(rest: RestRequest){
@@ -81,7 +80,7 @@ function prettyDurationFormat(start:number,end:number){
 
 
 export function validate(v: string | undefined, pattern: RegExp) {
-   if(v && v.match(pattern)){
+   if(v && pattern.exec(v){
       return true;
    }
 
