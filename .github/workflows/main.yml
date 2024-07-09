@@ -15,7 +15,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           scope: '@oneteme'
       - run: npm install
-      - run: npm run build
+      - run: npm run build '@oneteme/inspect-ng-collector'
       - run: npm config ls
       - run: npm publish ./dist/oneteme/inspect-ng-collector --access public
         env:
