@@ -1,7 +1,7 @@
 {
   "name": "inspect-collectors",
   "version": "0.0.1",
-  "description": "traceapi ng collector",
+  "description": "Inspect ng collector",
   "private": false,
   "homepage": "https://github.com/oneteme/inspect-ng-collector",
   "bugs": "https://github.com/oneteme/inspect-ng-collector/issues",

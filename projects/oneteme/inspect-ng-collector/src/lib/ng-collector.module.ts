@@ -2,7 +2,7 @@ import { NgModule, APP_INITIALIZER, ModuleWithProviders } from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
 import { HttpInterceptorService } from './http-interceptor.service';
 import { RouteTracerService } from './route-tracer.service';
-import { getNumberOrCall, logTraceapi, requirePostitiveValue, validate, HOST_PATERN, PATH_PATERN, getStringOrCall } from './util';
+import { getNumberOrCall, requirePostitiveValue, validate, HOST_PATERN, PATH_PATERN, getStringOrCall } from './util';
 import { SessionManager } from './session-manager.service';
 
 
@@ -19,10 +19,9 @@ export class NgCollectorModule {
 
        if(!requirePostitiveValue(getNumberOrCall(configuration?.delay),"delay") ||
           !requirePostitiveValue(getNumberOrCall(configuration?.bufferMaxSize),"bufferMaxSize") ){
-            logTraceapi('warn','invalid Configuration, Ng-collector is disabled');
+            console.warn('invalid Configuration, Ng-collector is disabled');
           return {ngModule: NgCollectorModule}
-       }
-
+       }  
       return {
         ngModule: NgCollectorModule,
         providers: [

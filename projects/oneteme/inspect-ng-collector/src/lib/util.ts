@@ -10,18 +10,18 @@ export function dateNow() {
     return Date.now() / 1_000;
 }
 
-export function logTraceapi(fn:string ,...args: any[]){
+export function logInspect(fn:string ,...args: any[]){
 
-  if(WIN["traceapi"]){
+  if(WIN["inspect"]){
       if( typeof c[fn] === 'function'){
-        c[fn]('[TRACEAPI]', ...args)
+        c[fn]('[INSPECT]', ...args)
       }
     }
 }
 
 export function prettySessionFormat(session: MainSession){
   let s="";
-  if(WIN['debug']){
+  if(WIN["inspect"]?.debug){
      s  = `[${session.name}]`;
     if(session.user != null){
       s+= `<${session.user}>`
@@ -86,7 +86,7 @@ export function validate(v: string | undefined, pattern: RegExp) {
    }
 
 
-   logTraceapi('warn',"bad value=" + v + ", pattern=" + pattern);
+   console.warn("bad value=" + v + ", pattern=" + pattern);
    return false;
 }
 
@@ -95,7 +95,7 @@ export function requirePostitiveValue(v: number | undefined, name: string){
     return true;
   }
 
-  logTraceapi('warn',name +'='+ v + " <= 0");
+  console.warn(name +'='+ v + " <= 0");
   return false;
 }
 
