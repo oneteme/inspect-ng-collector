@@ -1,7 +1,7 @@
 import { Injectable, OnDestroy  } from '@angular/core';
 import { InstanceEnvironment, MainSession } from './trace.model';
 import { BehaviorSubject, from, interval, Observable, of, Subscription, tap } from 'rxjs';
-import { dateNow, detectBrowser, detectOs, getNumberOrCall, getStringOrCall, logTraceapi } from './util';
+import { dateNow, detectBrowser, detectOs, getNumberOrCall, getStringOrCall, logInspect } from './util';
 
 const SLASH = '/';
 
@@ -53,7 +53,7 @@ export class SessionManager implements OnDestroy {
 
     addSessions(sessions:MainSession){
         this.sessionQueue.push(sessions);
-        logTraceapi('log',"added element to session queue, new size is: "+ this.sessionQueue.length);
+        logInspect('log',"added element to session queue, new size is: "+ this.sessionQueue.length);
     }
 
 
@@ -64,7 +64,7 @@ export class SessionManager implements OnDestroy {
                     this.sendSessionfinished = false;
                     let sessions: MainSession[] = [...this.sessionQueue];
                     this.sessionQueue.splice(0,sessions.length); // add rest of sessions
-                    logTraceapi('log',`sending sessions, attempts:${++this.sessionSendAttempts}, queue size : ${sessions.length}`)
+                    logInspect('log',`sending sessions, attempts:${++this.sessionSendAttempts}, queue size : ${sessions.length}`)
 
                     const requestOptions = {
                         method: 'PUT',
@@ -78,23 +78,23 @@ export class SessionManager implements OnDestroy {
                     fetch(this.logServerMain, requestOptions)
                     .then(data=> {
                         if(data.ok){
-                            logTraceapi('log','sessions sent successfully, queue size reset, new size is: '+this.sessionQueue.length)
+                            logInspect('log','sessions sent successfully, queue size reset, new size is: '+this.sessionQueue.length)
                             this.sessionSendAttempts= 0;
                         }else{
-                            logTraceapi('warn',`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)//
+                            logInspect('warn',`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)//
                             this.revertQueueSize(sessions);
                         }
                     })
                     .catch(error => {
-                        logTraceapi('warn',`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)//
-                        logTraceapi('warn',error)
+                        logInspect('warn',`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)//
+                        logInspect('warn',error)
                         this.revertQueueSize(sessions);
                     }).finally( ()=> {
                         this.sendSessionfinished = true;
                     })
 
                 }else {
-                    logTraceapi('warn',`Error while attempting to send Environement instance, attempts ${this.sessionSendAttempts}`);
+                    logInspect('warn',`Error while attempting to send Environement instance, attempts ${this.sessionSendAttempts}`);
                 }
             })
         }
@@ -105,7 +105,7 @@ export class SessionManager implements OnDestroy {
         if(this.sessionQueue.length > this.maxBufferSize ){
             let diff = this.sessionQueue.length - this.maxBufferSize;
             this.sessionQueue = this.sessionQueue.slice(0,this.maxBufferSize);
-            logTraceapi('log','Buffer size exeeded the max size,last sessions have been removed from buffer, (number of sessions removed):'+diff)
+            logInspect('log','Buffer size exeeded the max size,last sessions have been removed from buffer, (number of sessions removed):'+diff)
         }
     }
 
@@ -129,11 +129,11 @@ export class SessionManager implements OnDestroy {
                 this.instance = new BehaviorSubject<string>(id);
                 this.logServerMain =this.logServerMain.replace(':id',id);
                 this.sessionSendAttempts=0;
-                logTraceapi('log','Environement instance sent successfully');
+                logInspect('log','Environement instance sent successfully');
                 return id; // return logserverMain
             }) : null)
             .catch(err => {
-                logTraceapi('warn',err)
+                logInspect('warn',err)
                 return null;
             }).finally(()=> {
                 this.sendInstanceEnvFinished = true;
