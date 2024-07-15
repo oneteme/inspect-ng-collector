@@ -66,12 +66,12 @@ export class SessionManager implements OnDestroy {
                     this.sessionQueue.splice(0,sessions.length); // add rest of sessions
                     logInspect('log',`sending sessions, attempts:${++this.sessionSendAttempts}, queue size : ${sessions.length}`)
 
-                    const requestOptions = {
+                    const requestOptions: RequestInit = {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Access-Control-Allow-Origin': '*'
                         },
+                        mode : 'cors',
                         body: JSON.stringify(sessions)
                     };
 
@@ -115,12 +115,13 @@ export class SessionManager implements OnDestroy {
         }
         if(this.sendInstanceEnvFinished){
             this.sendInstanceEnvFinished = false;
-            const requestOptions = {
+            const requestOptions: RequestInit = {
+                
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*' // retest
                 },
+                mode: 'cors',
                 body: JSON.stringify(this.instanceEnvironment)
             };
             this.sessionSendAttempts++;
