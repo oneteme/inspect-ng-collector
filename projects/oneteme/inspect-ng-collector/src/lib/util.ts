@@ -3,8 +3,8 @@ import { MainSession, RestRequest } from "./trace.model";
 let WIN:any = window;
 let c:any = console;
 
-export const HOST_PATERN = /https?:\/\/[\w\-\.]+(:\d{2,5})?\/?/;
-export const PATH_PATERN = /[\w\-\{\}]+(\/[\w\-\{\}]+)*/;
+export const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
+export const PATH_PATERN = /[\w\-]+(\/[\w\-]+)*/;
 
 export function dateNow() {
     return Date.now() / 1_000;
