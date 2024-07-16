@@ -1,7 +1,6 @@
 import { MainSession, RestRequest } from "./trace.model";
 
-let WIN:any = window;
-let c:any = console;
+const WIN:any = window;
 
 export const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
 export const PATH_PATERN = /[\w-]+(\/[\w-]+)*/;
@@ -10,20 +9,22 @@ export function dateNow() {
     return Date.now() / 1_000;
 }
 
-export function logInspect(fn:string ,...args: any[]){
+export function initDebug(value:boolean){
+   WIN["inspect"] = { debug : true };
+}
 
-  if(WIN["inspect"]){
-      if( typeof c[fn] === 'function'){
-        c[fn]('[INSPECT]', ...args)
-      }
+export function logInspect(...args: any[]){
+  if(WIN["inspect"]?.debug){
+    if(args.length == 1 && typeof args[0] == 'function'){
+      args = args[0]();
     }
+    console.log('[INSPECT]', ...args);
+  }
 }
 
 export function prettySessionFormat(session: MainSession){
-  let s="";
-  if(WIN["inspect"]?.debug){
-     s  = `[${session.name}]`;
-    if(session.user != null){
+  let s= `[${session.name}]`;
+    if(session.user){
       s+= `<${session.user}>`
     }
     if(session.location){
@@ -33,7 +34,6 @@ export function prettySessionFormat(session: MainSession){
     session.restRequests.forEach(r => {
       s+= prettyRestRequestFormat(r);
     })
-  }
   return s;
 }
 
@@ -75,17 +75,15 @@ function prettyRestRequestFormat(rest: RestRequest){
 }
 
 function prettyDurationFormat(start:number,end:number){
-    return  start && end ? `(in ${ new Date(end*1000).getTime()- new Date(start*1000).getTime() } ms) \n` : '';
+    return  start && end ? `(in ${ (end - start) * 1000 } ms) \n` : '';
 }
 
 
 
-export function validate(v: string | undefined, pattern: RegExp) {
+export function matchRegex(v: string | undefined, pattern: RegExp) {
    if(v && pattern.exec(v)){
       return true;
    }
-
-
    console.warn("bad value=" + v + ", pattern=" + pattern);
    return false;
 }
@@ -94,7 +92,6 @@ export function requirePostitiveValue(v: number | undefined, name: string){
   if(v == undefined ||  (v && v > 0)) {
     return true;
   }
-
   console.warn(name +'='+ v + " <= 0");
   return false;
 }

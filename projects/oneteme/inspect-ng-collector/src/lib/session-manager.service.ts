@@ -53,7 +53,7 @@ export class SessionManager implements OnDestroy {
 
     addSessions(sessions:MainSession){
         this.sessionQueue.push(sessions);
-        logInspect('log',"added element to session queue, new size is: "+ this.sessionQueue.length);
+        logInspect("added element to session queue, new size is: "+ this.sessionQueue.length);
     }
 
 
@@ -64,7 +64,7 @@ export class SessionManager implements OnDestroy {
                     this.sendSessionfinished = false;
                     let sessions: MainSession[] = [...this.sessionQueue];
                     this.sessionQueue.splice(0,sessions.length); // add rest of sessions
-                    logInspect('log',`sending sessions, attempts:${++this.sessionSendAttempts}, queue size : ${sessions.length}`)
+                    logInspect(`sending sessions, attempts:${++this.sessionSendAttempts}, queue size : ${sessions.length}`)
 
                     const requestOptions: RequestInit = {
                         method: 'PUT',
@@ -78,23 +78,22 @@ export class SessionManager implements OnDestroy {
                     fetch(this.logServerMain, requestOptions)
                     .then(data=> {
                         if(data.ok){
-                            logInspect('log','sessions sent successfully, queue size reset, new size is: '+this.sessionQueue.length)
+                            logInspect('sessions sent successfully, queue size reset, new size is: '+this.sessionQueue.length)
                             this.sessionSendAttempts= 0;
                         }else{
-                            logInspect('warn',`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)//
+                            console.warn(`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)//
                             this.revertQueueSize(sessions);
                         }
                     })
                     .catch(error => {
-                        logInspect('warn',`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)//
-                        logInspect('warn',error)
+                        console.warn(`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`,error)//
                         this.revertQueueSize(sessions);
                     }).finally( ()=> {
                         this.sendSessionfinished = true;
                     })
 
                 }else {
-                    logInspect('warn',`Error while attempting to send Environement instance, attempts ${this.sessionSendAttempts}`);
+                    console.warn(`Error while attempting to send Environement instance, attempts ${this.sessionSendAttempts}`);
                 }
             })
         }
@@ -105,7 +104,7 @@ export class SessionManager implements OnDestroy {
         if(this.sessionQueue.length > this.maxBufferSize ){
             let diff = this.sessionQueue.length - this.maxBufferSize;
             this.sessionQueue = this.sessionQueue.slice(0,this.maxBufferSize);
-            logInspect('log','Buffer size exeeded the max size,last sessions have been removed from buffer, (number of sessions removed):'+diff)
+            logInspect('Buffer size exeeded the max size,last sessions have been removed from buffer, (number of sessions removed):'+diff)
         }
     }
 
@@ -130,11 +129,11 @@ export class SessionManager implements OnDestroy {
                 this.instance = new BehaviorSubject<string>(id);
                 this.logServerMain =this.logServerMain.replace(':id',id);
                 this.sessionSendAttempts=0;
-                logInspect('log','Environement instance sent successfully');
+                logInspect('Environement instance sent successfully');
                 return id; // return logserverMain
             }) : null)
             .catch(err => {
-                logInspect('warn',err)
+                console.warn(err)
                 return null;
             }).finally(()=> {
                 this.sendInstanceEnvFinished = true;

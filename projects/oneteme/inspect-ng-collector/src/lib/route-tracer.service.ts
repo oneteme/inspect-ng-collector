@@ -2,11 +2,10 @@ import {  Inject, Injectable, OnDestroy} from "@angular/core";
 import { NavigationEnd, NavigationStart, Router } from "@angular/router";
 import { MainSession } from "./trace.model";
 import { ApplicationConf} from "./ng-collector.module";
-import { dateNow, getRegArrOrCall, getStringOrCall, logInspect, prettySessionFormat } from "./util";
+import { dateNow, getRegArrOrCall, getStringOrCall, initDebug, logInspect, prettySessionFormat } from "./util";
 import { SessionManager } from "./session-manager.service";
 
 
-const SLASH = '/';
 @Injectable({ providedIn: 'root' }) 
 export class RouteTracerService  implements OnDestroy{
 
@@ -23,6 +22,7 @@ export class RouteTracerService  implements OnDestroy{
         this.excludeList = getRegArrOrCall(config.exclude);
         this.sessionManager.initialize(config,host);
         this.user = getStringOrCall(config.user);
+        initDebug(config.debug ?? false);
     }
 
     private beforeUnloadHandler = (event: BeforeUnloadEvent): void => {
@@ -38,7 +38,7 @@ export class RouteTracerService  implements OnDestroy{
     }
 
     initialize() {
-        logInspect('log','initialize');
+        logInspect('initialize');
         window.addEventListener('beforeunload', this.beforeUnloadHandler);
         this.router.events.subscribe(event => {
             if (event instanceof NavigationStart) {
@@ -48,7 +48,7 @@ export class RouteTracerService  implements OnDestroy{
                     if(this.excludeList!.every((e) => !e.test(this.currentSession.location))){
                         this.sessionManager.addSessions(this.currentSession);
                     }
-                    logInspect('log',prettySessionFormat(this.currentSession));
+                    logInspect(()=>prettySessionFormat(this.currentSession));
                 }
                 this.currentSession = {
                     '@type': "main",
