@@ -2,7 +2,7 @@ import { NgModule, APP_INITIALIZER, ModuleWithProviders } from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
 import { HttpInterceptorService } from './http-interceptor.service';
 import { RouteTracerService } from './route-tracer.service';
-import { getNumberOrCall, requirePostitiveValue, validate, HOST_PATERN, PATH_PATERN, getStringOrCall } from './util';
+import { getNumberOrCall, requirePostitiveValue, matchRegex, HOST_PATERN, PATH_PATERN, getStringOrCall } from './util';
 import { SessionManager } from './session-manager.service';
 
 
@@ -12,9 +12,9 @@ export class NgCollectorModule {
 
   static forRoot(host: string, configuration: ApplicationConf): ModuleWithProviders<NgCollectorModule> {
     if (configuration?.enabled
-        && validate(host, HOST_PATERN)
-        && validate(getStringOrCall(configuration?.sessionApi), PATH_PATERN)
-        && validate(getStringOrCall(configuration?.instanceApi), PATH_PATERN)) {
+        && matchRegex(host, HOST_PATERN)
+        && matchRegex(getStringOrCall(configuration?.sessionApi), PATH_PATERN)
+        && matchRegex(getStringOrCall(configuration?.instanceApi), PATH_PATERN)) {
 
 
        if(!requirePostitiveValue(getNumberOrCall(configuration?.delay),"delay") ||
@@ -55,5 +55,6 @@ export interface ApplicationConf {
   instanceApi?: string | (() => string);
   sessionApi?: string | (() => string);
   exclude?: RegExp[] | (() => RegExp[]);
+  debug?: boolean;
   enabled?: boolean;
 }
