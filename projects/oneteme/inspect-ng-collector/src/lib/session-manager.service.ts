@@ -3,8 +3,6 @@ import { InstanceEnvironment, MainSession } from './trace.model';
 import { BehaviorSubject, from, interval, Observable, of, Subscription, tap } from 'rxjs';
 import { dateNow,logInspect, prettySessionFormat } from './util';
 import { TechnicalConf } from './configuration';
-import { NavigationEnd, NavigationStart, Router } from '@angular/router';
-
 
 
 @Injectable({ providedIn: 'root' })
@@ -23,11 +21,8 @@ export class SessionManager implements OnDestroy {
 
     currentSession!: MainSession;
     config: TechnicalConf;
-    constructor(  private router: Router,
-                  @Inject('config') config: TechnicalConf,
+    constructor(  @Inject('config') config: TechnicalConf,
                   @Inject('instance') instance: InstanceEnvironment){
-
-        console.log( 'good')
         this.config = config;
         this.instanceEnvironment = instance;
         this.scheduledSessionSender = interval(this.delay)
@@ -36,26 +31,10 @@ export class SessionManager implements OnDestroy {
                 this.sendSessions();
             }}))
         .subscribe();
+        logInspect('SessionManager initialized');
     }
 
 
-    initialize( ) {
-        console.log('pefoj')
-        logInspect('initialize');
-        window.addEventListener('beforeunload', (event: BeforeUnloadEvent): void => {
-        this.newSession();//force 
-        this.sendSessions();
-        });
-        this.router.events.subscribe(event => {
-            if (event instanceof NavigationStart) {
-                this.newSession(event.url);
-            }
-            if (event instanceof NavigationEnd) {
-                this.getCurrentSession().name = document.title;
-                this.getCurrentSession().location = document.URL; 
-            }
-        })
-    }
 
     addSessions(sessions:MainSession){
         this.sessionQueue.push(sessions);

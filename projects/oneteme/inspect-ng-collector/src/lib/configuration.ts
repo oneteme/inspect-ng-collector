@@ -18,7 +18,7 @@ export interface ApplicationConf {
 }
 
 export interface TechnicalConf {
-  user:string ;
+  user?:string ;
   bufferMaxSize: number;
   delay: number;
   instanceApi: string;
@@ -39,7 +39,7 @@ export interface TechnicalConf {
 export function setConfig(conf:ApplicationConf){
   return  {
     host: conf.host,
-    name: getStringOrCall(conf.name) ?? '',
+    name: getStringOrCall(conf.name),
     version: getStringOrCall(conf.version) ?? '',
     env: getStringOrCall(conf.env)?? '',
     user: getStringOrCall(conf.user) ?? '',
@@ -48,8 +48,8 @@ export function setConfig(conf:ApplicationConf){
     instanceApi: getStringOrCall(conf.sessionApi),
     sessionApi: getStringOrCall(conf.instanceApi),
     exclude: getRegArrOrCall(conf.exclude) ?? [], 
-    debug: conf?.debug ?? false,
-    enabled: conf.enabled || false
+    debug: conf.debug ?? false,
+    enabled: conf.enabled ?? false
   }
  /*
   this.logServerMain = this.sessionApiURL(host,getStringOrCall(config.sessionApi)!);
@@ -59,22 +59,6 @@ export function setConfig(conf:ApplicationConf){
   */
 } 
 
-export function validateAndGetConfig(conf:any):TechnicalConf{
-    let host = validateProperty(conf.host, ()=> matchRegex(conf.host, HOST_PATERN) )
-    let sessionApi =  validateProperty( conf.sessionApi,()=> matchRegex(conf.sessionApi, PATH_PATERN) )
-    let instanceApi = validateProperty( conf.instanceApi,()=> matchRegex(conf.sessionApi, PATH_PATERN))
-    return  {
-      user : conf.user,
-      bufferMaxSize:  validateProperty( conf.delay,()=> requirePostitiveValue(conf.delay,"bufferMaxSize")) ?? 1000,
-      delay: validateProperty( conf.delay,()=> requirePostitiveValue(conf.delay,"delay")) ?? 60000,
-      instanceApi: sessionApiURL(host, sessionApi),
-      sessionApi: instanceApiURL(host, instanceApi),
-      exclude: conf.exclude,
-      debug: conf.debug,
-      enabled: conf.enabled
-    }
-}
-
 export function validateProperty(value:any, func : (...args:any)=> boolean){
   if(func()){
       return value;
@@ -82,7 +66,25 @@ export function validateProperty(value:any, func : (...args:any)=> boolean){
   throw new Error('error') // pass the error return from the the passed function 
 }
 
-export function GetInstanceEnvironement(conf:any){
+
+
+export function validateAndGetConfig(conf:any):TechnicalConf{
+  let host = matchRegex(getStringOrCall(conf.host), "host" , HOST_PATERN) 
+  let sessionApi =   matchRegex(getStringOrCall(conf.sessionApi),'sessionApi', PATH_PATERN,) 
+  let instanceApi =  matchRegex(getStringOrCall(conf.sessionApi),'intanceApi', PATH_PATERN,)
+  return  {
+    user : getStringOrCall(conf.user),
+    bufferMaxSize:  requirePostitiveValue(getNumberOrCall(conf.delay),"bufferMaxSize", 1000) ,
+    delay: requirePostitiveValue(getNumberOrCall(conf.delay),"delay", 60000) ,
+    instanceApi: sessionApiURL(host, sessionApi),
+    sessionApi: instanceApiURL(host, instanceApi),
+    exclude: getRegArrOrCall(conf.exclude) || [],
+    debug: conf.debug ?? false,
+    enabled: conf.enabled ?? false
+  }
+}
+
+export function GetInstanceEnvironement(conf:ApplicationConf){
     return {
       name: getStringOrCall(conf.name),
       version: getStringOrCall(conf.version),
@@ -137,7 +139,6 @@ export function detectOs() {
       const agent = window.navigator.userAgent.toLowerCase()
       switch (true) {
           case (/windows/.test(agent)):
-
               versionMatch = /windows nt (\d+\.\d+)/.exec(agent);
               version = versionMatch ? versionMatch[1] : 'Unknown';
               return `Windows ${version}`;
@@ -164,23 +165,24 @@ function sessionApiURL(host:string, path:string){
   return  toURL(host,path);
 }
 
-function toURL( host:string,  path:string ){
+function toURL(host:string, path:string ){
    return host.endsWith(SLASH) || path.startsWith(SLASH) ? host + path : [host,path].join(SLASH);
 }
 
-export function matchRegex(v: string | undefined, pattern: RegExp) {
+export function matchRegex(v: string | undefined,  name: string, pattern: RegExp,) {
   if(v && pattern.exec(v)){
-     return true;
+     return v;
   }
-  console.warn("bad value=" + v + ", pattern=" + pattern);
-  return false;
+  throw `bad value ${name}=${v}, pattern=${pattern}`;
 }
 
-export function requirePostitiveValue(v: number | undefined, name: string){
- if(v == undefined ||  (v && v > 0)) {
-   return true;
- }
- console.warn(name +'='+ v + " <= 0");
- return false;
+export function requirePostitiveValue(v: number | undefined, name: string, defaultValue:number){
+  if(v && v > 0) {
+    return v;
+  }
+  if(v == undefined){
+    return defaultValue;
+  }
+  throw `bad value ${name}= ${v} <= 0`  
 }
 
