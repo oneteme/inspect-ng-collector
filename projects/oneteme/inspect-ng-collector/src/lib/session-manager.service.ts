@@ -1,18 +1,17 @@
-import { Injectable, OnDestroy  } from '@angular/core';
+import { Inject, Injectable, OnDestroy  } from '@angular/core';
 import { InstanceEnvironment, MainSession } from './trace.model';
 import { BehaviorSubject, from, interval, Observable, of, Subscription, tap } from 'rxjs';
-import { dateNow, detectBrowser, detectOs, getNumberOrCall, getStringOrCall, logInspect } from './util';
+import { dateNow,logInspect, prettySessionFormat } from './util';
+import { TechnicalConf } from './configuration';
+import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 
-const SLASH = '/';
+
 
 @Injectable({ providedIn: 'root' })
 export class SessionManager implements OnDestroy {
-
-    logServerMain!: string;
-    logInstanceEnv!: string;
     maxBufferSize!: number;
     delay!:number
-    instanceEnvironment !: InstanceEnvironment;
+    instanceEnvironment : InstanceEnvironment;
     scheduledSessionSender!: Subscription;
     sessionQueue: MainSession[]= [];
     sessionSendAttempts: number = 0
@@ -20,29 +19,17 @@ export class SessionManager implements OnDestroy {
     instance!: BehaviorSubject<string>;
     sendSessionfinished:boolean= true;
     sendInstanceEnvFinished: boolean = true;
-    constructor(){
+    
 
-    }
+    currentSession!: MainSession;
+    config: TechnicalConf;
+    constructor(  private router: Router,
+                  @Inject('config') config: TechnicalConf,
+                  @Inject('instance') instance: InstanceEnvironment){
 
-
-    initialize(config:any, host:string) {
-        this.logServerMain = this.sessionApiURL(host,getStringOrCall(config.sessionApi)!);
-        this.logInstanceEnv = this.instanceApiURL(host,getStringOrCall(config.instanceApi)!);
-        this.maxBufferSize =  getNumberOrCall(config.bufferMaxSize) ?? 1000;
-        this.delay = getNumberOrCall(config.delay) ?? 60000;
-        this.instanceEnvironment = {
-            name: getStringOrCall(config.name),
-            version: getStringOrCall(config.version),
-            address: undefined, //server side
-            env: getStringOrCall(config.env),
-            os: detectOs(),
-            re: detectBrowser(),
-            user: undefined, // cannot get user
-            type: "CLIENT",
-            instant: dateNow(),
-            collector: "inspect-ng-collector-0.0.1"
-        }
-
+        console.log( 'good')
+        this.config = config;
+        this.instanceEnvironment = instance;
         this.scheduledSessionSender = interval(this.delay)
         .pipe(tap(()=> {
             if(this.sendSessionfinished){
@@ -51,10 +38,51 @@ export class SessionManager implements OnDestroy {
         .subscribe();
     }
 
+
+    initialize( ) {
+        console.log('pefoj')
+        logInspect('initialize');
+        window.addEventListener('beforeunload', (event: BeforeUnloadEvent): void => {
+        this.newSession();//force 
+        this.sendSessions();
+        });
+        this.router.events.subscribe(event => {
+            if (event instanceof NavigationStart) {
+                this.newSession(event.url);
+            }
+            if (event instanceof NavigationEnd) {
+                this.getCurrentSession().name = document.title;
+                this.getCurrentSession().location = document.URL; 
+            }
+        })
+    }
+
     addSessions(sessions:MainSession){
         this.sessionQueue.push(sessions);
         logInspect("added element to session queue, new size is: "+ this.sessionQueue.length);
     }
+
+
+    newSession(url?:string){
+        if(this.currentSession){
+            this.currentSession.end = dateNow();
+            if(this.config.exclude.every((e) => !e.test(this.currentSession.location))){
+                this.addSessions(this.currentSession);
+            }
+            logInspect(()=>prettySessionFormat(this.currentSession));
+        }
+        if(url){
+            this.currentSession = {
+                '@type': "main",
+                user: this.config.user,
+                start: dateNow(),
+                type: "VIEW",
+                location: url,
+                restRequests: []
+            }
+        }
+    }
+
 
 
     sendSessions() {
@@ -75,7 +103,7 @@ export class SessionManager implements OnDestroy {
                         body: JSON.stringify(sessions)
                     };
 
-                    fetch(this.logServerMain, requestOptions)
+                    fetch(this.config.sessionApi, requestOptions)
                     .then(data=> {
                         if(data.ok){
                             logInspect('sessions sent successfully, queue size reset, new size is: '+this.sessionQueue.length)
@@ -112,7 +140,7 @@ export class SessionManager implements OnDestroy {
         if(this.instance){
             return this.instance;
         }
-        if(this.sendInstanceEnvFinished){
+        if(this.sendInstanceEnvFinished){// move up in send session  ? 
             this.sendInstanceEnvFinished = false;
             const requestOptions: RequestInit = {
                 
@@ -124,13 +152,13 @@ export class SessionManager implements OnDestroy {
                 body: JSON.stringify(this.instanceEnvironment)
             };
             this.sessionSendAttempts++;
-            return from( fetch(this.logInstanceEnv,requestOptions)
+            return from( fetch(this.config.instanceApi, requestOptions)
             .then(res => res.ok ? res.text().then(id=> {
                 this.instance = new BehaviorSubject<string>(id);
-                this.logServerMain =this.logServerMain.replace(':id',id);
+                this.config.sessionApi = this.config.sessionApi .replace(':id',id);
                 this.sessionSendAttempts=0;
                 logInspect('Environement instance sent successfully');
-                return id; // return logserverMain
+                return id; 
             }) : null)
             .catch(err => {
                 console.warn(err)
@@ -142,21 +170,15 @@ export class SessionManager implements OnDestroy {
         return of(null);
     }
 
-    instanceApiURL(host:string, path:string){
-        return  this.toURL(host,path);
-     }
-
-     sessionApiURL(host:string, path:string){
-        return  this.toURL(host,path);
-     }
-
-     toURL( host:string,  path:string ){
-         return host.endsWith(SLASH) || path.startsWith(SLASH) ? host + path : [host,path].join(SLASH);
-     }
+    
 
      ngOnDestroy(): void {
         if(this.scheduledSessionSender){
             this.scheduledSessionSender.unsubscribe();
         }
+    }
+
+    getCurrentSession() {
+        return this.currentSession;
     }
 }
