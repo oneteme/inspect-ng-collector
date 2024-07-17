@@ -7,10 +7,10 @@ import { TechnicalConf } from './configuration';
 
 @Injectable({ providedIn: 'root' })
 export class SessionManager implements OnDestroy {
-    maxBufferSize!: number;
-    delay!:number
+
+
     instanceEnvironment : InstanceEnvironment;
-    scheduledSessionSender!: Subscription;
+    scheduledSessionSender: Subscription;
     sessionQueue: MainSession[]= [];
     sessionSendAttempts: number = 0
     InstanceEnvSendAttempts: number = 0;
@@ -25,7 +25,7 @@ export class SessionManager implements OnDestroy {
                   @Inject('instance') instance: InstanceEnvironment){
         this.config = config;
         this.instanceEnvironment = instance;
-        this.scheduledSessionSender = interval(this.delay)
+        this.scheduledSessionSender = interval(config.delay)
         .pipe(tap(()=> {
             if(this.sendSessionfinished){
                 this.sendSessions();
@@ -108,9 +108,9 @@ export class SessionManager implements OnDestroy {
 
     revertQueueSize(sessions: MainSession[]){
         this.sessionQueue.unshift(...sessions);
-        if(this.sessionQueue.length > this.maxBufferSize ){
-            let diff = this.sessionQueue.length - this.maxBufferSize;
-            this.sessionQueue = this.sessionQueue.slice(0,this.maxBufferSize);
+        if(this.sessionQueue.length > this.config.bufferMaxSize ){
+            let diff = this.sessionQueue.length - this.config.bufferMaxSize;
+            this.sessionQueue = this.sessionQueue.slice(0, this.config.bufferMaxSize);
             logInspect('Buffer size exeeded the max size,last sessions have been removed from buffer, (number of sessions removed):'+diff)
         }
     }
