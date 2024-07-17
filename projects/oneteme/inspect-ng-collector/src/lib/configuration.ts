@@ -77,8 +77,8 @@ export function validateAndGetConfig(conf:any):TechnicalConf{
     user : getStringOrCall(conf.user),
     bufferMaxSize:  requirePostitiveValue(getNumberOrCall(conf.delay),"bufferMaxSize", 1000) ,
     delay: requirePostitiveValue(getNumberOrCall(conf.delay),"delay", 60000) ,
-    instanceApi: sessionApiURL(host, sessionApi),
-    sessionApi: instanceApiURL(host, instanceApi),
+    instanceApi: sessionApiURL(host, instanceApi),
+    sessionApi: instanceApiURL(host, sessionApi),
     exclude: getRegArrOrCall(conf.exclude) || [],
     debug: conf.debug ?? false,
     enabled: conf.enabled ?? false
