@@ -1,4 +1,4 @@
-import { dateNow } from "./util";
+import { dateNow, initDebug } from "./util";
 const SLASH = '/';
 const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
 const PATH_PATERN = /[\w-]+(\/[\w-]+)*/;
@@ -70,8 +70,9 @@ export function validateProperty(value:any, func : (...args:any)=> boolean){
 
 export function validateAndGetConfig(conf:any):TechnicalConf{
   let host = matchRegex(getStringOrCall(conf.host), "host" , HOST_PATERN) 
-  let sessionApi =   matchRegex(getStringOrCall(conf.sessionApi),'sessionApi', PATH_PATERN,) 
-  let instanceApi =  matchRegex(getStringOrCall(conf.sessionApi),'intanceApi', PATH_PATERN,)
+  let sessionApi =   matchRegex(getStringOrCall(conf.sessionApi),'sessionApi', PATH_PATERN) 
+  let instanceApi =  matchRegex(getStringOrCall(conf.instanceApi),'intanceApi', PATH_PATERN)
+  initDebug(conf.debug ?? false);
   return  {
     user : getStringOrCall(conf.user),
     bufferMaxSize:  requirePostitiveValue(getNumberOrCall(conf.delay),"bufferMaxSize", 1000) ,

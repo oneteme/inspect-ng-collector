@@ -18,6 +18,9 @@ export class NgCollectorModule  {
       try{
         let config = validateAndGetConfig(configuration);
         let instance = GetInstanceEnvironement(configuration);
+
+        console.log(config)
+        console.log(instance)
         return {
           ngModule: NgCollectorModule,
           providers: [

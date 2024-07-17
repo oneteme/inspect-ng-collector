@@ -3,8 +3,6 @@ import { MainSession, RestRequest } from "./trace.model";
 const WIN:any = window;
 
 
-export const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
-export const PATH_PATERN = /[\w-]+(\/[\w-]+)*/;
 
 export function dateNow() {
     return Date.now() / 1_000;
@@ -75,25 +73,6 @@ function prettyRestRequestFormat(rest: RestRequest){
 function prettyDurationFormat(start:number,end:number){
     return  start && end ? `(in ${ (end - start).toFixed(2) } ms)` : '';
 }
-
-
-
-export function matchRegex(v: string | undefined, pattern: RegExp) {
-   if(v && pattern.exec(v)){
-      return true;
-   }
-   console.warn("bad value=" + v + ", pattern=" + pattern);
-   return false;
-}
-
-export function requirePostitiveValue(v: number | undefined, name: string){
-  if(v == undefined ||  (v && v > 0)) {
-    return true;
-  }
-  console.warn(name +'='+ v + " <= 0");
-  return false;
-}
-
 
 
 
