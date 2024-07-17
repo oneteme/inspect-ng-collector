@@ -134,7 +134,7 @@ export class SessionManager implements OnDestroy {
             return from( fetch(this.config.instanceApi, requestOptions)
             .then(res => res.ok ? res.text().then(id=> {
                 this.instance = new BehaviorSubject<string>(id);
-                this.config.sessionApi = this.config.sessionApi .replace(':id',id);
+                this.config.sessionApi = this.config.sessionApi.replace(':id',id);
                 this.sessionSendAttempts=0;
                 logInspect('Environement instance sent successfully');
                 return id; 
