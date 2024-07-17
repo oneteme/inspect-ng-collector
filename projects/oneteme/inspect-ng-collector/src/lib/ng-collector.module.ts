@@ -1,13 +1,12 @@
 import { NgModule, APP_INITIALIZER, ModuleWithProviders } from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
-
 import { logInspect } from './util';
-
 import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { ApplicationConf, GetInstanceEnvironement, setConfig, validateAndGetConfig } from './configuration';
 import { HttpInterceptorService } from './http-interceptor.service';
 import { SessionManager } from './session-manager.service';
-import { RouteTracerService } from './route-tracer.service';
+import { EventManagerService } from './event-manager.service';
+
 
 
 
@@ -15,49 +14,49 @@ import { RouteTracerService } from './route-tracer.service';
 export class NgCollectorModule  {
 
   static forRoot(configuration: ApplicationConf): ModuleWithProviders<NgCollectorModule> {
-    try{
-      let conf = setConfig(configuration);
-      if(conf.enabled){
-        let config = validateAndGetConfig(conf);
-        let instance = GetInstanceEnvironement(conf);
-        console.log(conf)
+    if(configuration?.enabled){
+      try{
+        let config = validateAndGetConfig(configuration);
+        let instance = GetInstanceEnvironement(configuration);
         return {
           ngModule: NgCollectorModule,
           providers: [
-            SessionManager, // to be removed  and add session manager instead 
-            RouteTracerService,
-            { provide: APP_INITIALIZER, useFactory: initializeRoutingEvents, deps: [SessionManager], multi: true },
+            SessionManager, 
+            //EventManagerService,
+            { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: [Router, SessionManager], multi: true },
             { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
             { provide: 'instance', useValue: instance },
             { provide: 'config', useValue: config }
           ]
         };
+        
+      }catch(e){
+        console.warn('invalid Configuration, Ng-collector is disabled because', e);
       }
-
-    }catch(e){
-      console.warn('invalid Configuration, Ng-collector is disabled because', e);
     }
     return {
       ngModule: NgCollectorModule
     }
-
-    /*if (configuration?.enabled
-        && matchRegex(host, HOST_PATERN)
-        && matchRegex(getStringOrCall(configuration?.sessionApi), PATH_PATERN)
-        && matchRegex(getStringOrCall(configuration?.instanceApi), PATH_PATERN)) {
-       if(!requirePostitiveValue(getNumberOrCall(configuration?.delay),"delay") ||
-          !requirePostitiveValue(getNumberOrCall(configuration?.bufferMaxSize),"bufferMaxSize") ){
-            console.warn('invalid Configuration, Ng-collector is disabled');
-          return {ngModule: NgCollectorModule}
-       }  
-    }*/
   }
 }
 
-export function initializeRoutingEvents(sessionManager: SessionManager) { 
-  
+
+export function initializeEvents(router:Router, sessionManager: SessionManager) {
   return () => {
-        sessionManager.initialize();
+    logInspect('initialize routing events listeners');
+        window.addEventListener('beforeunload', (event: BeforeUnloadEvent): void => {
+            sessionManager.newSession();//force 
+            sessionManager.sendSessions();
+        });
+        router.events.subscribe(event => {
+            if (event instanceof NavigationStart) {
+                sessionManager.newSession(event.url);
+            }
+            if (event instanceof NavigationEnd) {
+                sessionManager.getCurrentSession().name = document.title;
+                sessionManager.getCurrentSession().location = document.URL; 
+            }
+        })
   }
 }
 
