@@ -130,7 +130,7 @@ function toURL(host:string, path:string ){
    return host.endsWith(SLASH) || path.startsWith(SLASH) ? host + path : [host,path].join(SLASH);
 }
 
-export function matchRegex(v: string | undefined,  name: string, pattern: RegExp,) {
+export function matchRegex(v: string | undefined,  name: string, pattern: RegExp) {
   if(v && pattern.exec(v)){
      return v;
   }
