@@ -9,7 +9,7 @@ export function dateNow() {
 }
 
 export function initDebug(value:boolean){
-   WIN["inspect"] = { debug : true };
+   WIN["inspect"] = { debug : value };
 }
 
 export function logInspect(...args: any[]){
