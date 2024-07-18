@@ -28,46 +28,6 @@ export interface TechnicalConf {
   enabled: boolean;
 }
 
- const validationMap  = { // remove 
-  host: { func: matchRegex, args: [HOST_PATERN] },
-  bufferMaxSize:  { func: requirePostitiveValue, args: [HOST_PATERN] },
-  delay:  { func: matchRegex, args: [HOST_PATERN] },
-  instanceApi:  { func: matchRegex, args: [HOST_PATERN] },
-  sessionApi:  { func: matchRegex, args: [HOST_PATERN] }
- }
-
-export function setConfig(conf:ApplicationConf){
-  return  {
-    host: conf.host,
-    name: getStringOrCall(conf.name),
-    version: getStringOrCall(conf.version) ?? '',
-    env: getStringOrCall(conf.env)?? '',
-    user: getStringOrCall(conf.user) ?? '',
-    bufferMaxSize: getNumberOrCall(conf.bufferMaxSize),
-    delay: getNumberOrCall(conf.delay),
-    instanceApi: getStringOrCall(conf.sessionApi),
-    sessionApi: getStringOrCall(conf.instanceApi),
-    exclude: getRegArrOrCall(conf.exclude) ?? [], 
-    debug: conf.debug ?? false,
-    enabled: conf.enabled ?? false
-  }
- /*
-  this.logServerMain = this.sessionApiURL(host,getStringOrCall(config.sessionApi)!);
-  this.logInstanceEnv = this.instanceApiURL(host,getStringOrCall(config.instanceApi)!);
-  this.maxBufferSize =  getNumberOrCall(config.bufferMaxSize) ?? 1000;
-  this.delay = getNumberOrCall(config.delay) ?? 60000;
-  */
-} 
-
-export function validateProperty(value:any, func : (...args:any)=> boolean){
-  if(func()){
-      return value;
-  }
-  throw new Error('error') // pass the error return from the the passed function 
-}
-
-
-
 export function validateAndGetConfig(conf:any):TechnicalConf{
   let host = matchRegex(getStringOrCall(conf.host), "host" , HOST_PATERN) 
   let sessionApi =   matchRegex(getStringOrCall(conf.sessionApi),'sessionApi', PATH_PATERN) 
@@ -75,7 +35,7 @@ export function validateAndGetConfig(conf:any):TechnicalConf{
   initDebug(conf.debug ?? false);
   return  {
     user : getStringOrCall(conf.user),
-    bufferMaxSize:  requirePostitiveValue(getNumberOrCall(conf.delay),"bufferMaxSize", 1000) ,
+    bufferMaxSize:  requirePostitiveValue(getNumberOrCall(conf.bufferMaxSize),"bufferMaxSize", 1000) ,
     delay: requirePostitiveValue(getNumberOrCall(conf.delay),"delay", 60000) ,
     instanceApi: sessionApiURL(host, instanceApi),
     sessionApi: instanceApiURL(host, sessionApi),

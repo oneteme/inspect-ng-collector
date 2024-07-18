@@ -2,12 +2,9 @@ import { NgModule, APP_INITIALIZER, ModuleWithProviders } from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
 import { logInspect } from './util';
 import { NavigationEnd, NavigationStart, Router } from '@angular/router';
-import { ApplicationConf, GetInstanceEnvironement, setConfig, validateAndGetConfig } from './configuration';
+import { ApplicationConf, GetInstanceEnvironement, validateAndGetConfig } from './configuration';
 import { HttpInterceptorService } from './http-interceptor.service';
 import { SessionManager } from './session-manager.service';
-import { EventManagerService } from './event-manager.service';
-
-
 
 
 @NgModule()
@@ -18,21 +15,18 @@ export class NgCollectorModule  {
       try{
         let config = validateAndGetConfig(configuration);
         let instance = GetInstanceEnvironement(configuration);
-
-        console.log(config)
-        console.log(instance)
+        logInspect(JSON.stringify(config));
+        logInspect(JSON.stringify(instance));
         return {
           ngModule: NgCollectorModule,
           providers: [
             SessionManager, 
-            //EventManagerService,
             { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: [Router, SessionManager], multi: true },
             { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
             { provide: 'instance', useValue: instance },
             { provide: 'config', useValue: config }
           ]
         };
-        
       }catch(e){
         console.warn('invalid Configuration, Ng-collector is disabled because', e);
       }
@@ -43,12 +37,11 @@ export class NgCollectorModule  {
   }
 }
 
-
 export function initializeEvents(router:Router, sessionManager: SessionManager) {
   return () => {
     logInspect('initialize routing events listeners');
         window.addEventListener('beforeunload', (event: BeforeUnloadEvent): void => {
-            sessionManager.newSession();//force 
+            sessionManager.newSession();
             sessionManager.sendSessions();
         });
         router.events.subscribe(event => {
