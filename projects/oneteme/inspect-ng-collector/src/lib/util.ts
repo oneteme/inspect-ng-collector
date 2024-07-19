@@ -2,8 +2,6 @@ import { MainSession, RestRequest } from "./trace.model";
 
 const WIN:any = window;
 
-
-
 export function dateNow() {
     return Date.now() / 1_000;
 }

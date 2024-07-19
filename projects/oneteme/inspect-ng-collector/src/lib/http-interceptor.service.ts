@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
 import { HttpInterceptor, HttpEvent, HttpHandler, HttpRequest, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { tap, finalize } from 'rxjs/operators'
 import { ExceptionInfo } from './trace.model';
 import { dateNow } from './util';
@@ -32,7 +32,6 @@ export class HttpInterceptorService implements HttpInterceptor {
                 }
             },
         ), finalize(() => {
-
             const url = toHref(req.urlWithParams);
             this.SessionManager.getCurrentSession().restRequests.push({
                 id: id,

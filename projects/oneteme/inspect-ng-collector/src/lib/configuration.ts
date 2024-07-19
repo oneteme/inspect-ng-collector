@@ -46,17 +46,17 @@ export function validateAndGetConfig(conf:any):TechnicalConf{
 }
 
 export function GetInstanceEnvironement(conf:ApplicationConf){
-    return {
-      name: getStringOrCall(conf.name),
-      version: getStringOrCall(conf.version),
-      address: undefined, //server side
-      env: getStringOrCall(conf.env),
-      os: detectOs(),
-      re: detectBrowser(),
-      user: undefined, // cannot get user
-      type: "CLIENT",
-      instant: dateNow(),
-      collector: "inspect-ng-collector-0.0.1"
+  return {
+    name: getStringOrCall(conf.name),
+    version: getStringOrCall(conf.version),
+    address: undefined, //server side
+    env: getStringOrCall(conf.env),
+    os: detectOs(),
+    re: detectBrowser(),
+    user: undefined, // cannot get user
+    type: "CLIENT",
+    instant: dateNow(),
+    collector: "inspect-ng-collector-0.0.1"
   }
 }
 
@@ -144,6 +144,6 @@ export function requirePostitiveValue(v: number | undefined, name: string, defau
   if(v == undefined){
     return defaultValue;
   }
-  throw `bad value ${name}= ${v} <= 0`  
+  throw `bad value ${name}=${v} <= 0`  
 }
 

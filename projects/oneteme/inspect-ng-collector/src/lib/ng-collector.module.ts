@@ -6,7 +6,6 @@ import { ApplicationConf, GetInstanceEnvironement, validateAndGetConfig } from '
 import { HttpInterceptorService } from './http-interceptor.service';
 import { SessionManager } from './session-manager.service';
 
-
 @NgModule()
 export class NgCollectorModule  {
 
@@ -28,7 +27,7 @@ export class NgCollectorModule  {
           ]
         };
       }catch(e){
-        console.warn('invalid Configuration, Ng-collector is disabled because', e);
+        console.warn(`invalid Configuration, Ng-collector is disabled because ${e}`);
       }
     }
     return {
@@ -40,7 +39,7 @@ export class NgCollectorModule  {
 export function initializeEvents(router:Router, sessionManager: SessionManager) {
   return () => {
     logInspect('initialize routing events listeners');
-        window.addEventListener('beforeunload', (event: BeforeUnloadEvent): void => {
+        window.addEventListener('beforeunload', event=> {
             sessionManager.newSession();
             sessionManager.sendSessions();
         });
