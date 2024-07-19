@@ -14,6 +14,7 @@ export interface MainSession {
 }
 
 export interface InstanceEnvironment {
+    id?:string;
     name?: string;
     address?: string;
     version?: string;
