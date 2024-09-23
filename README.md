@@ -56,18 +56,18 @@ export const environment = {
 
 ## Référence API
 
-| Request                                                | Description        |     | Valeur par défaut | 
+| Request                                                | Description        |  Valeur par défaut    |  | 
 |--------------------------------------------------------|--------------|----|----|
-| enabled                                                | **boolean**       |  obligatoire  |  false  | 
-| host                                                   | **string**   |  obligatoire  |  null  |
-| name                                                   | **string\|(()=>string)** |  obligatoire  |  null  | 
-| env                                                    | **string\|(()=>string)** | obligatoire| null |
-| instanceApi                                            | **string\|(()=>string)** |  obligatoire  |  null | 
-| sessionApi                                             | **string\|(()=>string)**   | obligatoire   |  null  | 
-| exclude                                                | **RegExp[]\|(()=>RegExp[])** | optionnel   |  []  | 
-| delay                                                  | **number \|(()=>number )** | optionnel   |  60000ms  | 
-| bufferMaxSize                                          | **number \|(()=>number )**   |  optionnel  |  1000  | 
-| debug                                                  | **boolean**  |  optionnel  |  false  | 
-| version                                                | **string\|(()=>string)**  |  optionnel  |  null  | 
-| user                                                   | **string\|(()=>string)**   | optionnel   |  null  | 
+| enabled                                                | **boolean**       |   false  | obligatoire  | 
+| host                                                   | **string**   |   null  | obligatoire  | 
+| name                                                   | **string\|(()=>string)** |    null  | obligatoire  |
+| env                                                    | **string\|(()=>string)** | null | obligatoire| 
+| instanceApi                                            | **string\|(()=>string)** |    null | obligatoire  |
+| sessionApi                                             | **string\|(()=>string)**   |   null  | obligatoire   |
+| exclude                                                | **RegExp[]\|(()=>RegExp[])** |   []  | optionnel   |
+| delay                                                  | **number \|(()=>number )** |   60000ms  | optionnel   |
+| bufferMaxSize                                          | **number \|(()=>number )**   |    1000  | optionnel  |
+| debug                                                  | **boolean**  |   false  | optionnel  | 
+| version                                                | **string\|(()=>string)**  | null  |  optionnel  |  
+| user                                                   | **string\|(()=>string)**   | null  | optionnel   |  
 
