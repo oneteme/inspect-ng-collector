@@ -32,9 +32,9 @@ export const environment = {
     ...
     application: {
         host: `https://backend-url.fr`,
-        name: "ihm-name",
+        name: "<your-app-name>",
         version: "0.0.0",
-        env: 'dev/rec...',
+        env: '<dev|rec|...>',
         user: () => '',
         instanceApi: 'v3/trace/instance', // instance endpoint
         sessionApi: 'v3/trace/instance/:id/session', // sessions endpoint
