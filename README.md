@@ -10,8 +10,8 @@ Tout d'abord, importer le **NgCollectorModule** dans le module de votre applicat
 ```ts
 // app.module.ts
 ...
-import { NgCollectorModule } from '@oneteme/inspect-ng-collector';
 import { environment } from 'src/environments/environment';
+import { NgCollectorModule } from '@oneteme/inspect-ng-collector';
 
 @NgModule({
   declarations: [...],
@@ -20,7 +20,7 @@ import { environment } from 'src/environments/environment';
     NgCollectorModule.forRoot(environment.application),
   ]
 })
-export class AppModule{} 
+export class <your_app_module>{} 
 ```
 ## Configuration 
 La bibliothèque nécessite certaines configurations pour fonctionner correctement. ces configurations doivent être fournies lors de l'initialisation du module.
