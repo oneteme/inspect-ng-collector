@@ -57,9 +57,9 @@ export const environment = {
 | instanceApi                                            | **string\|(()=>string)** |    null | x  |
 | sessionApi                                             | **string\|(()=>string)**   |   null  | x   |
 | exclude                                                | **RegExp[]\|(()=>RegExp[])** |   []  | x   |
-| delay                                                  | **number \|(()=>number )** |   60000ms  | optionnel   |
-| bufferMaxSize                                          | **number \|(()=>number )**   |    1000  | optionnel  |
-| debug                                                  | **boolean**  |   false  | optionnel  | 
-| version                                                | **string\|(()=>string)**  | null  |  optionnel  |  
-| user                                                   | **string\|(()=>string)**   | null  | optionnel   |  
+| delay                                                  | **number \|(()=>number )** |   60000ms  |  |
+| bufferMaxSize                                          | **number \|(()=>number )**   |    1000  |  |
+| debug                                                  | **boolean**  |   false  |  | 
+| version                                                | **string\|(()=>string)**  | null  |   |  
+| user                                                   | **string\|(()=>string)**   | null  |  |  
 
