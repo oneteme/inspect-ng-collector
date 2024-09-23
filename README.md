@@ -8,7 +8,7 @@ $ npm i @oneteme/inspect-ng-collector
 Tout d'abord, importer le **NgCollectorModule** dans le module de votre application.
 
 ```ts
-// app.module.ts
+// <your_app_module>.ts
 ...
 import { environment } from 'src/environments/environment';
 import { NgCollectorModule } from '@oneteme/inspect-ng-collector';
