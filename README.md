@@ -4,7 +4,7 @@
 $ npm i @oneteme/inspect-ng-collector
 ```
   
-## Utilisation 
+## Integration 
 Tout d'abord, importer le **NgCollectorModule** dans le module de votre application.
 
 ```ts
