@@ -18,7 +18,8 @@ import { NgCollectorModule } from '@oneteme/inspect-ng-collector';
   imports: [
     ...
     NgCollectorModule.forRoot(environment.application),
-  ]
+  ],
+  ...
 })
 export class <your_app_module>{} 
 ```
