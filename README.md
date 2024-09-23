@@ -34,7 +34,7 @@ export const environment = {
         host: `https://backend-url.fr`,
         name: "<your-app-name>",
         version: "0.0.0",
-        env: '<dev|rec|...>',
+        env: '<app_environement>',
         user: () => '',
         instanceApi: 'v3/trace/instance', // instance endpoint
         sessionApi: 'v3/trace/instance/:id/session', // sessions endpoint
