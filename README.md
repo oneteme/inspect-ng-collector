@@ -56,17 +56,18 @@ export const environment = {
 
 ## Référence API
 
-| Request                                                | Description        |
-|--------------------------------------------------------|--------------|
-| host                                                   | **string, obligatoire**   |
-| name                                                   | **string\|(()=>string),obligatoire)** |
-| version                                                | **string\|(()=>string),obligatoire**  |
-| env                                                    | **string\|(()=>string), obligatoire** |
-| user                                                   | **string\|(()=>string), obligatoire**   |
-| instanceApi                                            | **string\|(()=>string), obligatoire** |
-| sessionApi                                             | **string\|(()=>string), obligatoire**   |
-| exclude                                                | **RegExp[]\|(()=>RegExp[]), optionnel** |
-| delay                                                  | **number \|(()=>number ), optionnel** par défaut : 60000ms |
-| bufferMaxSize                                          | **number \|(()=>number ), optionnel**   par défaut : 1000 |
-| debug                                                  | **boolean, optionnel**  |
-| enabled                                                | **boolean, obligatoire**       |
+| Request                                                | Description        |     |   
+|--------------------------------------------------------|--------------|----|   
+| enabled                                                | **boolean**       |  obligatoire  |   
+| host                                                   | **string**   |  obligatoire  |   
+| name                                                   | **string\|(()=>string)** |  obligatoire  |   
+| env                                                    | **string\|(()=>string)** | obligatoire|   
+| instanceApi                                            | **string\|(()=>string)** |  obligatoire  |   
+| sessionApi                                             | **string\|(()=>string)**   | obligatoire   |   
+| exclude                                                | **RegExp[]\|(()=>RegExp[])** | optionnel   |   
+| delay                                                  | **number \|(()=>number )** par défaut : 60000ms | optionnel   |   
+| bufferMaxSize                                          | **number \|(()=>number )**   par défaut : 1000 |  optionnel  |   
+| debug                                                  | **boolean**  |  optionnel  |   
+| version                                                | **string\|(()=>string)**  |  optionnel  |   
+| user                                                   | **string\|(()=>string)**   | optionnel   |   
+
