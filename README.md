@@ -28,7 +28,7 @@ import { AppComponent } from './app.component';
   providers: [],
   bootstrap: [AppComponent]
 })
-export class AppModule{}
+export class AppModule{} 
 ```
 ## Configuration 
 La bibliothèque nécessite certaines configurations pour fonctionner correctement. ces configurations doivent être fournies lors de l'initialisation du module.
@@ -58,15 +58,15 @@ export const environment = {
 
 | Request                                                | Description        |
 |--------------------------------------------------------|--------------|
-| host                                                   | **(string, obligatoire)**   |
-| name                                                   | **(string|(()=>string),obligatoire)** |
-| version                                                | **(string|(()=>string),obligatoire)**  |
-| env                                                    | **(string|(()=>string), obligatoire)** |
-| user                                                   | **(string|(()=>string), obligatoire)**   |
-| instanceApi                                            |  **(string|(()=>string), obligatoire)** |
-| sessionApi                                             | **(string|(()=>string), obligatoire)**   |
-| exclude                                                | **(RegExp[]|(()=>RegExp[]), optionnel)** |
-| delay                                                  | **(number |(()=>number ), optionnel)** par défaut : 60000ms |
-| bufferMaxSize                                          |  **(number |(()=>number ), optionnel)**   par défaut : 1000 |
-| debug                                                  | **(boolean, optionnel)**  |
-| enabled                                                | **(boolean, obligatoire)**       |
+| host                                                   | **string, obligatoire**   |
+| name                                                   | **string\|(()=>string),obligatoire)** |
+| version                                                | **string\|(()=>string),obligatoire**  |
+| env                                                    | **string\|(()=>string), obligatoire** |
+| user                                                   | **string\|(()=>string), obligatoire**   |
+| instanceApi                                            | **string\|(()=>string), obligatoire** |
+| sessionApi                                             | **string\|(()=>string), obligatoire**   |
+| exclude                                                | **RegExp[]\|(()=>RegExp[]), optionnel** |
+| delay                                                  | **number \|(()=>number ), optionnel** par défaut : 60000ms |
+| bufferMaxSize                                          | **number \|(()=>number ), optionnel**   par défaut : 1000 |
+| debug                                                  | **boolean, optionnel**  |
+| enabled                                                | **boolean, obligatoire**       |
