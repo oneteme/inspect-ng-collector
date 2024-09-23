@@ -9,24 +9,16 @@ Tout d'abord, importer le **NgCollectorModule** dans le module de votre applicat
 
 ```ts
 // app.module.ts
-import { BrowserModule } from '@angular/platform-browser';
-import { NgModule } from '@angular/core';
+...
 import { NgCollectorModule } from '@oneteme/inspect-ng-collector';
 import { environment } from 'src/environments/environment';
-import { AppComponent } from './app.component';
 
 @NgModule({
-  declarations: [
-    AppComponent,
-    //... autres composants
-  ],
+  declarations: [...],
   imports: [
-    BrowserModule,
+    ...
     NgCollectorModule.forRoot(environment.application),
-    //... autres modules
-  ],
-  providers: [],
-  bootstrap: [AppComponent]
+  ]
 })
 export class AppModule{} 
 ```
@@ -36,7 +28,7 @@ La bibliothèque nécessite certaines configurations pour fonctionner correcteme
 ```ts
 // app.module.ts
 export const environment = {
-
+    ...
     application: {
         host: `https://backend-url.fr`,
         name: "ihm-name",
@@ -56,15 +48,15 @@ export const environment = {
 
 ## Référence API
 
-| Request                                                | Description        |  Valeur par défaut    |  | 
+| Request                                                | Description        |  Valeur par défaut    | obligatoire | 
 |--------------------------------------------------------|--------------|----|----|
-| enabled                                                | **boolean**       |   false  | obligatoire  | 
-| host                                                   | **string**   |   null  | obligatoire  | 
-| name                                                   | **string\|(()=>string)** |    null  | obligatoire  |
-| env                                                    | **string\|(()=>string)** | null | obligatoire| 
-| instanceApi                                            | **string\|(()=>string)** |    null | obligatoire  |
-| sessionApi                                             | **string\|(()=>string)**   |   null  | obligatoire   |
-| exclude                                                | **RegExp[]\|(()=>RegExp[])** |   []  | optionnel   |
+| enabled                                                | **boolean**       |   false  | x  | 
+| host                                                   | **string**   |   null  | x  | 
+| name                                                   | **string\|(()=>string)** |    null  | x  |
+| env                                                    | **string\|(()=>string)** | null | x| 
+| instanceApi                                            | **string\|(()=>string)** |    null | x  |
+| sessionApi                                             | **string\|(()=>string)**   |   null  | x   |
+| exclude                                                | **RegExp[]\|(()=>RegExp[])** |   []  | x   |
 | delay                                                  | **number \|(()=>number )** |   60000ms  | optionnel   |
 | bufferMaxSize                                          | **number \|(()=>number )**   |    1000  | optionnel  |
 | debug                                                  | **boolean**  |   false  | optionnel  | 
