@@ -1,60 +1,58 @@
 import { NgModule, APP_INITIALIZER, ModuleWithProviders } from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
+import { logInspect } from './util';
+import { NavigationEnd, NavigationStart, Router } from '@angular/router';
+import { ApplicationConf, GetInstanceEnvironement, validateAndGetConfig } from './configuration';
 import { HttpInterceptorService } from './http-interceptor.service';
-import { RouteTracerService } from './route-tracer.service';
-import { getNumberOrCall, requirePostitiveValue, matchRegex, HOST_PATERN, PATH_PATERN, getStringOrCall } from './util';
 import { SessionManager } from './session-manager.service';
 
+@NgModule()
+export class NgCollectorModule  {
 
-
-@NgModule({})
-export class NgCollectorModule {
-
-  static forRoot(host: string, configuration: ApplicationConf): ModuleWithProviders<NgCollectorModule> {
-    if (configuration?.enabled
-        && matchRegex(host, HOST_PATERN)
-        && matchRegex(getStringOrCall(configuration?.sessionApi), PATH_PATERN)
-        && matchRegex(getStringOrCall(configuration?.instanceApi), PATH_PATERN)) {
-
-
-       if(!requirePostitiveValue(getNumberOrCall(configuration?.delay),"delay") ||
-          !requirePostitiveValue(getNumberOrCall(configuration?.bufferMaxSize),"bufferMaxSize") ){
-            console.warn('invalid Configuration, Ng-collector is disabled');
-          return {ngModule: NgCollectorModule}
-       }  
-      return {
-        ngModule: NgCollectorModule,
-        providers: [
-          RouteTracerService,
-          SessionManager,
-          { provide: APP_INITIALIZER, useFactory: initializeRoutingEvents, deps: [RouteTracerService], multi: true },
-          { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
-          { provide: 'config', useValue: configuration },
-          { provide: 'host', useValue: host }
-        ]
-      };
+  static forRoot(configuration: ApplicationConf): ModuleWithProviders<NgCollectorModule> {
+    if(configuration?.enabled){
+      try{
+        let config = validateAndGetConfig(configuration);
+        let instance = GetInstanceEnvironement(configuration);
+        logInspect(JSON.stringify(config));
+        logInspect(JSON.stringify(instance));
+        return {
+          ngModule: NgCollectorModule,
+          providers: [
+            SessionManager, 
+            { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: [Router, SessionManager], multi: true },
+            { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
+            { provide: 'instance', useValue: instance },
+            { provide: 'config', useValue: config }
+          ]
+        };
+      }catch(e){
+        console.warn(`invalid Configuration, Ng-collector is disabled because ${e}`);
+      }
     }
     return {
       ngModule: NgCollectorModule
     }
-
   }
 }
 
-export function initializeRoutingEvents(routeTracerService: RouteTracerService) {
-  return () => routeTracerService.initialize();
+export function initializeEvents(router:Router, sessionManager: SessionManager) {
+  return () => {
+    logInspect('initialize routing events listeners');
+        window.addEventListener('beforeunload', event=> {
+            sessionManager.newSession();
+            sessionManager.sendSessions();
+        });
+        router.events.subscribe(event => {
+            if (event instanceof NavigationStart) {
+                sessionManager.newSession(event.url);
+            }
+            if (event instanceof NavigationEnd) {
+                sessionManager.getCurrentSession().name = document.title;
+                sessionManager.getCurrentSession().location = document.URL; 
+            }
+        })
+  }
 }
 
-export interface ApplicationConf {
-  name?: string | (() => string);
-  version?: string | (() => string);
-  env?: string | (() => string);
-  user?: string | (() => string);
-  bufferMaxSize?: number | (() => number);
-  delay?: number| (() => number);
-  instanceApi?: string | (() => string);
-  sessionApi?: string | (() => string);
-  exclude?: RegExp[] | (() => RegExp[]);
-  debug?: boolean;
-  enabled?: boolean;
-}
+

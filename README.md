@@ -1,27 +1,66 @@
-# InspectCollectors
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.1.2.
+## Installation 
+```sh
+$ npm i @oneteme/inspect-ng-collector
+```
+  
+## Integration 
+Tout d'abord, importer le **NgCollectorModule** dans le module de votre application.
 
-## Development server
+```ts
+// <your_app_module>.ts
+...
+import { environment } from 'src/environments/environment';
+import { NgCollectorModule } from '@oneteme/inspect-ng-collector';
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+@NgModule({
+  declarations: [...],
+  imports: [
+    ...
+    NgCollectorModule.forRoot(environment.application),
+  ],
+  ...
+})
+export class <your_app_module>{} 
+```
+## Configuration 
+La bibliothèque nécessite certaines configurations pour fonctionner correctement. ces configurations doivent être fournies lors de l'initialisation du module.
 
-## Code scaffolding
+```ts
+// app.module.ts
+export const environment = {
+    ...
+    application: {
+        host: `https://backend-url.fr`,
+        name: "<your-app-name>",
+        version: "0.0.0",
+        env: '<app_environement>',
+        user: () => '',
+        instanceApi: 'v3/trace/instance', // instance endpoint
+        sessionApi: 'v3/trace/instance/:id/session', // sessions endpoint
+        exclude:  [/scope/], // routes to exclude
+        delay : 60000,  // trace frequency
+        bufferMaxSize: 1000, // maximum number of sessions
+        debug: true, // enable debug mode
+        enabled: false
+    }
+};
+```
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## Référence API
 
-## Build
+| Request                                                | Description        |  Valeur par défaut    | obligatoire | 
+|--------------------------------------------------------|--------------|----|----|
+| enabled                                                | **boolean**       |   false  | x  | 
+| host                                                   | **string**   |   null  | x  | 
+| name                                                   | **string\|(()=>string)** |    null  | x  |
+| env                                                    | **string\|(()=>string)** | null | x| 
+| instanceApi                                            | **string\|(()=>string)** |    null | x  |
+| sessionApi                                             | **string\|(()=>string)**   |   null  | x   |
+| exclude                                                | **RegExp[]\|(()=>RegExp[])** |   []  | x   |
+| delay                                                  | **number \|(()=>number )** |   60000ms  |  |
+| bufferMaxSize                                          | **number \|(()=>number )**   |    1000  |  |
+| debug                                                  | **boolean**  |   false  |  | 
+| version                                                | **string\|(()=>string)**  | null  |   |  
+| user                                                   | **string\|(()=>string)**   | null  |  |  
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
-
-## Running unit tests
-
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.

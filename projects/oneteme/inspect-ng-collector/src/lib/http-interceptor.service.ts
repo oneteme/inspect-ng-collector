@@ -1,15 +1,15 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
 import { HttpInterceptor, HttpEvent, HttpHandler, HttpRequest, HttpResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { tap, finalize } from 'rxjs/operators'
-import { RouteTracerService } from './route-tracer.service';
 import { ExceptionInfo } from './trace.model';
 import { dateNow } from './util';
+import { SessionManager } from './session-manager.service';
 
 @Injectable({ providedIn: 'root' })
 export class HttpInterceptorService implements HttpInterceptor {
 
-    constructor(private routerTracerService: RouteTracerService) { }
+    constructor(private SessionManager: SessionManager) { } // change this to session manager
 
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
         const start = dateNow();
@@ -24,7 +24,6 @@ export class HttpInterceptorService implements HttpInterceptor {
                 }
             },
             error => {
-                console.log(error)
                 id = getReqid(error.headers);
                 status = +error.status;
                 exception = {
@@ -33,9 +32,8 @@ export class HttpInterceptorService implements HttpInterceptor {
                 }
             },
         ), finalize(() => {
-
             const url = toHref(req.urlWithParams);
-            this.routerTracerService.getCurrentSession().restRequests.push({
+            this.SessionManager.getCurrentSession().restRequests.push({
                 id: id,
                 method: req.method,
                 protocol: url.protocol.slice(0, -1),
