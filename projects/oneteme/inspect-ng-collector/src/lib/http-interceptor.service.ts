@@ -32,24 +32,26 @@ export class HttpInterceptorService implements HttpInterceptor {
                 }
             },
         ), finalize(() => {
-            const url = toHref(req.urlWithParams);
-            this.SessionManager.getCurrentSession().restRequests.push({
-                id: id,
-                method: req.method,
-                protocol: url.protocol.slice(0, -1),
-                host: exctractHost(url.host),
-                port: +url.port,
-                path: url.pathname,
-                query: url.search.slice(1, url.search.length),
-                contentType: req.responseType,
-                authScheme: extractAuthScheme(req.headers),
-                status: +status,
-                inDataSize: sizeOf(responseBody),
-                ouDataSize: sizeOf(req.body),
-                start: start,
-                end: dateNow(),
-                exception: exception
-            });
+            if(this.SessionManager.getCurrentSession()){
+                const url = toHref(req.urlWithParams);
+                this.SessionManager.getCurrentSession().restRequests.push({
+                    id: id,
+                    method: req.method,
+                    protocol: url.protocol.slice(0, -1),
+                    host: exctractHost(url.host),
+                    port: +url.port,
+                    path: url.pathname,
+                    query: url.search.slice(1, url.search.length),
+                    contentType: req.responseType,
+                    authScheme: extractAuthScheme(req.headers),
+                    status: +status,
+                    inDataSize: sizeOf(responseBody),
+                    ouDataSize: sizeOf(req.body),
+                    start: start,
+                    end: dateNow(),
+                    exception: exception
+                });
+            }
         }));
     }
 }
