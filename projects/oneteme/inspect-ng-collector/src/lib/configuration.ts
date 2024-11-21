@@ -76,16 +76,18 @@ export function detectBrowser() {
   try {
       const agent = window.navigator.userAgent.toLowerCase()
       switch (true) {
-          case agent.indexOf('edge') > -1:
-              return 'edge';
+          case agent.indexOf('edg') > -1:
+              return 'Edge';
           case agent.indexOf('opr') > -1:
-              return 'opera';
+              return 'Opera';
           case agent.indexOf('chrome') > -1:
-              return 'chrome';
+              return 'Chrome';
           case agent.indexOf('firefox') > -1:
-              return 'firefox';
+              return 'Firefox';
           case agent.indexOf('safari') > -1:
-              return 'safari';
+              return 'Safari';
+          case agent.indexOf('msie') > -1:
+            return 'Microsoft Internet Explorer';
       }
   }
   catch (e) {

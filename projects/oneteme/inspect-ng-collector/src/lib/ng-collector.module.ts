@@ -7,11 +7,11 @@ import { HttpInterceptorService } from './http-interceptor.service';
 import { SessionManager } from './session-manager.service';
 
 @NgModule()
-export class NgCollectorModule  {
+export class NgCollectorModule {
 
   static forRoot(configuration: ApplicationConf): ModuleWithProviders<NgCollectorModule> {
-    if(configuration?.enabled){
-      try{
+    if (configuration?.enabled) {
+      try {
         let config = validateAndGetConfig(configuration);
         let instance = GetInstanceEnvironement(configuration);
         logInspect(JSON.stringify(config));
@@ -19,14 +19,14 @@ export class NgCollectorModule  {
         return {
           ngModule: NgCollectorModule,
           providers: [
-            SessionManager, 
+            SessionManager,
             { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: [Router, SessionManager], multi: true },
             { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
             { provide: 'instance', useValue: instance },
             { provide: 'config', useValue: config }
           ]
         };
-      }catch(e){
+      } catch (e) {
         console.warn(`invalid Configuration, Ng-collector is disabled because ${e}`);
       }
     }
@@ -36,22 +36,25 @@ export class NgCollectorModule  {
   }
 }
 
-export function initializeEvents(router:Router, sessionManager: SessionManager) {
+export function initializeEvents(router: Router, sessionManager: SessionManager) {
   return () => {
     logInspect('initialize routing events listeners');
-        window.addEventListener('beforeunload', event=> {
-            sessionManager.newSession();
-            sessionManager.sendSessions();
-        });
-        router.events.subscribe(event => {
-            if (event instanceof NavigationStart) {
-                sessionManager.newSession(event.url);
-            }
-            if (event instanceof NavigationEnd) {
-                sessionManager.getCurrentSession().name = document.title;
-                sessionManager.getCurrentSession().location = document.URL; 
-            }
-        })
+    window.addEventListener('beforeunload', event => {
+      if(!sessionManager.getCurrentSession().loading){
+        sessionManager.newSession();
+      }
+      sessionManager.sendSessions()
+    });
+    router.events.subscribe(event => {
+      if (event instanceof NavigationStart) {
+        sessionManager.newSession(event.url);
+      }
+      if (event instanceof NavigationEnd) {
+        sessionManager.getCurrentSession().name = document.title;
+        sessionManager.getCurrentSession().location = document.URL;
+        delete sessionManager.getCurrentSession().loading;
+      }
+    })
   }
 }
 
