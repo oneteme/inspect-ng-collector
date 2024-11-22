@@ -24,7 +24,6 @@ export class HttpInterceptorService implements HttpInterceptor {
                 }
             },
             error => {
-                console.log("errorHandler", error);
                 id = getReqid(error.headers);
                 status = +error.status;
                 exception = {
