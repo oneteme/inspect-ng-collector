@@ -24,11 +24,12 @@ export class HttpInterceptorService implements HttpInterceptor {
                 }
             },
             error => {
+                console.log("errorHandler", error);
                 id = getReqid(error.headers);
                 status = +error.status;
                 exception = {
-                    type: error?.error.error ? error?.error.error : error.statusText,
-                    message: error?.error.message ? error?.error.message : error.message
+                    type : error.name,
+                    message: error.error && error.status ?  JSON.stringify(error.error) : error.message
                 }
             },
         ), finalize(() => {
