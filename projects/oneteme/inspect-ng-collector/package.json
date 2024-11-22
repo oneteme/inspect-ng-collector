@@ -1,6 +1,6 @@
 {
   "name": "@oneteme/inspect-ng-collector",
-  "version": "0.0.17",
+  "version": "0.16.18",
   "description": "inspect ng collector",
   "homepage": "https://github.com/oneteme/inspect-ng-collector",
   "bugs": "https://github.com/oneteme/inspect-ng-collector/issues",
@@ -9,9 +9,9 @@
     "url": "https://github.com/oneteme/inspect-ng-collector.git"
   },
   "peerDependencies": {
-    "@angular/common": "^17.0.0",
-    "@angular/core": "^17.0.0",
-    "@angular/router": "^17.0.0"
+    "@angular/common": "^16.2.8",
+    "@angular/core": "^16.2.8",
+    "@angular/router": "^16.2.8"
   },
   "dependencies": {
     "tslib": "^2.3.0"

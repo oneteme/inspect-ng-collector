@@ -27,8 +27,8 @@ export class HttpInterceptorService implements HttpInterceptor {
                 id = getReqid(error.headers);
                 status = +error.status;
                 exception = {
-                    type: error.error.error,
-                    message: error.error.message
+                    type : error.name,
+                    message: error.error && error.status ?  JSON.stringify(error.error) : error.message
                 }
             },
         ), finalize(() => {
@@ -39,7 +39,7 @@ export class HttpInterceptorService implements HttpInterceptor {
                     method: req.method,
                     protocol: url.protocol.slice(0, -1),
                     host: exctractHost(url.host),
-                    port: +url.port,
+                    port: +url.port || -1,
                     path: url.pathname,
                     query: url.search.slice(1, url.search.length),
                     contentType: req.responseType,

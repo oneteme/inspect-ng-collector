@@ -10,7 +10,8 @@ export interface MainSession {
     end?: number;
     threadName?:string;  // always null 
     exception?: ExceptionInfo // to be changed ? 
-    restRequests: RestRequest[]
+    restRequests: RestRequest[],
+    loading?: boolean
 }
 
 export interface InstanceEnvironment {
