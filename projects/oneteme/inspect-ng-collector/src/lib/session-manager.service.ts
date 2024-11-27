@@ -66,11 +66,11 @@ export class SessionManager implements OnDestroy {
                return this.sendSessions();
             }
             console.warn(`Error while attempting to send Environement instance, attempts ${this.sessionSendAttempts}`);
-            return Promise.reject();
+            return Promise.reject(new Error('No instance id'));
         });
     }
 
-    sendSessions(){
+    sendSessions() : Promise<number>{
         if (this.sessionQueue.length > 0) {
             this.sessionSendAttempts++;
             let sessions: MainSession[] = [...this.sessionQueue];
@@ -81,13 +81,15 @@ export class SessionManager implements OnDestroy {
                     if (ok) {
                         logInspect(`sessions sent successfully, queue size reset, new size is: ${this.sessionQueue.length}`)
                         this.sessionSendAttempts = 0;
+                        return sessions.length;
                     } else {
                         console.warn(`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)//
                         this.revertQueueSize(sessions);
+                        return -1;
                     }
                 })
         }
-        return Promise.reject();
+        return Promise.resolve(0);
     }
 
     putSessions(sessionList: MainSession[]): Promise<boolean> {
