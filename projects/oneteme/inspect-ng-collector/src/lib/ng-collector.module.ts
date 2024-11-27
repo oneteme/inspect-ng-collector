@@ -43,15 +43,13 @@ export function initializeEvents(router: Router, sessionManager: SessionManager)
       if(!sessionManager.getCurrentSession().loading){
         sessionManager.newSession();
       }
-      sessionManager.sendSessions()
+      sessionManager.sendSessions();
     });
     router.events.subscribe(event => {
       if (event instanceof NavigationStart) {
         sessionManager.newSession(event.url);
       }
       if (event instanceof NavigationEnd) {
-        sessionManager.getCurrentSession().name = document.title;
-        sessionManager.getCurrentSession().location = document.URL;
         delete sessionManager.getCurrentSession().loading;
       }
     })

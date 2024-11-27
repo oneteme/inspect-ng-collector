@@ -1,6 +1,6 @@
 import { Inject, Injectable, OnDestroy } from '@angular/core';
 import { InstanceEnvironment, MainSession } from './trace.model';
-import { interval, Subscription, tap } from 'rxjs';
+import { interval, startWith, Subscription, tap } from 'rxjs';
 import { dateNow, logInspect, prettySessionFormat } from './util';
 import { TechnicalConf } from './configuration';
 
@@ -21,10 +21,11 @@ export class SessionManager implements OnDestroy {
         this.config = config;
         this.instanceEnvironment = instance;
         this.scheduledSessionSender = interval(config.delay)
+            .pipe(startWith(0))
             .pipe(tap(() => {
                 if (this.sendSessionfinished) {
                     this.sendSessionfinished = false;
-                    this.sendSessions().finally(() => { this.sendSessionfinished = true });
+                    this.manageCache().finally(() => { this.sendSessionfinished = true });
                 }
             }))
             .subscribe();
@@ -34,6 +35,8 @@ export class SessionManager implements OnDestroy {
     newSession(url?: string) {
         if (this.currentSession) {
             this.currentSession.end = dateNow();
+            this.currentSession.name = document.title;
+            this.currentSession.location = document.URL;
             if (this.config.exclude.every((e) => !e.test(this.currentSession.location))) {
                 this.sessionQueue.push(this.currentSession);
                 logInspect(`added element to session queue, new size is:${this.sessionQueue.length}`);
@@ -54,30 +57,39 @@ export class SessionManager implements OnDestroy {
         }
     }
 
-    sendSessions(): Promise<any> {
+    manageCache(): Promise<any> {
+        if(this.instanceEnvironment.id){
+            return this.sendSessions();
+        }
+        return this.postInstanceEnv().then((id: string | null) => {
+            if (id) {
+               return this.sendSessions();
+            }
+            console.warn(`Error while attempting to send Environement instance, attempts ${this.sessionSendAttempts}`);
+            return Promise.reject(new Error('No instance id'));
+        });
+    }
+
+    sendSessions() : Promise<number>{
         if (this.sessionQueue.length > 0) {
             this.sessionSendAttempts++;
-            return this.postInstanceEnv().then((id: string | null) => {
-                if (id) {
-                    let sessions: MainSession[] = [...this.sessionQueue];
-                    this.sessionQueue.splice(0, sessions.length); // add rest of sessions
-                    logInspect(`sending sessions, attempts:${this.sessionSendAttempts}, queue size : ${sessions.length}`)
-                    return this.putSessions(sessions)
-                        .then(ok => {
-                            if (ok) {
-                                logInspect(`sessions sent successfully, queue size reset, new size is: ${this.sessionQueue.length}`)
-                                this.sessionSendAttempts = 0;
-                            } else {
-                                console.warn(`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)//
-                                this.revertQueueSize(sessions);
-                            }
-                        })
-                }
-                console.warn(`Error while attempting to send Environement instance, attempts ${this.sessionSendAttempts}`);
-                return Promise.reject();
-            });
+            let sessions: MainSession[] = [...this.sessionQueue];
+            this.sessionQueue.splice(0, sessions.length); // add rest of sessions
+            logInspect(`sending sessions, attempts:${this.sessionSendAttempts}, queue size : ${sessions.length}`)
+            return this.putSessions(sessions)
+                .then(ok => {
+                    if (ok) {
+                        logInspect(`sessions sent successfully, queue size reset, new size is: ${this.sessionQueue.length}`)
+                        this.sessionSendAttempts = 0;
+                        return sessions.length;
+                    } else {
+                        console.warn(`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)//
+                        this.revertQueueSize(sessions);
+                        return -1;
+                    }
+                })
         }
-        return Promise.resolve();
+        return Promise.resolve(0);
     }
 
     putSessions(sessionList: MainSession[]): Promise<boolean> {
@@ -92,21 +104,20 @@ export class SessionManager implements OnDestroy {
     }
 
     postInstanceEnv(): Promise<string | null> {
-        if (this.instanceEnvironment.id) {
-            return Promise.resolve(this.instanceEnvironment.id)
-        }
+        this.sessionSendAttempts++;
         return fetch(this.config.instanceApi, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             mode: 'cors',
             body: JSON.stringify(this.instanceEnvironment)
         })
-            .then(res => res.ok ? res.text().then(id => {
-                this.config.sessionApi = this.config.sessionApi.replace(':id', id);
-                logInspect('Environement instance sent successfully');
-                return this.instanceEnvironment.id = id;
-            }) : null)
-            .catch(err => null);
+        .then(res => res.ok ? res.text().then(id => {
+            this.config.sessionApi = this.config.sessionApi.replace(':id', id);
+            logInspect('Environement instance sent successfully', id);
+            this.sessionSendAttempts = 0;
+            return this.instanceEnvironment.id = id;
+        }) : null)
+        .catch(err => null);
     }
 
     revertQueueSize(sessions: MainSession[]) {
