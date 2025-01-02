@@ -41,8 +41,8 @@ export const environment = {
         exclude:  [/scope/], // routes to exclude
         delay : 60000,  // trace frequency
         bufferMaxSize: 1000, // maximum number of sessions
-        debug: true, // enable debug mode
-        enabled: false
+        debug: false, // enable debug mode
+        enabled: true
     }
 };
 ```
