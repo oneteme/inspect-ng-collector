@@ -6,9 +6,14 @@
   "homepage": "https://github.com/oneteme/inspect-ng-collector",
   "bugs": "https://github.com/oneteme/inspect-ng-collector/issues",
   "author": {
-    "name": "Youssef DAHI",
+    "name": "u$f",
     "url": "https://oneteme.github.io/"
   },
+  "contributors": [
+    {
+      "name": "Youssef DAHI"
+    }
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/oneteme/inspect-ng-collector.git"
