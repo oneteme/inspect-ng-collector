@@ -23,12 +23,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '18.x'
+          node-version: 18
           registry-url: 'https://registry.npmjs.org'
           scope: '@oneteme'
       - run: npm install
       - run: npm run build '@oneteme/inspect-ng-collector'
-      - run: npm config ls
-      - run: npm publish ./dist/oneteme/inspect-ng-collector --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      #- run: npm publish ./dist/oneteme/inspect-ng-collector --access public
+      #  env:
+      #    NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
