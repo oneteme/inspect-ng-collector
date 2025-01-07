@@ -1,5 +1,5 @@
 
-## Installation 
+## Installation  [![NPM Version](https://img.shields.io/npm/v/%40oneteme%2Finspect-ng-collector?style=social)](https://www.npmjs.com/package/@oneteme/inspect-ng-collector)
 ```sh
 $ npm i @oneteme/inspect-ng-collector
 ```
