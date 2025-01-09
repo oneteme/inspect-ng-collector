@@ -33,6 +33,8 @@ jobs:
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     - uses: oneteme/automation-scripts/.github/actions/npm-project-version@main
+      with:
+        path: './projects/oneteme/inspect-ng-collector/package.json'
       id: prj_ver
     outputs:
       version: ${{ steps.prj_ver.outputs.version }}
