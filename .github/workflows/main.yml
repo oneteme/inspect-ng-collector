@@ -15,8 +15,8 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: 18
-    - run: npm install
-    - run: npm run build '@oneteme/inspect-ng-collector'
-    - uses: SonarSource/sonarqube-scan-action@v4.2.1
+    - uses: oneteme/automation-scripts/.github/actions/sonar-npm-scan@main
+      with:
+        package: 'inspect-ng-collector'
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
