@@ -26,8 +26,8 @@ export class NgCollectorModule {
             { provide: 'config', useValue: config }
           ]
         };
-      } catch (e) {
-        console.warn(`invalid Configuration, Ng-collector is disabled because ${e}`);
+      } catch (e:any) {
+        console.warn(`invalid Configuration, Ng-collector is disabled because of this ${e.message}`);
       }
     }
     return {

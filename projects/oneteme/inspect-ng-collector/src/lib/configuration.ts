@@ -29,9 +29,9 @@ export interface TechnicalConf {
 }
 
 export function validateAndGetConfig(conf:any):TechnicalConf{
-  let host = matchRegex(getStringOrCall(conf.host), "host" , HOST_PATERN) 
-  let sessionApi =   matchRegex(getStringOrCall(conf.sessionApi),'sessionApi', PATH_PATERN) 
-  let instanceApi =  matchRegex(getStringOrCall(conf.instanceApi),'intanceApi', PATH_PATERN)
+  let host = matchRegex(getStringOrCall(conf.host), "host" , HOST_PATERN)
+  let sessionApi =   matchRegex(getStringOrCall(conf.sessionApi),"sessionApi", PATH_PATERN, "v3/trace/instance/:id/session")
+  let instanceApi =  matchRegex(getStringOrCall(conf.instanceApi),"intanceApi", PATH_PATERN, "v3/trace/instance")
   initDebug(conf.debug ?? false);
   return  {
     user : getStringOrCall(conf.user),
@@ -47,10 +47,10 @@ export function validateAndGetConfig(conf:any):TechnicalConf{
 
 export function GetInstanceEnvironement(conf:ApplicationConf){
   return {
-    name: getStringOrCall(conf.name),
+    name: require(getStringOrCall(conf.name), 'name'),
     version: getStringOrCall(conf.version),
     address: undefined, //server side
-    env: getStringOrCall(conf.env),
+    env: require(getStringOrCall(conf.env),'env'),
     os: detectOs(),
     re: detectBrowser(),
     user: undefined, // cannot get user
@@ -132,11 +132,18 @@ function toURL(host:string, path:string ){
    return host.endsWith(SLASH) || path.startsWith(SLASH) ? host + path : [host,path].join(SLASH);
 }
 
-export function matchRegex(v: string | undefined,  name: string, pattern: RegExp) {
+export function matchRegex(v: string | undefined,  name: string, pattern: RegExp, defaultValue?: string) {
   if(v && pattern.exec(v)){
      return v;
   }
-  throw `bad value ${name}=${v}, pattern=${pattern}`;
+  if(!defaultValue){
+    if(v != undefined){
+      throw new Error(`bad value ${name}=${v}, pattern=${pattern}`);
+    }else {
+      throw new Error(`${name} property is required`);
+    }
+  }
+  return defaultValue;
 }
 
 export function requirePostitiveValue(v: number | undefined, name: string, defaultValue:number){
@@ -146,6 +153,14 @@ export function requirePostitiveValue(v: number | undefined, name: string, defau
   if(v == undefined){
     return defaultValue;
   }
-  throw `bad value ${name}=${v} <= 0`  
+  throw new Error(`bad value ${name}=${v} <= 0`);
 }
+
+export function require(v: string | undefined, name: string){
+  if(v!= undefined){
+    return v;
+  }
+  throw new Error(`${name} property is required`);
+}
+
 
