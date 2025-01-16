@@ -15,11 +15,13 @@ export class SessionManager implements OnDestroy {
     sessionSendAttempts: number = 0
     sendSessionfinished: boolean = true;
     currentSession!: MainSession;
+    private static _instance: SessionManager;
 
     constructor(@Inject('config') config: TechnicalConf,
         @Inject('instance') instance: InstanceEnvironment) {
         this.config = config;
         this.instanceEnvironment = instance;
+        SessionManager._instance = this;
         this.scheduledSessionSender = interval(config.delay)
             .pipe(startWith(0))
             .pipe(tap(() => {
@@ -30,6 +32,10 @@ export class SessionManager implements OnDestroy {
             }))
             .subscribe();
         logInspect('SessionManager initialized');
+    }
+
+    static get instance(): SessionManager{
+        return SessionManager._instance;
     }
 
     newSession(url?: string) {
@@ -52,7 +58,8 @@ export class SessionManager implements OnDestroy {
                 type: "VIEW",
                 location: url,
                 loading: true,
-                restRequests: []
+                restRequests: [],
+                localRequests: []
             }
         }
     }

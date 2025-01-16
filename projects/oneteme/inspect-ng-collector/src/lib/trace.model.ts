@@ -11,6 +11,7 @@ export interface MainSession {
     threadName?:string;  // always null 
     exception?: ExceptionInfo // to be changed ? 
     restRequests: RestRequest[],
+    localRequests: LocalRequest[],
     loading?: boolean
 }
 
@@ -44,6 +45,16 @@ export interface RestRequest {
     user?:string;
     start: number;
     end: number;
+    threadName?:string;
+    exception?: ExceptionInfo
+}
+
+export interface LocalRequest {
+    name: string;
+    location: string;
+    user?: string;
+    start: number;
+    end: number; 
     threadName?:string;
     exception?: ExceptionInfo
 }
