@@ -18,17 +18,14 @@ export function TraceableStage(){
             try{
               return originalMethod.apply(this,args);
             }catch(e:any){
-                let type = "unknown type";
-                let message = "unkown message"
+                let type=null,message=null;
                 if(e){
                   if(typeof e === "string"){
-                    type = ""
                     message = e;
                   }else if(e instanceof Error){
                     type = e.name;
                     message = e.message;
                   }else{
-                    type = "";
                     message = JSON.stringify(e)
                   }
                 }
