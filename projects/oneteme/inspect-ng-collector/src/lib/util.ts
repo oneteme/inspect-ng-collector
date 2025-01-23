@@ -1,4 +1,4 @@
-import { MainSession, RestRequest } from "./trace.model";
+import { LocalRequest, MainSession, RestRequest } from "./trace.model";
 
 const WIN:any = window;
 
@@ -34,6 +34,9 @@ export function prettySessionFormat(session: MainSession){
     session.restRequests.forEach(r => {
       s+= prettyRestRequestFormat(r)+'\n';
     })
+    session.localRequests.forEach(r => {
+      s+= prettyLocalRequestFormat(r)+'\n';
+    })
   return s;
 }
 
@@ -65,6 +68,21 @@ function prettyRestRequestFormat(rest: RestRequest){
   }
   s+= ` >> ${rest.status}`
   s+= prettyDurationFormat(rest.start,rest.end);
+  return s;
+}
+
+function prettyLocalRequestFormat(local: LocalRequest){
+  let s = `  -  [${local.name}]`;
+  if(local.location){
+    s+= `(${local.location})`
+  }
+  if(local.exception?.type){
+    s+= ` ${local.exception?.type}:`;
+  }
+  if(local.exception?.message){
+    s+= ` ${local.exception.message}`
+  }
+  s+= ` >> ${prettyDurationFormat(local.start, local.end)}`;
   return s;
 }
 
