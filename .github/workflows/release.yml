@@ -1,5 +1,10 @@
 name: tag release
-on: workflow_dispatch
+on: 
+  workflow_dispatch:
+    inputs:
+      ng-collector:
+        type: boolean
+        description: publish ng-collector library
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -9,10 +14,9 @@ jobs:
         fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
     - uses: actions/setup-node@v4
       with:
-        node-version: 18
-    - uses: oneteme/automation-scripts/.github/actions/sonar-npm-scan@main
-      with:
-        package: 'inspect-ng-collector'
+        node-version: 20
+    - uses: oneteme/automation-scripts/.github/actions/npm-build-project@main
+    - uses: oneteme/automation-scripts/.github/actions/npm-scan-project@main #see package.json: scripts.build
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
   deploy:
@@ -20,30 +24,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
     - uses: actions/setup-node@v4
       with:
-        node-version: 18
+        node-version: 20
         registry-url: 'https://registry.npmjs.org'
         scope: '@oneteme'
-    - uses: oneteme/automation-scripts/.github/actions/npm-deploy@main
+    - uses: oneteme/automation-scripts/.github/actions/npm-build-project@main
+    - uses: oneteme/automation-scripts/.github/actions/npm-deploy-project@main
+      if: ${{ inputs.ng-collector }}
       with:
-        package: 'inspect-ng-collector'
+        project: 'inspect-ng-collector'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-    - uses: oneteme/automation-scripts/.github/actions/npm-project-version@main
-      with:
-        path: './projects/oneteme/inspect-ng-collector/package.json'
+    - uses: oneteme/automation-scripts/.github/actions/npm-project-version@main 
       id: prj_ver
-    outputs:
+    outputs:  # take global project version
       version: ${{ steps.prj_ver.outputs.version }}
   release:
     needs: deploy
     runs-on: ubuntu-latest
     steps:
-    - uses: oneteme/automation-scripts/.github/actions/create-release-notes@main
+    - uses: oneteme/automation-scripts/.github/actions/github-release-notes@main
       with:
         version: ${{ needs.deploy.outputs.version }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#  pages:
