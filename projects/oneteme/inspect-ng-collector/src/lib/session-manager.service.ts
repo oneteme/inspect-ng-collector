@@ -77,8 +77,11 @@ export class SessionManager implements OnDestroy {
         });
     }
 
-    sendSessions() : Promise<number>{
+    sendSessions(instanceComplete?:boolean) : Promise<number>{
         if (this.sessionQueue.length > 0) {
+            if(instanceComplete){
+                this.config.sessionApi +="?end="+ new Date().toISOString();
+            }
             this.sessionSendAttempts++;
             let sessions: MainSession[] = [...this.sessionQueue];
             this.sessionQueue.splice(0, sessions.length); // add rest of sessions
