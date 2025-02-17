@@ -1,6 +1,6 @@
 {
   "name": "@oneteme/inspect-ng-collector",
-  "version": "0.19.02",
+  "version": "1.0.0",
   "description": "inspect ng collector",
   "homepage": "https://github.com/oneteme/inspect-ng-collector",
   "bugs": "https://github.com/oneteme/inspect-ng-collector/issues",
@@ -14,7 +14,6 @@
     "@angular/router": ">=16.2.8"
   },
   "dependencies": {
-    "tslib": "^2.8.0"
   },
   "sideEffects": false
 }
