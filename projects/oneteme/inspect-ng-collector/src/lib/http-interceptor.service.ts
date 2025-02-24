@@ -5,11 +5,15 @@ import { tap, finalize } from 'rxjs/operators'
 import { ExceptionInfo } from './trace.model';
 import { dateNow } from './util';
 import { SessionManager } from './session-manager.service';
+import { Buffer } from 'buffer';
+
+
+
 
 @Injectable({ providedIn: 'root' })
 export class HttpInterceptorService implements HttpInterceptor {
 
-    constructor(private SessionManager: SessionManager) { } // change this to session manager
+    constructor(private readonly SessionManager: SessionManager) { } // change this to session manager
 
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
         const start = dateNow();
@@ -32,25 +36,33 @@ export class HttpInterceptorService implements HttpInterceptor {
                 }
             },
         ), finalize(() => {
-            if(this.SessionManager.getCurrentSession()){
+            try {
+              if  (this.SessionManager.getCurrentSession()){
                 const url = toHref(req.urlWithParams);
+                const authScheme = extractAuthScheme(req.headers);
+                if(authScheme && !this.SessionManager.getCurrentSession().user){
+                  this.SessionManager.getCurrentSession().user = extractUser(authScheme,req.headers);
+                }
                 this.SessionManager.getCurrentSession().restRequests.push({
-                    id: id,
-                    method: req.method,
-                    protocol: url.protocol.slice(0, -1),
-                    host: exctractHost(url.host),
-                    port: +url.port || -1,
-                    path: url.pathname,
-                    query: url.search.slice(1, url.search.length),
-                    contentType: req.responseType,
-                    authScheme: extractAuthScheme(req.headers),
-                    status: +status,
-                    inDataSize: sizeOf(responseBody),
-                    ouDataSize: sizeOf(req.body),
-                    start: start,
-                    end: dateNow(),
-                    exception: exception
+                  id: id,
+                  method: req.method,
+                  protocol: url.protocol.slice(0, -1),
+                  host: exctractHost(url.host),
+                  port: +url.port || -1,
+                  path: url.pathname,
+                  query: url.search.slice(1, url.search.length),
+                  contentType: req.responseType,
+                  authScheme: authScheme,
+                  status: +status,
+                  inDataSize: sizeOf(responseBody),
+                  ouDataSize: sizeOf(req.body),
+                  start: start,
+                  end: dateNow(),
+                  exception: exception
                 });
+              }
+            }catch(err){
+              console.log(err);
             }
         }));
     }
@@ -71,6 +83,22 @@ function extractAuthScheme(headers: any): string | undefined {
     return headers.has('authorization')
         ? headers.get('authorization').match(/^(\w+) /)?.at(1)
         : undefined;
+}
+
+function extractUser(authorizationType:string, headers:any): string | undefined {
+  try {
+    switch (authorizationType){
+      case "Basic":
+        return Buffer.from(headers.get('authorization').split(" ")[1], 'base64').toString().split(':')[0] || undefined;
+      case "Bearer": {
+        const parts = headers.get('authorization').split(" ")[1].split('.');
+        if (parts.length == 3) {
+          return JSON.parse(atob(parts[1])).iss || undefined;
+        }
+      }
+    }
+  }catch(err){}
+  return undefined;
 }
 
 function getReqid(headers:any):string | undefined {
