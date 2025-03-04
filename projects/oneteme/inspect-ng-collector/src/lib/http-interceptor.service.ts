@@ -39,10 +39,8 @@ export class HttpInterceptorService implements HttpInterceptor {
             try {
               if  (this.SessionManager.getCurrentSession()){
                 const url = toHref(req.urlWithParams);
-                const authScheme = extractAuthScheme(req.headers);
-                if(authScheme && !this.SessionManager.getCurrentSession().user){
-                  this.SessionManager.getCurrentSession().user = extractUser(authScheme,req.headers);
-                }
+                const auth_user = extractAuthSchemeAnduser(req.headers);
+                console.log(auth_user);
                 this.SessionManager.getCurrentSession().restRequests.push({
                   id: id,
                   method: req.method,
@@ -52,7 +50,8 @@ export class HttpInterceptorService implements HttpInterceptor {
                   path: url.pathname,
                   query: url.search.slice(1, url.search.length),
                   contentType: req.responseType,
-                  authScheme: authScheme,
+                  authScheme: auth_user.authScheme,
+                  user: auth_user.user,
                   status: +status,
                   inDataSize: sizeOf(responseBody),
                   ouDataSize: sizeOf(req.body),
@@ -79,26 +78,26 @@ function exctractHost(path: string) {
     return path.replace(portregex, '')
 }
 
-function extractAuthScheme(headers: any): string | undefined {
-    return headers.has('authorization')
-        ? headers.get('authorization').match(/^(\w+) /)?.at(1)
-        : undefined;
-}
-
-function extractUser(authorizationType:string, headers:any): string | undefined {
+function extractAuthSchemeAnduser(headers: any): {user: string | undefined, authScheme: string | undefined} {
+  let auth_user: {user: string | undefined, authScheme: string | undefined} = {
+    user: undefined,
+    authScheme: undefined
+  };
   try {
-    switch (authorizationType){
+    auth_user.authScheme = headers.get('authorization').match(/^(\w+) /)?.at(1)
+    switch (auth_user.authScheme){
       case "Basic":
-        return Buffer.from(headers.get('authorization').split(" ")[1], 'base64').toString().split(':')[0] || undefined;
+        auth_user.user = Buffer.from(headers.get('authorization').split(" ")[1], 'base64').toString().split(':')[0] || undefined;
+        break;
       case "Bearer": {
         const parts = headers.get('authorization').split(" ")[1].split('.');
         if (parts.length == 3) {
-          return JSON.parse(atob(parts[1])).iss || undefined;
+          auth_user.user = JSON.parse(Buffer.from(parts[1], 'base64').toString()).sub || undefined;
         }
       }
     }
   }catch(err){}
-  return undefined;
+  return auth_user;
 }
 
 function getReqid(headers:any):string | undefined {
