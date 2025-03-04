@@ -40,7 +40,6 @@ export class HttpInterceptorService implements HttpInterceptor {
               if  (this.SessionManager.getCurrentSession()){
                 const url = toHref(req.urlWithParams);
                 const auth_user = extractAuthSchemeAnduser(req.headers);
-                console.log(auth_user);
                 this.SessionManager.getCurrentSession().restRequests.push({
                   id: id,
                   method: req.method,
@@ -61,7 +60,7 @@ export class HttpInterceptorService implements HttpInterceptor {
                 });
               }
             }catch(err){
-              console.log(err);
+              console.warn(err);
             }
         }));
     }
