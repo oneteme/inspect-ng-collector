@@ -6,10 +6,13 @@ import { ExceptionInfo } from './trace.model';
 import { dateNow } from './util';
 import { SessionManager } from './session-manager.service';
 
+
+
+
 @Injectable({ providedIn: 'root' })
 export class HttpInterceptorService implements HttpInterceptor {
 
-    constructor(private SessionManager: SessionManager) { } // change this to session manager
+    constructor(private readonly SessionManager: SessionManager) { } // change this to session manager
 
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
         const start = dateNow();
@@ -32,25 +35,31 @@ export class HttpInterceptorService implements HttpInterceptor {
                 }
             },
         ), finalize(() => {
-            if(this.SessionManager.getCurrentSession()){
+            try {
+              if  (this.SessionManager.getCurrentSession()){
                 const url = toHref(req.urlWithParams);
+                const auth_user = extractAuthSchemeAnduser(req.headers);
                 this.SessionManager.getCurrentSession().restRequests.push({
-                    id: id,
-                    method: req.method,
-                    protocol: url.protocol.slice(0, -1),
-                    host: exctractHost(url.host),
-                    port: +url.port || -1,
-                    path: url.pathname,
-                    query: url.search.slice(1, url.search.length),
-                    contentType: req.responseType,
-                    authScheme: extractAuthScheme(req.headers),
-                    status: +status,
-                    inDataSize: sizeOf(responseBody),
-                    ouDataSize: sizeOf(req.body),
-                    start: start,
-                    end: dateNow(),
-                    exception: exception
+                  id: id,
+                  method: req.method,
+                  protocol: url.protocol.slice(0, -1),
+                  host: exctractHost(url.host),
+                  port: +url.port || -1,
+                  path: url.pathname,
+                  query: url.search.slice(1, url.search.length),
+                  contentType: req.responseType,
+                  authScheme: auth_user.authScheme,
+                  user: auth_user.user,
+                  status: +status,
+                  inDataSize: sizeOf(responseBody),
+                  ouDataSize: sizeOf(req.body),
+                  start: start,
+                  end: dateNow(),
+                  exception: exception
                 });
+              }
+            }catch(err){
+              console.warn(err);
             }
         }));
     }
@@ -67,10 +76,26 @@ function exctractHost(path: string) {
     return path.replace(portregex, '')
 }
 
-function extractAuthScheme(headers: any): string | undefined {
-    return headers.has('authorization')
-        ? headers.get('authorization').match(/^(\w+) /)?.at(1)
-        : undefined;
+function extractAuthSchemeAnduser(headers: any): {user: string | undefined, authScheme: string | undefined} {
+  let auth_user: {user: string | undefined, authScheme: string | undefined} = {
+    user: undefined,
+    authScheme: undefined
+  };
+  try {
+    auth_user.authScheme = headers.get('authorization').match(/^(\w+) /)?.at(1)
+    switch (auth_user.authScheme){
+      case "Basic":
+        auth_user.user = atob(headers.get('authorization').split(" ")[1]).toString().split(':')[0];
+        break;
+      case "Bearer": {
+        const parts = headers.get('authorization').split(" ")[1].split('.');
+        if (parts.length == 3) {
+          auth_user.user = JSON.parse(atob(parts[1]).toString()).sub;
+        }
+      }
+    }
+  }catch(err){}
+  return auth_user;
 }
 
 function getReqid(headers:any):string | undefined {
