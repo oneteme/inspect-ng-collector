@@ -85,12 +85,12 @@ function extractAuthSchemeAnduser(headers: any): {user: string | undefined, auth
     auth_user.authScheme = headers.get('authorization').match(/^(\w+) /)?.at(1)
     switch (auth_user.authScheme){
       case "Basic":
-        auth_user.user = atob(headers.get('authorization').split(" ")[1]).toString().split(':')[0] || undefined;
+        auth_user.user = atob(headers.get('authorization').split(" ")[1]).toString().split(':')[0];
         break;
       case "Bearer": {
         const parts = headers.get('authorization').split(" ")[1].split('.');
         if (parts.length == 3) {
-          auth_user.user = JSON.parse(atob(parts[1]).toString()).sub || undefined;
+          auth_user.user = JSON.parse(atob(parts[1]).toString()).sub;
         }
       }
     }
