@@ -5,6 +5,7 @@ import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { ApplicationConf, GetInstanceEnvironement, validateAndGetConfig } from './configuration';
 import { HttpInterceptorService } from './http-interceptor.service';
 import { SessionManager } from './session-manager.service';
+import {AnalyticsCollector} from "./analytics-collect.service";
 
 @NgModule()
 export class NgCollectorModule {
@@ -20,10 +21,11 @@ export class NgCollectorModule {
           ngModule: NgCollectorModule,
           providers: [
             SessionManager,
-            { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: [Router, SessionManager], multi: true },
+            { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: [Router, SessionManager,AnalyticsCollector], multi: true },
             { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
             { provide: 'instance', useValue: instance },
-            { provide: 'config', useValue: config }
+            { provide: 'config', useValue: config },
+
           ]
         };
       } catch (e:any) {
@@ -36,7 +38,7 @@ export class NgCollectorModule {
   }
 }
 
-export function initializeEvents(router: Router, sessionManager: SessionManager) {
+export function initializeEvents(router: Router, sessionManager: SessionManager, analyticsCollector: AnalyticsCollector) {
   return () => {
     logInspect('initialize routing events listeners');
     window.addEventListener('beforeunload', event => {
@@ -53,6 +55,7 @@ export function initializeEvents(router: Router, sessionManager: SessionManager)
         delete sessionManager.getCurrentSession().loading;
       }
     })
+    analyticsCollector.subscribeToEvents();
   }
 }
 
