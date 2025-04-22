@@ -13,18 +13,18 @@ export interface ApplicationConf {
   instanceApi?: string | (() => string);
   sessionApi?: string | (() => string);
   exclude?: RegExp[] | (() => RegExp[]);
-  debug?: boolean;
+  debug?: {app: boolean, user: boolean};
   enabled?: boolean;
 }
 
 export interface TechnicalConf {
-  user?:string ;
+  user: () => string ;
   bufferMaxSize: number;
   delay: number;
   instanceApi: string;
   sessionApi: string;
   exclude: RegExp[];
-  debug: boolean;
+  debug: {app: boolean, user: boolean};
   enabled: boolean;
 }
 
@@ -32,15 +32,15 @@ export function validateAndGetConfig(conf:any):TechnicalConf{
   let host = matchRegex(getStringOrCall(conf.host), "host" , HOST_PATERN)
   let sessionApi =   matchRegex(getStringOrCall(conf.sessionApi),"sessionApi", PATH_PATERN, "v3/trace/instance/:id/session")
   let instanceApi =  matchRegex(getStringOrCall(conf.instanceApi),"intanceApi", PATH_PATERN, "v3/trace/instance")
-  initDebug(conf.debug ?? false);
+  initDebug(conf.debug ?? {app: false, user: false});
   return  {
-    user : getStringOrCall(conf.user),
+    user : typeof conf.user  == 'function' ? conf.user : ()=> conf.user,
     bufferMaxSize:  requirePostitiveValue(getNumberOrCall(conf.bufferMaxSize),"bufferMaxSize", 1000) ,
-    delay: requirePostitiveValue(getNumberOrCall(conf.delay),"delay", 60000) ,
+    delay: requirePostitiveValue(getNumberOrCall(conf.delay),"delay", 60000),
     instanceApi: sessionApiURL(host, instanceApi),
     sessionApi: instanceApiURL(host, sessionApi),
     exclude: getRegArrOrCall(conf.exclude) || [],
-    debug: conf.debug ?? false,
+    debug: conf.debug ?? {app: false, user: false},
     enabled: conf.enabled ?? false
   }
 }

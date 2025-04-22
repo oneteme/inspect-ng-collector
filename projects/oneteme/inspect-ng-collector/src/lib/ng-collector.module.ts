@@ -15,13 +15,15 @@ export class NgCollectorModule {
       try {
         let config = validateAndGetConfig(configuration);
         let instance = GetInstanceEnvironement(configuration);
-        logInspect(JSON.stringify(config));
-        logInspect(JSON.stringify(instance));
+        logInspect('app',JSON.stringify(config));
+        logInspect('app',JSON.stringify(instance));
+        let deps = [Router, SessionManager, AnalyticsCollector]
+
         return {
           ngModule: NgCollectorModule,
           providers: [
             SessionManager,
-            { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: [Router, SessionManager,AnalyticsCollector], multi: true },
+            { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: deps, multi: true },
             { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
             { provide: 'instance', useValue: instance },
             { provide: 'config', useValue: config },
@@ -40,7 +42,7 @@ export class NgCollectorModule {
 
 export function initializeEvents(router: Router, sessionManager: SessionManager, analyticsCollector: AnalyticsCollector) {
   return () => {
-    logInspect('initialize routing events listeners');
+    logInspect('app','initialize routing events listeners');
     window.addEventListener('beforeunload', event => {
       if(!sessionManager.getCurrentSession().loading){
         sessionManager.newSession();
@@ -55,7 +57,10 @@ export function initializeEvents(router: Router, sessionManager: SessionManager,
         delete sessionManager.getCurrentSession().loading;
       }
     })
-    analyticsCollector.subscribeToEvents();
+    if(analyticsCollector){
+      analyticsCollector.subscribeToEvents();
+    }
+
   }
 }
 

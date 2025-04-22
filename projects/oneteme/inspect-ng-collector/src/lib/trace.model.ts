@@ -1,9 +1,5 @@
 type InstantType = "SERVER"  | "CLIENT";
 type MainSessionType =  "VIEW" | "BATCH" | "STARTUP";
-export type UserActionType = "CLICK" | "SELECT" | "DRAG" | "DROP" | "SCROLL";
-export type ElementType = "button" | "input" | "a" | "textarea" | 'img' ;
-
-
 
 export interface MainSession {
     '@type'?: string;
@@ -68,78 +64,61 @@ export interface ExceptionInfo { // to bechanged
 }
 
 export interface UserAction{
-  type: UserActionType;
+  type: string;
   start: number;
-  name: string;
+  name: string| null;
+  nodeName: string;
 }
 
-export abstract class Element{
-   protected target: HTMLElement;
+export const genericMap : ((t:HTMLElement)=>string|null)[] = [
+    t => t.getAttribute('placeholder'),
+    t => t.getAttribute('title'),
+    t => t.innerText,
+    t => t.getAttribute('name'),
+    t => t.getAttribute('id'),
+  ]
 
-    constructor(target: HTMLElement) {
-      this.target = target;
+export const MAP: {[key:string]:  ((t:HTMLElement)=>string|null)[]} = {
+  'img' : [
+    t=> t.getAttribute('alt'),
+    t=> t.getAttribute('src'),
+  ],
+  'input': [
+    t=> t.getAttribute('name'),
+  ],
+  'a' : [
+    t=> t.getAttribute('href'),
+  ],
+  'label':[
+    t=> t.getAttribute('for'),
+  ],
+}
+
+export function getFirst(c:((t:HTMLElement)=>string|null)[], t: HTMLElement) {
+  for (const o of c) {
+    let r = o(t)?.trim();
+    if (r) {
+      return r;
     }
-
-    abstract extractName():string;
-
-  static createElement(element:HTMLElement){
-    const tagCLass =  ElementRegistry.getELementClass(element.nodeName);//(element);
-    return new tagCLass(element);
   }
+  return null;
+}
 
-  getFirst(values:any[]){
-    for(const v of values){
-      if(v && v.trim() != ''){
-        return v.trim();
+export function extractName(t: HTMLElement){
+  try
+  {
+    let tagName = t.tagName
+    if(tagName){
+      let name;
+      let c =  MAP[tagName.toLowerCase()];
+      if(c){
+        name  = getFirst(c,t);
       }
+      return name ?? getFirst(genericMap,t)!;
     }
+
+  }catch(err){
+    console.warn(err)
   }
-
+  return null
 }
-
-export class GenericElement extends Element{
-  override extractName(): string {
-    return this.getFirst([
-      this.target.textContent,
-      this.target.getAttribute('title'),
-      this.target.getAttribute('aria-label'),
-      this.target.getAttribute('id'),
-      this.target.getAttribute('name'),
-      `${this.target.tagName.toLowerCase()}`
-    ]);
-  }
-
-}
-
-export class ImgElement extends Element{
-  override extractName(): string {
-    return this.getFirst([
-      this.target.getAttribute('alt'),
-      this.target.getAttribute('title'),
-      this.target.getAttribute('aria-label'),
-      this.target.getAttribute('name'),
-      `${this.target.tagName.toLowerCase()}`
-    ]);
-  }
-}
-
-export type ElementConstructor = new (element: HTMLElement) => Element;
-
-export class ElementRegistry {
-   private static registry: Map<string, ElementConstructor> = new Map();
-   private static readonly defaultElementConstructor = GenericElement;
-
-   static register(eLementConstructor: ElementConstructor, elementsName: string[]){
-      elementsName.forEach(e=> this.registry.set( e.toLowerCase(), eLementConstructor))
-   }
-
-   static getELementClass(elementName: string):ElementConstructor{
-     return this.registry.get(elementName.toLowerCase()) || this.defaultElementConstructor;
-   }
-}
-
-ElementRegistry.register(ImgElement,['img'])
-
-
-
-
