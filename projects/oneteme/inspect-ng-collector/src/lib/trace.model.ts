@@ -8,7 +8,7 @@ export interface MainSession {
     user?: string;
     start: number;
     end?: number;
-    exception?: ExceptionInfo // to be changed ? 
+    exceptions: ExceptionInfo[], // to be changed ?
     restRequests: RestRequest[],
     localRequests: LocalRequest[],
     loading?: boolean
@@ -24,7 +24,7 @@ export interface InstanceEnvironment {
     re?: string;
     user?: string;
     type?: InstantType;
-    instant?:number;   
+    instant?:number;
     collector?:string;
 }
 
@@ -52,11 +52,11 @@ export interface LocalRequest {
     location: string;
     user?: string;
     start: number;
-    end: number; 
+    end: number;
     exception?: ExceptionInfo
 }
 
-export interface ExceptionInfo { // to bechanged 
+export interface ExceptionInfo { // to bechanged
     type: string | null;
     message: string | null;
 }

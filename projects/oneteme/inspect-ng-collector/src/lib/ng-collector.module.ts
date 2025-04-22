@@ -1,10 +1,11 @@
-import { NgModule, APP_INITIALIZER, ModuleWithProviders } from '@angular/core';
+import {NgModule, APP_INITIALIZER, ModuleWithProviders, ErrorHandler} from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
 import { logInspect } from './util';
 import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { ApplicationConf, GetInstanceEnvironement, validateAndGetConfig } from './configuration';
 import { HttpInterceptorService } from './http-interceptor.service';
 import { SessionManager } from './session-manager.service';
+import {GlobalErrorHandlerService} from "./global-error-handler.service";
 
 @NgModule()
 export class NgCollectorModule {
@@ -23,7 +24,8 @@ export class NgCollectorModule {
             { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: [Router, SessionManager], multi: true },
             { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
             { provide: 'instance', useValue: instance },
-            { provide: 'config', useValue: config }
+            { provide: 'config', useValue: config },
+            { provide: ErrorHandler, useClass: GlobalErrorHandlerService }
           ]
         };
       } catch (e:any) {
