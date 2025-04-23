@@ -8,8 +8,8 @@ export class  GlobalErrorHandlerService implements ErrorHandler {
   }
   handleError(error:any ) {
       this.sessionManager.getCurrentSession().exceptions.push({
-        type: error.name,
-        message: error.message
+        type: error?.name,
+        message: error?.message
       })
       throw (error);
   }
