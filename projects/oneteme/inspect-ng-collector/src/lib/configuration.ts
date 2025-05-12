@@ -14,6 +14,7 @@ export interface ApplicationConf {
   sessionApi?: string | (() => string);
   exclude?: RegExp[] | (() => RegExp[]);
   debug?: {app: boolean, user: boolean};
+  analytics?:boolean;
   enabled?: boolean;
 }
 
@@ -25,6 +26,7 @@ export interface TechnicalConf {
   sessionApi: string;
   exclude: RegExp[];
   debug: {app: boolean, user: boolean};
+  analytics?: boolean;
   enabled: boolean;
 }
 
@@ -41,6 +43,7 @@ export function validateAndGetConfig(conf:any):TechnicalConf{
     sessionApi: instanceApiURL(host, sessionApi),
     exclude: getRegArrOrCall(conf.exclude) || [],
     debug: conf.debug ?? {app: false, user: false},
+    analytics: conf.analytics ?? false,
     enabled: conf.enabled ?? false
   }
 }

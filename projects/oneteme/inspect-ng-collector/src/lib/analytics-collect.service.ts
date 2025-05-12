@@ -11,7 +11,6 @@ export class AnalyticsCollector {
 
   eventHandlers :  {[key:string]: (target: HTMLElement)=>boolean} = {
     'click' : (target:HTMLElement)=> this.lookUpChild(target,1),
-    'scrollend' : (target:HTMLElement)=> this.lookUpChild(target,1),
   }
   patchedEvent : {[key:string]:boolean}  = {};
   elementsWithClickListeners = new WeakSet();
@@ -21,11 +20,12 @@ export class AnalyticsCollector {
   }
   subscribeToEvents(){
     const body = this.document.body;
-    body.addEventListener('click', (event) => this.GlobalHandler(event), true);
-    body.addEventListener('change', (event) => this.GlobalHandler(event), true);
-    body.addEventListener('scrollend', (event) => this.GlobalHandler(event), true);
-    body.addEventListener('dragend', (event) => this.GlobalHandler(event), true);
-    this.document.addEventListener('DOMContentLoaded', (event) => this.GlobalHandler(event), true);
+    body.addEventListener('click', (event) => this.globalHandler(event), true);
+    body.addEventListener('change', (event) => this.globalHandler(event), true);
+    body.addEventListener('scrollend', (event) => this.globalHandler(event), true);
+    body.addEventListener('dragend', (event) => this.globalHandler(event), true);
+    this.document.addEventListener('DOMContentLoaded', (event) => this.globalHandler(event), true);
+
    /* let that =this;
 
     const originalAddEventListener = EventTarget.prototype.addEventListener;
@@ -47,8 +47,8 @@ export class AnalyticsCollector {
 
 
 
-  GlobalHandler(event: Event | MouseEvent){
-   //event.stopPropagation()
+  globalHandler(event: Event | MouseEvent){
+   // event.stopPropagation()
    // event.preventDefault()
     let target = event.target as HTMLElement;
     let eventType = event.type;

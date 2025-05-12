@@ -15,9 +15,10 @@ export class NgCollectorModule {
       try {
         let config = validateAndGetConfig(configuration);
         let instance = GetInstanceEnvironement(configuration);
+        let deps:any[] = [Router, SessionManager]
         logInspect('app',JSON.stringify(config));
         logInspect('app',JSON.stringify(instance));
-        let deps = [Router, SessionManager, AnalyticsCollector]
+        config.analytics && deps.push(AnalyticsCollector);
 
         return {
           ngModule: NgCollectorModule,
