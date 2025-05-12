@@ -11,6 +11,6 @@ export class  GlobalErrorHandlerService implements ErrorHandler {
         type: error?.name,
         message: error?.message
       })
-      throw (error);
+      throw error;
   }
 }
