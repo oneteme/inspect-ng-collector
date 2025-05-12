@@ -1,25 +1,43 @@
-import { LocalRequest, MainSession, RestRequest } from "./trace.model";
+import {LocalRequest, MainSession, RestRequest, UserAction} from "./trace.model";
 
 const WIN:any = window;
-
+type level = 'app' | 'user';
 export function dateNow() {
     return Date.now() / 1_000;
 }
 
-export function initDebug(value:boolean){
-   WIN["inspect"] = { debug : value };
+export function initDebug(value: {app: boolean, user: boolean}){
+   WIN["inspect"] = { app : value.app, user: value.user };
 }
 
-export function logInspect(...args: any[]){
-  if(WIN["inspect"]?.debug){
+export function logInspect(level: level, ...args: any[]){
+  if(WIN["inspect"][level]){
     if(args.length == 1 && typeof args[0] == 'function'){
       args = args[0]();
       if(!Array.isArray(args)){
         args = [args];
       }
     }
-    console.log('[INSPECT]', ...args);
+    console.log(`[INSPECT]-(${level})`, ...args);
   }
+}
+
+export function prettyActionUserFormat(session: MainSession,userAction:UserAction){
+  let s = `(${session.location}) `
+  if(userAction.type){
+    s+= `[${userAction.type}]`;
+  }
+
+  if(userAction.nodeName){
+    s+= `<${userAction.nodeName}>`
+  }
+
+  if(userAction.name){
+    s+= `(${userAction.name}) `
+  }
+
+  s+=  ` >> ${new Date(userAction.start*1000).toISOString()}`
+  return s;
 }
 
 export function prettySessionFormat(session: MainSession){
@@ -30,7 +48,7 @@ export function prettySessionFormat(session: MainSession){
     if(session.location){
       s+= `(${session.location}) `
     }
-    s+=prettyDurationFormat(session.start,session.end!)+'\n';
+    s+=prettyDurationFormat(session.start, session.end)+'\n';
     session.restRequests.forEach(r => {
       s+= prettyRestRequestFormat(r)+'\n';
     })
@@ -86,9 +104,10 @@ function prettyLocalRequestFormat(local: LocalRequest){
   return s;
 }
 
-function prettyDurationFormat(start:number,end:number){
-    return  start && end ? `(in ${ (end - start).toFixed(2) } ms)` : '';
+function prettyDurationFormat(start:number,end:number|undefined){
+    return  start && end ? `(in ${ (end - start).toFixed(2) } s)` : '';
 }
+
 
 
 

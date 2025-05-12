@@ -5,6 +5,7 @@ import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { ApplicationConf, GetInstanceEnvironement, validateAndGetConfig } from './configuration';
 import { HttpInterceptorService } from './http-interceptor.service';
 import { SessionManager } from './session-manager.service';
+import {AnalyticsCollector} from "./analytics-collect.service";
 
 @NgModule()
 export class NgCollectorModule {
@@ -14,16 +15,20 @@ export class NgCollectorModule {
       try {
         let config = validateAndGetConfig(configuration);
         let instance = GetInstanceEnvironement(configuration);
-        logInspect(JSON.stringify(config));
-        logInspect(JSON.stringify(instance));
+        let deps:any[] = [Router, SessionManager]
+        logInspect('app',JSON.stringify(config));
+        logInspect('app',JSON.stringify(instance));
+        config.analytics && deps.push(AnalyticsCollector);
+
         return {
           ngModule: NgCollectorModule,
           providers: [
             SessionManager,
-            { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: [Router, SessionManager], multi: true },
+            { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: deps, multi: true },
             { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
             { provide: 'instance', useValue: instance },
-            { provide: 'config', useValue: config }
+            { provide: 'config', useValue: config },
+
           ]
         };
       } catch (e:any) {
@@ -36,9 +41,9 @@ export class NgCollectorModule {
   }
 }
 
-export function initializeEvents(router: Router, sessionManager: SessionManager) {
+export function initializeEvents(router: Router, sessionManager: SessionManager, analyticsCollector: AnalyticsCollector) {
   return () => {
-    logInspect('initialize routing events listeners');
+    logInspect('app','initialize routing events listeners');
     window.addEventListener('beforeunload', event => {
       if(!sessionManager.getCurrentSession().loading){
         sessionManager.newSession();
@@ -53,6 +58,10 @@ export function initializeEvents(router: Router, sessionManager: SessionManager)
         delete sessionManager.getCurrentSession().loading;
       }
     })
+    if(analyticsCollector){
+      analyticsCollector.subscribeToEvents();
+    }
+
   }
 }
 
