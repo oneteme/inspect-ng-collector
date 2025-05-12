@@ -9,7 +9,7 @@ export interface MainSession {
     user?: string;
     start: number;
     end?: number;
-    exception?: ExceptionInfo // to be changed ?
+    exceptions: ExceptionInfo[], // to be changed ?
     restRequests: RestRequest[],
     localRequests: LocalRequest[],
     userActions: UserAction[],

@@ -60,7 +60,8 @@ export class SessionManager implements OnDestroy {
                 loading: true,
                 restRequests: [],
                 localRequests: [],
-                userActions: []
+                userActions: [],
+                exceptions: []
             }
         }
     }
