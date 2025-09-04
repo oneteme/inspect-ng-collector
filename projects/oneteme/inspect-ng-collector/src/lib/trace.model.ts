@@ -47,7 +47,15 @@ export interface RestRequest {
     user?:string;
     start: number;
     end: number;
-    exception?: ExceptionInfo
+}
+
+export interface HttpRequestStage {
+  name: string;
+  start: number;
+  end: number;
+  order: number;
+  exception?: ExceptionInfo;
+  requestId: string;
 }
 
 export interface LocalRequest {

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpInterceptor, HttpEvent, HttpHandler, HttpRequest, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { tap, finalize } from 'rxjs/operators'
-import { ExceptionInfo } from './trace.model';
+import {ExceptionInfo, HttpRequestStage, RestRequest} from './trace.model';
 import { dateNow } from './util';
 import { SessionManager } from './session-manager.service';
 
@@ -55,7 +55,6 @@ export class HttpInterceptorService implements HttpInterceptor {
                   ouDataSize: sizeOf(req.body),
                   start: start,
                   end: dateNow(),
-                  exception: exception
                 });
               }
             }catch(err){
@@ -63,6 +62,17 @@ export class HttpInterceptorService implements HttpInterceptor {
             }
         }));
     }
+}
+
+function createHttpRequestStage(req: RestRequest, exception: ExceptionInfo): HttpRequestStage{
+  return {
+        name: "PROCESS",
+        start: req.start,
+        end: req.end,
+        order: 0,
+        exception: exception,
+        requestId : req.id
+  }
 }
 
 function toHref(url: string): HTMLAnchorElement {
