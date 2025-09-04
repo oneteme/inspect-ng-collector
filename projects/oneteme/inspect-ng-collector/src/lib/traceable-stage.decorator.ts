@@ -13,7 +13,7 @@ export function TraceableStage(){
             let session = SessionManager.instance.getCurrentSession();
             let exception;
             let start,end;
-          
+
             start = Date.now();
             try{
               return originalMethod.apply(this,args);
@@ -36,13 +36,15 @@ export function TraceableStage(){
               throw e;
             }finally{
               end = Date.now();
-              SessionManager.instance.getCurrentSession().localRequests.push({
+              SessionManager.instance.traceQueue.push({
+                  "@type":"locl-req",
                   name: propertyKey,
                   location: target.constructor.name,
                   user: session.user,
-                  start: start, 
+                  start: start,
                   end: end,
-                  exception: exception
+                  exception: exception,
+                  sessionId : SessionManager.instance.getCurrentSession().id
               })
             }
           }

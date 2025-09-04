@@ -1,8 +1,12 @@
 type InstantType = "SERVER"  | "CLIENT";
 type MainSessionType =  "VIEW" | "BATCH" | "STARTUP";
 
-export interface MainSession {
-    '@type'?: string;
+export interface EventTrace {
+
+}
+
+export interface MainSession extends EventTrace{
+    '@type': string;
     id: string;
     type: MainSessionType;
     name?: string;
@@ -11,9 +15,6 @@ export interface MainSession {
     start: number;
     end?: number;
     exceptions: ExceptionInfo[], // to be changed ?
-    restRequests: RestRequest[],
-    localRequests: LocalRequest[],
-    userActions: UserAction[],
     loading?: boolean
 }
 
@@ -31,7 +32,8 @@ export interface InstanceEnvironment {
     collector?:string;
 }
 
-export interface RestRequest {
+export interface RestRequest extends EventTrace {
+   '@type': string;
     id: string;
     method: string;
     protocol: string;
@@ -41,30 +43,34 @@ export interface RestRequest {
     query: string;
     contentType: string;
     authScheme?: string;
-    status: number;
-    inDataSize: number;
-    ouDataSize: number;
+    status?: number;
+    inDataSize?: number;
+    ouDataSize?: number;
     user?:string;
     start: number;
-    end: number;
+    end?: number;
+    sessionId: string;
 }
 
-export interface HttpRequestStage {
+export interface HttpRequestStage extends EventTrace {
+  '@type': string;
   name: string;
   start: number;
-  end: number;
+  end?: number;
   order: number;
   exception?: ExceptionInfo;
   requestId: string;
 }
 
-export interface LocalRequest {
+export interface LocalRequest extends EventTrace {
+    '@type': string;
     name: string;
     location: string;
     user?: string;
     start: number;
-    end: number;
+    end?: number;
     exception?: ExceptionInfo
+    sessionId: string;
 }
 
 export interface ExceptionInfo { // to bechanged
@@ -72,11 +78,13 @@ export interface ExceptionInfo { // to bechanged
     message: string | null;
 }
 
-export interface UserAction{
+export interface UserAction extends EventTrace{
+  '@type': string;
   type: string;
   start: number;
   name: string| null;
   nodeName: string;
+  sessionId: string;
 }
 
 export const genericMap : ((t:HTMLElement)=>string|null)[] = [

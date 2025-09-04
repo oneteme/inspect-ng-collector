@@ -49,12 +49,13 @@ export function prettySessionFormat(session: MainSession){
       s+= `(${session.location}) `
     }
     s+=prettyDurationFormat(session.start, session.end)+'\n';
-    session.restRequests.forEach(r => {
+    //todo : fix below
+    /*session.restRequests.forEach(r => {
       s+= prettyRestRequestFormat(r)+'\n';
     })
     session.localRequests.forEach(r => {
       s+= prettyLocalRequestFormat(r)+'\n';
-    })
+    })*/
   return s;
 }
 
@@ -78,12 +79,13 @@ function prettyRestRequestFormat(rest: RestRequest){
   if(rest.query){
     s+= rest.query
   }
-  if(rest.exception?.type){
+  //todo : fix below
+  /*if(rest.exception?.type){
     s+= ` ${rest.exception?.type}:`;
   }
   if(rest.exception?.message){
     s+= ` ${rest.exception.message}`;
-  }
+  }*/
   s+= ` >> ${rest.status}`
   s+= prettyDurationFormat(rest.start,rest.end);
   return s;

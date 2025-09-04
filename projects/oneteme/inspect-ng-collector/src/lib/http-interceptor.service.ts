@@ -18,6 +18,28 @@ export class HttpInterceptorService implements HttpInterceptor {
         let status: number, responseBody: any = '', exception: ExceptionInfo;
         let id= crypto.randomUUID();
         req = req.clone({headers :req.headers.set('x-tracert',id)});
+        //create req here and push to session queue
+         const url = toHref(req.urlWithParams);
+         const auth_user = extractAuthSchemeAnduser(req.headers);
+          this.SessionManager.traceQueue.push({
+            "@type":"http-req",
+            id: id,
+            method: req.method,
+            protocol: url.protocol.slice(0, -1),
+            host: exctractHost(url.host),
+            port: +url.port || -1,
+            path: url.pathname,
+            query: url.search.slice(1, url.search.length),
+            contentType: req.responseType,
+            authScheme: auth_user.authScheme,
+            user: auth_user.user,
+            //status: +status,
+            //inDataSize: sizeOf(responseBody),
+            //ouDataSize: sizeOf(req.body),
+            start: start,
+            //end: dateNow(),
+          })
+      //todo : add stage for request
         return next.handle(req).pipe(tap(
             (event: any) => {
                 if (event instanceof HttpResponse) {
@@ -39,7 +61,8 @@ export class HttpInterceptorService implements HttpInterceptor {
               if  (this.SessionManager.getCurrentSession()){
                 const url = toHref(req.urlWithParams);
                 const auth_user = extractAuthSchemeAnduser(req.headers);
-                this.SessionManager.getCurrentSession().restRequests.push({
+                this.SessionManager.traceQueue.push({
+                  "@type":"http-req",
                   id: id,
                   method: req.method,
                   protocol: url.protocol.slice(0, -1),
@@ -55,7 +78,11 @@ export class HttpInterceptorService implements HttpInterceptor {
                   ouDataSize: sizeOf(req.body),
                   start: start,
                   end: dateNow(),
+                  sessionId : this.SessionManager.currentSession.id
                 });
+                //todo : add stage for request
+              }else{
+                //todo :  report here
               }
             }catch(err){
               console.warn(err);
@@ -66,6 +93,7 @@ export class HttpInterceptorService implements HttpInterceptor {
 
 function createHttpRequestStage(req: RestRequest, exception: ExceptionInfo): HttpRequestStage{
   return {
+        "@type": "http-stg",
         name: "PROCESS",
         start: req.start,
         end: req.end,
@@ -111,7 +139,7 @@ function extractAuthSchemeAnduser(headers: any): {user: string | undefined, auth
 function assertSessionID(id:string, headers:any) {
     if(headers.has('x-tracert')){
       if(id !== headers.get('x-tracert')){
-          // report log
+          //todo:  report log
       }
     }
 }

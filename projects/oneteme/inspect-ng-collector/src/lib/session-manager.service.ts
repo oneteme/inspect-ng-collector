@@ -1,5 +1,5 @@
 import { Inject, Injectable, OnDestroy } from '@angular/core';
-import { InstanceEnvironment, MainSession } from './trace.model';
+import {EventTrace, InstanceEnvironment, MainSession} from './trace.model';
 import { interval, startWith, Subscription, tap } from 'rxjs';
 import { dateNow, logInspect, prettySessionFormat } from './util';
 import { TechnicalConf } from './configuration';
@@ -11,7 +11,7 @@ export class SessionManager implements OnDestroy {
     config: TechnicalConf;
     instanceEnvironment: InstanceEnvironment;
     scheduledSessionSender: Subscription;
-    sessionQueue: MainSession[] = [];
+    traceQueue: EventTrace[] = []; //
     sessionSendAttempts: number = 0
     sendSessionfinished: boolean = true;
     instanceSaved: boolean = false;
@@ -22,7 +22,6 @@ export class SessionManager implements OnDestroy {
         @Inject('instance') instance: InstanceEnvironment) {
         this.config = config;
         this.instanceEnvironment = instance;
-        console.log(this.instanceEnvironment)
         SessionManager._instance = this;
         this.scheduledSessionSender = interval(config.delay)
             .pipe(startWith(0))
@@ -46,26 +45,24 @@ export class SessionManager implements OnDestroy {
             this.currentSession.name = document.title;
             this.currentSession.location = document.URL;
             if (this.config.exclude.every((e) => !e.test(this.currentSession.location))) {
-                this.sessionQueue.push(this.currentSession);
-                logInspect('app',`added element to session queue, new size is:${this.sessionQueue.length}`);
+                this.traceQueue.push(this.currentSession);
+                logInspect('app',`added element to session queue, new size is: ${this.traceQueue.length}`);
             }
 
-            logInspect('app',() => prettySessionFormat(this.currentSession));
+           // logInspect('app',() => prettySessionFormat(this.currentSession));
         }
         if (url) {
             this.currentSession = {
-                '@type': "main",
+                '@type': "main-ses",
                 id: crypto.randomUUID(),
                 user: this.config.user(),
                 start: dateNow(),
                 type: "VIEW",
                 location: url,
                 loading: true,
-                restRequests: [],
-                localRequests: [],
-                userActions: [],
                 exceptions: []
             }
+            this.traceQueue.push(this.currentSession)
         }
     }
 
@@ -83,18 +80,18 @@ export class SessionManager implements OnDestroy {
     }
 
     sendSessions(instanceComplete?:boolean) : Promise<number>{
-        if (this.sessionQueue.length > 0) {
+        if (this.traceQueue.length > 0) {
             if(instanceComplete){
                 this.config.sessionApi +="?end="+ new Date().toISOString();
             }
             this.sessionSendAttempts++;
-            let sessions: MainSession[] = [...this.sessionQueue];
-            this.sessionQueue.splice(0, sessions.length); // add rest of sessions
+            let sessions: EventTrace[] = [...this.traceQueue];
+            this.traceQueue.splice(0, sessions.length); // add rest of sessions
             logInspect('app',`sending sessions, attempts:${this.sessionSendAttempts}, queue size : ${sessions.length}`)
             return this.putSessions(sessions)
                 .then(ok => {
                     if (ok) {
-                        logInspect('app',`sessions sent successfully, queue size reset, new size is: ${this.sessionQueue.length}`)
+                        logInspect('app',`sessions sent successfully, queue size reset, new size is: ${this.traceQueue.length}`)
                         this.sessionSendAttempts = 0;
                         return sessions.length;
                     } else {
@@ -107,7 +104,7 @@ export class SessionManager implements OnDestroy {
         return Promise.resolve(0);
     }
 
-    putSessions(sessionList: MainSession[]): Promise<boolean> {
+    putSessions(sessionList: EventTrace[]): Promise<boolean> {
         return fetch(this.config.sessionApi, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -135,11 +132,11 @@ export class SessionManager implements OnDestroy {
         .catch(err => null);
     }
 
-    revertQueueSize(sessions: MainSession[]) {
-        this.sessionQueue.unshift(...sessions);
-        if (this.sessionQueue.length > this.config.bufferMaxSize) {
-            let diff = this.sessionQueue.length - this.config.bufferMaxSize;
-            this.sessionQueue = this.sessionQueue.slice(0, this.config.bufferMaxSize);
+    revertQueueSize(sessions: EventTrace[]) {
+        this.traceQueue.unshift(...sessions);
+        if (this.traceQueue.length > this.config.bufferMaxSize) {
+            let diff = this.traceQueue.length - this.config.bufferMaxSize;
+            this.traceQueue = this.traceQueue.slice(0, this.config.bufferMaxSize);
             logInspect('app',`Buffer size exeeded the max size,last sessions have been removed from buffer, (number of sessions removed):${diff}`)
         }
     }
@@ -153,4 +150,17 @@ export class SessionManager implements OnDestroy {
     getCurrentSession() {
         return this.currentSession;
     }
+
+    /* // todo: apply this to the queue
+       add(event: EventTrace) {
+          const index = this.queue.findIndex(e => e.id === event.id);
+          if (index !== -1) {
+            // Remplacer l'ancien par le nouveau
+            this.queue[index] = event;
+          } else {
+            // Ajouter à la fin (queue)
+            this.queue.push(event);
+          }
+        }
+    */
 }

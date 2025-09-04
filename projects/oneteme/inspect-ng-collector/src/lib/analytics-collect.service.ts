@@ -75,13 +75,15 @@ export class AnalyticsCollector {
 
   addActionUser(eventType: string, target: HTMLElement){
     const ua = {
+      '@type': "", // todo: set this type for user action
       type: eventType,
       start: dateNow(),
       name : extractName(target),
       nodeName : target.tagName?.toLowerCase(),
+      sessionId: this.sessionManager.getCurrentSession().id
     }
     logInspect('user',() => prettyActionUserFormat(this.sessionManager.getCurrentSession(),ua));
-    this.sessionManager.getCurrentSession().userActions.push(ua);
+    this.sessionManager.traceQueue.push(ua);
   }
 
 
