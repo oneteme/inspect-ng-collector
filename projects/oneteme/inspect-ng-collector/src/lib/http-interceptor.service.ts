@@ -8,7 +8,6 @@ import { SessionManager } from './session-manager.service';
 
 
 
-
 @Injectable({ providedIn: 'root' })
 export class HttpInterceptorService implements HttpInterceptor {
 
@@ -17,17 +16,18 @@ export class HttpInterceptorService implements HttpInterceptor {
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
         const start = dateNow();
         let status: number, responseBody: any = '', exception: ExceptionInfo;
-        let id: string| undefined;
+        let id= crypto.randomUUID();
+        req = req.clone({headers :req.headers.set('x-tracert',id)});
         return next.handle(req).pipe(tap(
             (event: any) => {
                 if (event instanceof HttpResponse) {
                     status = +event.status;
                     responseBody = event.body
-                    id = getReqid(event.headers);
+                    assertSessionID(id, event.headers);
                 }
             },
             error => {
-                id = getReqid(error.headers);
+                assertSessionID(id, error.headers);
                 status = +error.status;
                 exception = {
                     type : error.name,
@@ -98,10 +98,12 @@ function extractAuthSchemeAnduser(headers: any): {user: string | undefined, auth
   return auth_user;
 }
 
-function getReqid(headers:any):string | undefined {
-    return headers.has('x-tracert')
-        ? headers.get('x-tracert')
-        : undefined;
+function assertSessionID(id:string, headers:any) {
+    if(headers.has('x-tracert')){
+      if(id !== headers.get('x-tracert')){
+          // report log
+      }
+    }
 }
 
 function sizeOf(body: any): number {

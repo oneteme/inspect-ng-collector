@@ -50,6 +50,7 @@ export function validateAndGetConfig(conf:any):TechnicalConf{
 
 export function GetInstanceEnvironement(conf:ApplicationConf){
   return {
+    id: crypto.randomUUID(),
     name: require(getStringOrCall(conf.name), 'name'),
     version: getStringOrCall(conf.version),
     address: undefined, //server side

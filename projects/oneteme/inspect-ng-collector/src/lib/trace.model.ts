@@ -3,6 +3,7 @@ type MainSessionType =  "VIEW" | "BATCH" | "STARTUP";
 
 export interface MainSession {
     '@type'?: string;
+    id: string;
     type: MainSessionType;
     name?: string;
     location: string;
@@ -17,7 +18,7 @@ export interface MainSession {
 }
 
 export interface InstanceEnvironment {
-    id?:string;
+    id:string;
     name?: string;
     address?: string;
     version?: string;
@@ -31,7 +32,7 @@ export interface InstanceEnvironment {
 }
 
 export interface RestRequest {
-    id?: string;
+    id: string;
     method: string;
     protocol: string;
     host: string;

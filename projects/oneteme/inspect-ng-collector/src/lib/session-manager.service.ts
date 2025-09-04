@@ -14,6 +14,7 @@ export class SessionManager implements OnDestroy {
     sessionQueue: MainSession[] = [];
     sessionSendAttempts: number = 0
     sendSessionfinished: boolean = true;
+    instanceSaved: boolean = false;
     currentSession!: MainSession;
     private static _instance: SessionManager;
 
@@ -21,6 +22,7 @@ export class SessionManager implements OnDestroy {
         @Inject('instance') instance: InstanceEnvironment) {
         this.config = config;
         this.instanceEnvironment = instance;
+        console.log(this.instanceEnvironment)
         SessionManager._instance = this;
         this.scheduledSessionSender = interval(config.delay)
             .pipe(startWith(0))
@@ -53,6 +55,7 @@ export class SessionManager implements OnDestroy {
         if (url) {
             this.currentSession = {
                 '@type': "main",
+                id: crypto.randomUUID(),
                 user: this.config.user(),
                 start: dateNow(),
                 type: "VIEW",
@@ -67,10 +70,10 @@ export class SessionManager implements OnDestroy {
     }
 
     manageCache(): Promise<any> {
-        if(this.instanceEnvironment.id){
+        if(this.instanceSaved){
             return this.sendSessions();
-        }
-        return this.postInstanceEnv().then((id: string | null) => {
+         }
+        return this.postInstanceEnv().then((id: boolean | null) => {
             if (id) {
                return this.sendSessions();
             }
@@ -115,7 +118,7 @@ export class SessionManager implements OnDestroy {
             .catch(err => false);
     }
 
-    postInstanceEnv(): Promise<string | null> {
+    postInstanceEnv(): Promise<boolean | null> {
         this.sessionSendAttempts++;
         return fetch(this.config.instanceApi, {
             method: 'POST',
@@ -127,7 +130,7 @@ export class SessionManager implements OnDestroy {
             this.config.sessionApi = this.config.sessionApi.replace(':id', id);
             logInspect('app','Environement instance sent successfully', id);
             this.sessionSendAttempts = 0;
-            return this.instanceEnvironment.id = id;
+            return this.instanceSaved = true;
         }) : null)
         .catch(err => null);
     }
