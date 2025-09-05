@@ -39,7 +39,7 @@ export class HttpInterceptorService implements HttpInterceptor {
             start: start,
             //end: dateNow(),
           })
-      //todo : add stage for request
+
         return next.handle(req).pipe(tap(
             (event: any) => {
                 if (event instanceof HttpResponse) {
@@ -49,12 +49,16 @@ export class HttpInterceptorService implements HttpInterceptor {
                 }
             },
             error => {
-                assertSessionID(id, error.headers);
-                status = +error.status;
-                exception = {
+                if(error){
+                  assertSessionID(id, error?.headers);
+                  status = +error.status;
+                  exception = {
                     type : error.name,
                     message: error.error && error.status ?  JSON.stringify(error.error) : error.message
+                  }
                 }
+
+                // todo : add default exception and status when server is down
             },
         ), finalize(() => {
             try {
@@ -73,14 +77,25 @@ export class HttpInterceptorService implements HttpInterceptor {
                   contentType: req.responseType,
                   authScheme: auth_user.authScheme,
                   user: auth_user.user,
-                  status: +status,
+                  status: +status ||  0, // check if this is good
                   inDataSize: sizeOf(responseBody),
                   ouDataSize: sizeOf(req.body),
                   start: start,
                   end: dateNow(),
                   sessionId : this.SessionManager.currentSession.id
                 });
-                //todo : add stage for request
+
+               this.SessionManager.traceQueue.push(
+                 {
+                   "@type": "http-stg",
+                   name: "PROCESS",
+                   start: start,
+                   end: dateNow(),
+                   order: 0,
+                   exception: exception,
+                   requestId : id
+                 }
+               );
               }else{
                 //todo :  report here
               }
@@ -91,17 +106,6 @@ export class HttpInterceptorService implements HttpInterceptor {
     }
 }
 
-function createHttpRequestStage(req: RestRequest, exception: ExceptionInfo): HttpRequestStage{
-  return {
-        "@type": "http-stg",
-        name: "PROCESS",
-        start: req.start,
-        end: req.end,
-        order: 0,
-        exception: exception,
-        requestId : req.id
-  }
-}
 
 function toHref(url: string): HTMLAnchorElement {
     const href = document.createElement('a');
@@ -137,7 +141,7 @@ function extractAuthSchemeAnduser(headers: any): {user: string | undefined, auth
 }
 
 function assertSessionID(id:string, headers:any) {
-    if(headers.has('x-tracert')){
+    if(headers && headers.has('x-tracert')){
       if(id !== headers.get('x-tracert')){
           //todo:  report log
       }
