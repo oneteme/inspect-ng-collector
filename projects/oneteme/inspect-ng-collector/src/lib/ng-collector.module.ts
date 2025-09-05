@@ -1,13 +1,12 @@
-import {NgModule, APP_INITIALIZER, ModuleWithProviders, ErrorHandler} from '@angular/core';
+import {NgModule, APP_INITIALIZER, ModuleWithProviders, ErrorHandler, inject} from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
-import { logInspect } from './util';
+import {createLogEntry, dateNow, logInspect} from './util';
 import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { ApplicationConf, GetInstanceEnvironement, validateAndGetConfig } from './configuration';
 import { HttpInterceptorService } from './http-interceptor.service';
 import { SessionManager } from './session-manager.service';
-import {AnalyticsCollector} from "./analytics-collect.service";
-import {GlobalErrorHandlerService} from "./global-error-handler.service";
-
+import { AnalyticsCollector } from "./analytics-collect.service";
+import { GlobalErrorHandlerService } from "./global-error-handler.service";
 @NgModule()
 export class NgCollectorModule {
 
@@ -65,5 +64,42 @@ export function initializeEvents(router: Router, sessionManager: SessionManager,
 
   }
 }
+
+export function logInfo(message: string){
+  if (message){
+    try {
+      const sm = inject(SessionManager);
+      sm.traceQueue.push(createLogEntry("INFO", message))
+    }catch (err) {
+      console.log(err)
+      //todo report here
+    }
+  }
+}
+
+export function logWarn(message: string){
+  if (message){
+    try {
+      const sm = inject(SessionManager);
+      sm.traceQueue.push(createLogEntry("WARN", message))
+    }catch (err) {
+      console.log(err)
+      //todo report here
+    }
+  }
+}
+
+export function logError(message: string){
+  if (message){
+    try {
+      const sm = inject(SessionManager);
+      sm.traceQueue.push(createLogEntry("ERROR", message))
+    }catch (err) {
+      console.log(err)
+      //todo report here
+    }
+  }
+}
+
 
 

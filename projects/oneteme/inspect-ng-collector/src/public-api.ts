@@ -6,4 +6,3 @@
 export * from './lib/ng-collector.module';
 export * from './lib/traceable-stage.decorator';
 
- 

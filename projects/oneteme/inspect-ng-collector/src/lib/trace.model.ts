@@ -1,5 +1,6 @@
 type InstantType = "SERVER"  | "CLIENT";
 type MainSessionType =  "VIEW" | "BATCH" | "STARTUP";
+export type Level = "INFO" | "WARN" | "ERROR";
 
 export interface EventTrace {
 
@@ -85,6 +86,15 @@ export interface UserAction extends EventTrace{
   name: string| null;
   nodeName: string;
   sessionId: string;
+}
+
+export interface LogEntry extends EventTrace{
+  '@type': string;
+  instant: number;
+  level: Level;
+  message: string;
+  sessionId?: string;
+  instanceId: string;
 }
 
 export const genericMap : ((t:HTMLElement)=>string|null)[] = [
