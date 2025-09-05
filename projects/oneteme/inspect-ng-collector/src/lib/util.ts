@@ -117,7 +117,7 @@ export function createLogEntry(level: Level, message: string): LogEntry {
     level: level,
     message: message,
     instant: dateNow(),
-//    sessionId :   SessionManager.instance.getCurrentSession()?.id,
+    sessionId :   SessionManager.instance.getCurrentSession()?.id,
     instanceId :   SessionManager.instance.instanceEnvironment.id
   }
 }

@@ -65,41 +65,4 @@ export function initializeEvents(router: Router, sessionManager: SessionManager,
   }
 }
 
-export function logInfo(message: string){
-  if (message){
-    try {
-      const sm = inject(SessionManager);
-      sm.traceQueue.push(createLogEntry("INFO", message))
-    }catch (err) {
-      console.log(err)
-      //todo report here
-    }
-  }
-}
-
-export function logWarn(message: string){
-  if (message){
-    try {
-      const sm = inject(SessionManager);
-      sm.traceQueue.push(createLogEntry("WARN", message))
-    }catch (err) {
-      console.log(err)
-      //todo report here
-    }
-  }
-}
-
-export function logError(message: string){
-  if (message){
-    try {
-      const sm = inject(SessionManager);
-      sm.traceQueue.push(createLogEntry("ERROR", message))
-    }catch (err) {
-      console.log(err)
-      //todo report here
-    }
-  }
-}
-
-
 
