@@ -1,11 +1,11 @@
 // log.service.ts
 import { Injectable } from '@angular/core';
 import { SessionManager } from './session-manager.service';
-import { createLogEntry } from './util';
+import {createLogEntry} from './util';
 
 @Injectable({ providedIn: 'root' })
 export class LogService {
-  constructor(private sessionManager: SessionManager) {}
+  constructor(private readonly sessionManager: SessionManager) {}
 
   info(message: string) {
     if (message) {

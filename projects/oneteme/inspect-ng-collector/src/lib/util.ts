@@ -118,7 +118,15 @@ export function createLogEntry(level: Level, message: string): LogEntry {
     message: message,
     instant: dateNow(),
     sessionId :   SessionManager.instance.getCurrentSession()?.id,
-    instanceId :   SessionManager.instance.instanceEnvironment.id
+  }
+}
+
+export function createReport(message: string): LogEntry{
+  return {
+    "@type": "log",
+    level: "ERROR",
+    message: message,
+    instant: dateNow(),
   }
 }
 

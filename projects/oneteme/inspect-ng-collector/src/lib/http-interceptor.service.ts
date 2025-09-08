@@ -2,16 +2,14 @@ import { Injectable } from '@angular/core';
 import { HttpInterceptor, HttpEvent, HttpHandler, HttpRequest, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { tap, finalize } from 'rxjs/operators'
-import {ExceptionInfo, HttpRequestStage, RestRequest} from './trace.model';
-import { dateNow } from './util';
+import {ExceptionInfo} from './trace.model';
+import {createReport, dateNow} from './util';
 import { SessionManager } from './session-manager.service';
-
-
 
 @Injectable({ providedIn: 'root' })
 export class HttpInterceptorService implements HttpInterceptor {
 
-    constructor(private readonly SessionManager: SessionManager) { } // change this to session manager
+    constructor(private readonly sessionManager: SessionManager) { } // change this to session manager
 
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
         const start = dateNow();
@@ -20,8 +18,8 @@ export class HttpInterceptorService implements HttpInterceptor {
         req = req.clone({headers :req.headers.set('x-tracert',id)});
         //create req here and push to session queue
          const url = toHref(req.urlWithParams);
-         const auth_user = extractAuthSchemeAnduser(req.headers);
-          this.SessionManager.traceQueue.push({
+         const auth_user = this.extractAuthSchemeAnduser(req.headers);
+          this.sessionManager.traceQueue.push({
             "@type":"http-req",
             id: id,
             method: req.method,
@@ -45,27 +43,31 @@ export class HttpInterceptorService implements HttpInterceptor {
                 if (event instanceof HttpResponse) {
                     status = +event.status;
                     responseBody = event.body
-                    assertSessionID(id, event.headers);
+                    this.assertSessionID(id, event.headers);
                 }
             },
             error => {
                 if(error){
-                  assertSessionID(id, error?.headers);
+                  this.assertSessionID(id, error?.headers);
                   status = +error.status;
                   exception = {
                     type : error.name,
                     message: error.error && error.status ?  JSON.stringify(error.error) : error.message
                   }
+                } else {
+                  status = 0;
+                  exception = {
+                    type: "ServerUnavailable",
+                    message: "The remote server is unavailable or did not respond.",
+                  };
                 }
-
-                // todo : add default exception and status when server is down
             },
         ), finalize(() => {
             try {
-              if  (this.SessionManager.getCurrentSession()){
+              if  (this.sessionManager.getCurrentSession()){
                 const url = toHref(req.urlWithParams);
-                const auth_user = extractAuthSchemeAnduser(req.headers);
-                this.SessionManager.traceQueue.push({
+                const auth_user = this.extractAuthSchemeAnduser(req.headers);
+                this.sessionManager.traceQueue.push({
                   "@type":"http-req",
                   id: id,
                   method: req.method,
@@ -82,10 +84,10 @@ export class HttpInterceptorService implements HttpInterceptor {
                   ouDataSize: sizeOf(req.body),
                   start: start,
                   end: dateNow(),
-                  sessionId : this.SessionManager.currentSession.id
+                  sessionId : this.sessionManager.currentSession.id
                 });
 
-               this.SessionManager.traceQueue.push(
+               this.sessionManager.traceQueue.push(
                  {
                    "@type": "http-stg",
                    name: "PROCESS",
@@ -97,13 +99,47 @@ export class HttpInterceptorService implements HttpInterceptor {
                  }
                );
               }else{
-                //todo :  report here
+                this.sessionManager.traceQueue.push(createReport("no active session found for instance: "+ this.sessionManager.instanceEnvironment.id))
               }
             }catch(err){
               console.warn(err);
+              this.sessionManager.traceQueue.push(createReport(JSON.stringify(err)))
             }
         }));
     }
+
+  assertSessionID(id:string, headers:any) {
+    if(headers?.has('x-tracert')){
+      if(id !== headers.get('x-tracert')){
+        this.sessionManager.traceQueue.push(createReport("The received x-tracert header (" + headers.get('x-tracert') + ") does not match the request id (" + id + ") for instance: " + this.sessionManager.instanceEnvironment.id));
+      }
+    }
+  }
+
+  extractAuthSchemeAnduser(headers: any): {user: string | undefined, authScheme: string | undefined} {
+    let auth_user: {user: string | undefined, authScheme: string | undefined} = {
+      user: undefined,
+      authScheme: undefined
+    };
+    try {
+      auth_user.authScheme = headers.has('authorization') && headers.get('authorization').match(/^(\w+) /)?.at(1)
+      switch (auth_user.authScheme){
+        case "Basic":
+          auth_user.user = atob(headers.get('authorization').split(" ")[1]).toString().split(':')[0];
+          break;
+        case "Bearer": {
+          const parts = headers.get('authorization').split(" ")[1].split('.');
+          if (parts.length == 3) {
+            auth_user.user = JSON.parse(atob(parts[1]).toString()).sub;
+          }
+        }
+      }
+    }catch(err){
+      console.warn(err);
+      this.sessionManager.traceQueue.push(createReport(JSON.stringify(err)))
+    }
+    return auth_user;
+  }
 }
 
 
@@ -116,36 +152,6 @@ function toHref(url: string): HTMLAnchorElement {
 function exctractHost(path: string) {
     const portregex = /:\d+/;
     return path.replace(portregex, '')
-}
-
-function extractAuthSchemeAnduser(headers: any): {user: string | undefined, authScheme: string | undefined} {
-  let auth_user: {user: string | undefined, authScheme: string | undefined} = {
-    user: undefined,
-    authScheme: undefined
-  };
-  try {
-    auth_user.authScheme = headers.get('authorization').match(/^(\w+) /)?.at(1)
-    switch (auth_user.authScheme){
-      case "Basic":
-        auth_user.user = atob(headers.get('authorization').split(" ")[1]).toString().split(':')[0];
-        break;
-      case "Bearer": {
-        const parts = headers.get('authorization').split(" ")[1].split('.');
-        if (parts.length == 3) {
-          auth_user.user = JSON.parse(atob(parts[1]).toString()).sub;
-        }
-      }
-    }
-  }catch(err){}
-  return auth_user;
-}
-
-function assertSessionID(id:string, headers:any) {
-    if(headers && headers.has('x-tracert')){
-      if(id !== headers.get('x-tracert')){
-          //todo:  report log
-      }
-    }
 }
 
 function sizeOf(body: any): number {

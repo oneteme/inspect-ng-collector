@@ -94,7 +94,6 @@ export interface LogEntry extends EventTrace{
   level: Level;
   message: string;
   sessionId?: string;
-  instanceId: string;
 }
 
 export const genericMap : ((t:HTMLElement)=>string|null)[] = [
