@@ -2,6 +2,8 @@ type InstantType = "SERVER"  | "CLIENT";
 type MainSessionType =  "VIEW" | "BATCH" | "STARTUP";
 export type Level = "INFO" | "WARN" | "ERROR";
 
+
+
 export interface EventTrace {
 
 }
@@ -30,7 +32,11 @@ export interface InstanceEnvironment {
     user?: string;
     type?: InstantType;
     instant?:number;
-    collector?:string;
+    collector?:string; //ng-collector
+    additionalProperties?: {[key:string]: any};
+    resource: MachineResource;
+    configuration?: {[key:string]: any};
+    // additional :  ()=> {[key:string]: any};
 }
 
 export interface RestRequest extends EventTrace {
@@ -50,7 +56,7 @@ export interface RestRequest extends EventTrace {
     user?:string;
     start: number;
     end?: number;
-    sessionId: string;
+    sessionId: string | undefined;
 }
 
 export interface HttpRequestStage extends EventTrace {
@@ -58,8 +64,8 @@ export interface HttpRequestStage extends EventTrace {
   name: string;
   start: number;
   end?: number;
-  order: number;
-  exception?: ExceptionInfo;
+  // order: number; todo : remove
+  exception?: ExceptionInfo | null;
   requestId: string;
 }
 
@@ -94,6 +100,17 @@ export interface LogEntry extends EventTrace{
   level: Level;
   message: string;
   sessionId?: string;
+}
+
+export interface MachineResource {
+  minHeap: number;
+}
+
+export interface MachineRessourceUsage extends  EventTrace{
+  '@type': string;
+  instant: number;
+  commitedHeap: number;
+  usedHeap: number;
 }
 
 export const genericMap : ((t:HTMLElement)=>string|null)[] = [

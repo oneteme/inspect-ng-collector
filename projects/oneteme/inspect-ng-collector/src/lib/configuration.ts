@@ -60,7 +60,8 @@ export function GetInstanceEnvironement(conf:ApplicationConf){
     user: undefined, // cannot get user
     type: "CLIENT",
     instant: dateNow(),
-    collector: "inspect-ng-collector-0.0.1"
+    collector: "inspect-ng-collector-0.0.1",
+    machineRessource: ('memory' in performance) && (performance as any).memory.jsHeapSizeLimit
   }
 }
 

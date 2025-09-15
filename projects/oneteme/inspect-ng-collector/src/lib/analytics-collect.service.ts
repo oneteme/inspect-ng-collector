@@ -3,6 +3,7 @@ import {DOCUMENT} from "@angular/common";
 import {extractName} from "./trace.model";
 import {SessionManager} from "./session-manager.service";
 import {dateNow, logInspect, prettyActionUserFormat} from "./util";
+import {EventTraceScheduledDispatcherService} from "./event-trace-scheduled-dispatcher.service";
 
 @Injectable({
   providedIn: 'root'
@@ -15,7 +16,8 @@ export class AnalyticsCollector {
   patchedEvent : {[key:string]:boolean}  = {};
   elementsWithClickListeners = new WeakSet();
   constructor(@Inject(DOCUMENT) private readonly document: Document,
-              private readonly sessionManager: SessionManager) {
+              private readonly sessionManager: SessionManager,
+              private readonly dispatcher: EventTraceScheduledDispatcherService) {
 
   }
   subscribeToEvents(){
@@ -83,7 +85,7 @@ export class AnalyticsCollector {
       sessionId: this.sessionManager.getCurrentSession().id
     }
     logInspect('user',() => prettyActionUserFormat(this.sessionManager.getCurrentSession(),ua));
-    this.sessionManager.traceQueue.push(ua);
+    this.dispatcher.addToQueue(ua);
   }
 
 

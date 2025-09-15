@@ -1,29 +1,30 @@
-import {NgModule, APP_INITIALIZER, ModuleWithProviders, ErrorHandler, inject} from '@angular/core';
+import {NgModule, APP_INITIALIZER, ModuleWithProviders, ErrorHandler} from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
-import {createLogEntry, dateNow, logInspect} from './util';
+import { logInspect} from './util';
 import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { ApplicationConf, GetInstanceEnvironement, validateAndGetConfig } from './configuration';
 import { HttpInterceptorService } from './http-interceptor.service';
 import { SessionManager } from './session-manager.service';
 import { AnalyticsCollector } from "./analytics-collect.service";
 import { GlobalErrorHandlerService } from "./global-error-handler.service";
+import {EventTraceScheduledDispatcherService} from "./event-trace-scheduled-dispatcher.service";
+
 @NgModule()
 export class NgCollectorModule {
-
+  private static forRootCalled: boolean = false;
   static forRoot(configuration: ApplicationConf): ModuleWithProviders<NgCollectorModule> {
-    if (configuration?.enabled) {
+    if (configuration?.enabled && !NgCollectorModule.forRootCalled) {
       try {
+        NgCollectorModule.forRootCalled = true;
         let config = validateAndGetConfig(configuration);
         let instance = GetInstanceEnvironement(configuration);
-        let deps:any[] = [Router, SessionManager]
+        let deps:any[] = [Router, SessionManager, EventTraceScheduledDispatcherService ]
         logInspect('app',JSON.stringify(config));
         logInspect('app',JSON.stringify(instance));
         config.analytics && deps.push(AnalyticsCollector);
-
         return {
           ngModule: NgCollectorModule,
           providers: [
-            SessionManager,
             { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: deps, multi: true },
             { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
             { provide: 'instance', useValue: instance },
@@ -41,14 +42,14 @@ export class NgCollectorModule {
   }
 }
 
-export function initializeEvents(router: Router, sessionManager: SessionManager, analyticsCollector: AnalyticsCollector) {
+export function initializeEvents(router: Router, sessionManager: SessionManager,dispatcher: EventTraceScheduledDispatcherService, analyticsCollector: AnalyticsCollector) {
   return () => {
     logInspect('app','initialize routing events listeners');
     window.addEventListener('beforeunload', event => {
       if(!sessionManager.getCurrentSession().loading){
         sessionManager.newSession();
       }
-      sessionManager.sendSessions(true);
+      dispatcher.sendSessions(true);
     });
     router.events.subscribe(event => {
       if (event instanceof NavigationStart) {
@@ -61,6 +62,7 @@ export function initializeEvents(router: Router, sessionManager: SessionManager,
     if(analyticsCollector){
       analyticsCollector.subscribeToEvents();
     }
+
 
   }
 }

@@ -1,5 +1,4 @@
 import {Level, LocalRequest, MainSession, RestRequest, UserAction, LogEntry} from "./trace.model";
-import {SessionManager} from "./session-manager.service";
 
 const WIN:any = window;
 type level = 'app' | 'user';
@@ -111,13 +110,13 @@ function prettyDurationFormat(start:number,end:number|undefined){
     return  start && end ? `(in ${ (end - start).toFixed(2) } s)` : '';
 }
 
-export function createLogEntry(level: Level, message: string): LogEntry {
+export function createLogEntry(level: Level, message: string, sessionId: string | undefined): LogEntry {
   return {
     "@type": "log",
     level: level,
     message: message,
     instant: dateNow(),
-    sessionId :   SessionManager.instance.getCurrentSession()?.id,
+    sessionId : sessionId
   }
 }
 

@@ -1,4 +1,5 @@
 import { SessionManager } from "./session-manager.service";
+import {EventTraceScheduledDispatcherService} from "./event-trace-scheduled-dispatcher.service";
 
 
 export function TraceableStage(){
@@ -9,7 +10,7 @@ export function TraceableStage(){
     ) {
         const originalMethod = descriptor.value;
         descriptor.value = function (...args: any[]){
-          if(SessionManager.instance){
+          if(SessionManager){
             let session = SessionManager.instance.getCurrentSession();
             let exception;
             let start,end;
@@ -36,7 +37,7 @@ export function TraceableStage(){
               throw e;
             }finally{
               end = Date.now();
-              SessionManager.instance.traceQueue.push({
+              EventTraceScheduledDispatcherService.instance.addToQueue({
                   "@type":"locl-req",
                   name: propertyKey,
                   location: target.constructor.name,
