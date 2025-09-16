@@ -1,7 +1,44 @@
 import { dateNow, initDebug } from "./util";
+
 const SLASH = '/';
 const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
 const PATH_PATERN = /[\w-]+(\/[\w-]+)*/;
+
+export interface CollectorConfig {
+  enabled?: boolean; // default: false
+  debugMode?: boolean;
+  scheduling?: {
+    interval?: number; // default: '60s'
+  };
+  monitoring?: {
+    httpRoute?: {
+      excludes?: {
+        path?: RegExp[] | (() => RegExp[]); // replace this with string[]
+      };
+    };
+    resources?: {
+      enabled?: boolean; // default: false
+    };
+    analytics?: {
+      enabled?: boolean; // default: false
+    };
+    name: string | (() => string);
+    version?: string | (() => string);
+    env?: string | (() => string);
+    user?: string | (() => string);
+    additionalProperties: ()=> {[key:string]: any};
+  };
+  tracing?: {
+    queueCapacity?: number; // default: 10000
+    delayIfPending?: number; // default: 30
+    remote?: {
+      '@type'?: string;
+      mode?: string; // default: null
+      host?: string; // default: 'localhost'
+      retentionMaxAge?: number; // default: '30'
+    };
+  };
+}
 export interface ApplicationConf {
   host?: string;
   name?: string | (() => string);
@@ -19,49 +56,55 @@ export interface ApplicationConf {
 }
 
 export interface TechnicalConf {
-  user: () => string ;
-  bufferMaxSize: number;
-  delay: number;
+  user?: string;
+  queueCapacity: number;
+  delayIfPending: number
+  interval: number;
   instanceApi: string;
   sessionApi: string;
-  exclude: RegExp[];
-  debug: {app: boolean, user: boolean};
-  analytics?: boolean;
+  exclude?: RegExp[];
+  debugMode: boolean;
+  analytics: boolean;
+  resources: boolean;
   enabled: boolean;
 }
 
-export function validateAndGetConfig(conf:any):TechnicalConf{
-  let host = matchRegex(getStringOrCall(conf.host), "host" , HOST_PATERN)
-  let sessionApi =   matchRegex(getStringOrCall(conf.sessionApi),"sessionApi", PATH_PATERN, "v3/trace/instance/:id/session")
-  let instanceApi =  matchRegex(getStringOrCall(conf.instanceApi),"intanceApi", PATH_PATERN, "v3/trace/instance")
-  initDebug(conf.debug ?? {app: false, user: false});
-  return  {
-    user : typeof conf.user  == 'function' ? conf.user : ()=> conf.user,
-    bufferMaxSize:  requirePostitiveValue(getNumberOrCall(conf.bufferMaxSize),"bufferMaxSize", 1000) ,
-    delay: requirePostitiveValue(getNumberOrCall(conf.delay),"delay", 60000),
+export function validateAndGetConfig(conf:CollectorConfig):TechnicalConf{
+  let host = matchRegex(getStringOrCall(conf?.tracing?.remote?.host), "host" , HOST_PATERN)
+  let sessionApi =   "v4/trace/instance/:id/session"
+  let instanceApi =  "v4/trace/instance"
+  initDebug(conf.debugMode? {app: true, user: true} : {app: false, user: false}); // todo fix this to use one bool
+   return  {
+    user : getStringOrCall(conf?.monitoring?.user),
+    queueCapacity:  requirePostitiveValue(getNumberOrCall(conf?.tracing?.queueCapacity),"queueCapacity", 1000) , // queueCapacity increase ?
+    interval: requirePostitiveValue(getNumberOrCall(conf?.scheduling?.interval),"interval", 60000),
+    delayIfPending: requirePostitiveValue(getNumberOrCall(conf?.tracing?.delayIfPending),"delayIfPending", 30),
     instanceApi: sessionApiURL(host, instanceApi),
     sessionApi: instanceApiURL(host, sessionApi),
-    exclude: getRegArrOrCall(conf.exclude) || [],
-    debug: conf.debug ?? {app: false, user: false},
-    analytics: conf.analytics ?? false,
+    //exclude: getRegArrOrCall(conf?.monitoring?.httpRoute?.excludes?.path) || [],
+    debugMode: conf.debugMode ?? false,
+    analytics: conf?.monitoring?.analytics?.enabled ?? false,
+    resources: conf?.monitoring?.resources?.enabled ?? false,
     enabled: conf.enabled ?? false
   }
 }
 
-export function GetInstanceEnvironement(conf:ApplicationConf){
+export function GetInstanceEnvironement(conf:CollectorConfig){
   return {
     id: crypto.randomUUID(),
-    name: require(getStringOrCall(conf.name), 'name'),
-    version: getStringOrCall(conf.version),
+    name: require(getStringOrCall(conf?.monitoring?.name), 'name'),
+    version: getStringOrCall(conf?.monitoring?.version),
     address: undefined, //server side
-    env: require(getStringOrCall(conf.env),'env'),
+    env: require(getStringOrCall(conf?.monitoring?.env),'env'),
     os: detectOs(),
     re: detectBrowser(),
     user: undefined, // cannot get user
     type: "CLIENT",
     instant: dateNow(),
     collector: "inspect-ng-collector-0.0.1",
-    machineRessource: ('memory' in performance) && (performance as any).memory.jsHeapSizeLimit
+    resource:{ maxHeap: ('memory' in performance) && (performance as any).memory.jsHeapSizeLimit / (1024 * 1024)},
+    additionalProperties: conf?.monitoring?.additionalProperties(),
+    configuration: adaptedConfig(conf)
   }
 }
 
@@ -166,6 +209,28 @@ export function require(v: string | undefined, name: string){
     return v;
   }
   throw new Error(`${name} property is required`);
+}
+
+export function adaptedConfig(conf: CollectorConfig) {
+  return {
+  ...conf,
+    monitoring: {
+  ...conf.monitoring,
+      httpRoute: {
+    ...conf.monitoring?.httpRoute,
+        excludes: {
+        path: (conf?.monitoring?.httpRoute?.excludes?.path as RegExp[]).map(r => r.source) // convert to string array to conform to backend expectation
+      }
+    }
+  },
+    tracing: {
+    ...conf.tracing,
+        remote: {
+      ...conf.tracing?.remote,
+          '@type':"rest-rmt", // add this to conform to backend expectation
+      }
+    }
+  }
 }
 
 

@@ -24,7 +24,7 @@ export class  EventTraceScheduledDispatcherService implements OnDestroy {
     this.config = config;
     this.instanceEnvironment = instance;
     EventTraceScheduledDispatcherService._instance = this;
-    this.scheduledSessionSender = interval(config.delay)
+    this.scheduledSessionSender = interval(config.interval)
       .pipe(startWith(0))
       .pipe(tap(() => {
         if (this.sendSessionfinished) {
@@ -109,9 +109,9 @@ export class  EventTraceScheduledDispatcherService implements OnDestroy {
 
   revertQueueSize(sessions: EventTrace[]) {
     this.traceQueue.unshift(...sessions);
-    if (this.traceQueue.length > this.config.bufferMaxSize) {
-      let diff = this.traceQueue.length - this.config.bufferMaxSize;
-      this.traceQueue = this.traceQueue.slice(0, this.config.bufferMaxSize);
+    if (this.traceQueue.length > this.config.queueCapacity) {
+      let diff = this.traceQueue.length - this.config.queueCapacity;
+      this.traceQueue = this.traceQueue.slice(0, this.config.queueCapacity);
       logInspect('app',`Buffer size exeeded the max size,last sessions have been removed from buffer, (number of sessions removed):${diff}`)
     }
   }

@@ -33,10 +33,10 @@ export interface InstanceEnvironment {
     type?: InstantType;
     instant?:number;
     collector?:string; //ng-collector
-    additionalProperties?: {[key:string]: any};
     resource: MachineResource;
+    additionalProperties?: ()=> {[key:string]: any};
     configuration?: {[key:string]: any};
-    // additional :  ()=> {[key:string]: any};
+
 }
 
 export interface RestRequest extends EventTrace {
@@ -64,7 +64,6 @@ export interface HttpRequestStage extends EventTrace {
   name: string;
   start: number;
   end?: number;
-  // order: number; todo : remove
   exception?: ExceptionInfo | null;
   requestId: string;
 }
@@ -102,8 +101,8 @@ export interface LogEntry extends EventTrace{
   sessionId?: string;
 }
 
-export interface MachineResource {
-  minHeap: number;
+export interface MachineResource extends EventTrace {
+  maxHeap: number;
 }
 
 export interface MachineRessourceUsage extends  EventTrace{

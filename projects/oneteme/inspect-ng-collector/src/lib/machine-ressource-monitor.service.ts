@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import {MachineRessourceUsage} from "./trace.model";
-import {dateNow} from "./util";
+import {createReport, dateNow} from "./util";
 
 @Injectable({ providedIn: 'root' })
 export class MachineRessourceMonitorService {
@@ -14,13 +14,13 @@ export class MachineRessourceMonitorService {
         return {
           '@type': 'rsrc-usg',
           instant: dateNow(),
-          usedHeap: memory.usedJSHeapSize,
-          commitedHeap: memory.totalJSHeapSize,
+          usedHeap: memory.usedJSHeapSize / (1024 * 1024),
+          commitedHeap: memory.totalJSHeapSize / (1024 * 1024),
         };
       }
     }catch(e){
       console.warn(e)
-      // todo report error somehow
+      createReport(String(e))
     }
     return null;
   }
