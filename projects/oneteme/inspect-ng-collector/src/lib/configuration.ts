@@ -22,6 +22,9 @@ export interface CollectorConfig {
     analytics?: {
       enabled?: boolean; // default: false
     };
+    storage?: {
+      enabled: boolean // default: false
+    }
     name: string | (() => string);
     version?: string | (() => string);
     env?: string | (() => string);
@@ -66,6 +69,7 @@ export interface TechnicalConf {
   debugMode: boolean;
   analytics: boolean;
   resources: boolean;
+  storage: boolean;
   enabled: boolean;
 }
 
@@ -81,10 +85,11 @@ export function validateAndGetConfig(conf:CollectorConfig):TechnicalConf{
     delayIfPending: requirePostitiveValue(getNumberOrCall(conf?.tracing?.delayIfPending),"delayIfPending", 30),
     instanceApi: sessionApiURL(host, instanceApi),
     sessionApi: instanceApiURL(host, sessionApi),
-    //exclude: getRegArrOrCall(conf?.monitoring?.httpRoute?.excludes?.path) || [],
+    exclude: getRegArrOrCall(conf?.monitoring?.httpRoute?.excludes?.path) || [],
     debugMode: conf.debugMode ?? false,
     analytics: conf?.monitoring?.analytics?.enabled ?? false,
     resources: conf?.monitoring?.resources?.enabled ?? false,
+    storage: conf?.monitoring?.storage?.enabled ?? false,
     enabled: conf.enabled ?? false
   }
 }
@@ -216,6 +221,11 @@ export function adaptedConfig(conf: CollectorConfig) {
   ...conf,
     monitoring: {
   ...conf.monitoring,
+      additionalProperties :String(conf.monitoring?.additionalProperties),
+      name: String(conf.monitoring?.name),
+      version: String(conf.monitoring?.version),
+      env: String(conf.monitoring?.env),
+      user: String(conf.monitoring?.user),
       httpRoute: {
     ...conf.monitoring?.httpRoute,
         excludes: {

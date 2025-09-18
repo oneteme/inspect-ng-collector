@@ -8,6 +8,7 @@ import { SessionManager } from './session-manager.service';
 import { AnalyticsCollector } from "./analytics-collect.service";
 import { GlobalErrorHandlerService } from "./global-error-handler.service";
 import {EventTraceScheduledDispatcherService} from "./event-trace-scheduled-dispatcher.service";
+import {StorageEventTraceService} from "./storage-event-trace.service";
 
 @NgModule()
 export class NgCollectorModule {
@@ -22,6 +23,7 @@ export class NgCollectorModule {
         logInspect('app',JSON.stringify(config));
         logInspect('app',JSON.stringify(instance));
         config.analytics && deps.push(AnalyticsCollector);
+        config.storage && deps.push(StorageEventTraceService);
         return {
           ngModule: NgCollectorModule,
           providers: [
@@ -42,7 +44,7 @@ export class NgCollectorModule {
   }
 }
 
-export function initializeEvents(router: Router, sessionManager: SessionManager,dispatcher: EventTraceScheduledDispatcherService, analyticsCollector: AnalyticsCollector) {
+export function initializeEvents(router: Router, sessionManager: SessionManager,dispatcher: EventTraceScheduledDispatcherService, ...services: any[]) {
   return () => {
     logInspect('app','initialize routing events listeners');
     window.addEventListener('beforeunload', event => {
@@ -59,10 +61,15 @@ export function initializeEvents(router: Router, sessionManager: SessionManager,
         delete sessionManager.getCurrentSession().loading;
       }
     })
-    if(analyticsCollector){
-      analyticsCollector.subscribeToEvents();
-    }
 
+    services.forEach(service => {
+      if (service instanceof AnalyticsCollector) {
+        service.subscribeToEvents();
+      }
+      if (service instanceof StorageEventTraceService) {
+      // service.subscribeToStorageEvent();
+      }
+    });
 
   }
 }

@@ -1,8 +1,8 @@
 import {Inject, Injectable, OnDestroy} from "@angular/core";
 import {interval, startWith, Subscription, tap} from "rxjs";
-import {EventTrace, InstanceEnvironment} from "./trace.model";
+import {EventTrace, InstanceEnvironment, MainSession} from "./trace.model";
 import {TechnicalConf} from "./configuration";
-import {logInspect} from "./util";
+import {createReport, logInspect} from "./util";
 import {MachineRessourceMonitorService} from "./machine-ressource-monitor.service";
 
 @Injectable({ providedIn: 'root' })
@@ -57,7 +57,11 @@ export class  EventTraceScheduledDispatcherService implements OnDestroy {
   sendSessions(instanceComplete?:boolean) : Promise<number>{
     if (this.traceQueue.length > 0) {
       if(instanceComplete){
-        this.config.sessionApi +="?end="+ new Date().toISOString();
+        if (this.config.sessionApi.includes('end=')) {
+          this.config.sessionApi = this.config.sessionApi.replace(/end=[^&]*/g, "end=" + new Date().toISOString());
+        } else {
+          this.config.sessionApi += (this.config.sessionApi.includes('?') ? '&' : '?') + "end=" + new Date().toISOString();
+        }
       }
       this.sessionSendAttempts++;
       let sessions: EventTrace[] = [...this.traceQueue];
@@ -80,6 +84,7 @@ export class  EventTraceScheduledDispatcherService implements OnDestroy {
   }
 
   putSessions(sessionList: EventTrace[]): Promise<boolean> {
+    console.log(sessionList.map((s:any) => (s.id)))
     return fetch(this.config.sessionApi, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -116,23 +121,31 @@ export class  EventTraceScheduledDispatcherService implements OnDestroy {
     }
   }
 
-  addToQueue(event: EventTrace | null) {
-    if(event){
-      this.traceQueue.push(event);
-    }else {
-      // tooo report
+  async addToQueue(event: EventTrace | null) {
+    try{
+      if(event){
+        if(this.isSessionExcluded(event)) return
+        while (!this.sendSessionfinished) {
+          await new Promise(resolve => setTimeout(resolve, 10)); // attend 10ms
+        }
+        const index = this.traceQueue.findIndex((e:any)=>e.id && (<any>event).id  && e.id === (<any>event).id);
+        if(index !== -1) {
+            this.traceQueue[index] = event;
+          logInspect('app',`Updated element to session queue, element id: ${(<any>event).id}`);
+        }else {
+          this.traceQueue.push(event);
+          logInspect('app',`added element to session queue, new size is: ${this.traceQueue.length}`);
+        }
+      }
+    }catch(e){
+      console.warn(e)
+      this.addToQueue(createReport(String(e)))
     }
-
-    /* const index = this.queue.findIndex(e => e.id === event.id);
-     if (index !== -1) {
-       // Remplacer l'ancien par le nouveau
-       this.queue[index] = event;
-     } else {
-       // Ajouter à la fin (queue)
-       this.queue.push(event);
-     }*/
    }
 
+   isSessionExcluded(event: EventTrace): boolean{
+      return !!('@type' in event && event['@type'] === 'main-ses' && this.config.exclude?.some((e) => e.test((<MainSession>event).location)))
+   }
 
   ngOnDestroy(): void {
     if (this.scheduledSessionSender) {

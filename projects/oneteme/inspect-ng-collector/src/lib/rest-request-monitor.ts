@@ -6,14 +6,12 @@ import {EventTraceScheduledDispatcherService} from "./event-trace-scheduled-disp
 
 export class RestRequestMonitor{
     restRequest: RestRequest;
-
     constructor(private readonly sessionManager: SessionManager,
                 restRequest: HttpRequest<any>,
                 private readonly dispatcher: EventTraceScheduledDispatcherService){
       const start = dateNow();
       const url = toHref(restRequest.urlWithParams);
       const auth_user = extractAuthSchemeAnduser(restRequest.headers);
-
       this.restRequest = {
         "@type":"http-req",
         id: crypto.randomUUID(),
@@ -30,11 +28,10 @@ export class RestRequestMonitor{
         start: start,
         sessionId: sessionManager.currentSessionID()
       };
-      this.dispatcher.addToQueue(this.restRequest);
     }
 
     postProcess(event: HttpResponse<any> | null, error: any) {
-      let status: number=0, responseBody: any = '', exception: ExceptionInfo | null = null; // tobe changed
+      let status: number=0, exception: ExceptionInfo | null = null; // tobe changed
       if(event){
         status = +event.status;
         this.restRequest.inDataSize = sizeOf(event.body);
@@ -69,7 +66,6 @@ export class RestRequestMonitor{
   assertSessionID(id:string, headers:any) {
     if(headers?.has('x-tracert')){
       if(id !== headers.get('x-tracert')){
-        console.log(id, headers.get('x-tracert'))
         this.dispatcher.addToQueue(createReport("The received x-tracert header (" + headers.get('x-tracert') + ") does not match the request id (" + id + ") for instance: " + this.dispatcher.instanceEnvironment.id));
       }
     }
