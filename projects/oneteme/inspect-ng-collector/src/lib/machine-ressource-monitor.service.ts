@@ -1,13 +1,11 @@
-import { Injectable } from '@angular/core';
 import {MachineRessourceUsage} from "./trace.model";
-import {createReport, dateNow} from "./util";
+import {createReport, dateNow, DISPATCH} from "./util";
 
-@Injectable({ providedIn: 'root' })
-export class MachineRessourceMonitorService {
-  constructor() {}
+  export function MachineRessourceUsageHandler(event: Event){
+    window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : getMemoryInfo() } }));
+  }
 
-
-  getMemoryInfo():MachineRessourceUsage | null {
+  function getMemoryInfo():MachineRessourceUsage | null {
     try{
       if ('memory' in performance) {
         const memory = (performance as any).memory;
@@ -27,5 +25,5 @@ export class MachineRessourceMonitorService {
 
 
 
-}
+
 

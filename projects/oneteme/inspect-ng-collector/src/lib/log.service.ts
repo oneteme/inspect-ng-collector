@@ -1,28 +1,22 @@
-import {Injectable} from '@angular/core';
-import {createLogEntry} from './util';
-import {EventTraceScheduledDispatcherService} from "./event-trace-scheduled-dispatcher.service";
+import {createLogEntry, DISPATCH} from './util';
 import {SessionManager} from "./session-manager.service";
 
-@Injectable({ providedIn: 'root' })
 export class LogService {
+  private constructor() {}
 
-  constructor(private readonly dispatcher: EventTraceScheduledDispatcherService,
-              private readonly sessionManager: SessionManager) {
-  }
-
-  info(message: string) {
+  static info(message: string) {
     if (message) {
-      this.dispatcher.addToQueue(createLogEntry("INFO", message, this.sessionManager.currentSessionID()));
+      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createLogEntry("INFO", message, SessionManager.instance?.currentSessionID()) } }));
     }
   }
-  warn(message: string) {
+  static warn(message: string) {
     if (message) {
-      this.dispatcher.addToQueue(createLogEntry("WARN", message, this.sessionManager.currentSessionID()));
+      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createLogEntry("WARN", message, SessionManager.instance?.currentSessionID()) } }));
     }
   }
-  error(message: string) {
+  static error(message: string) {
     if (message) {
-      this.dispatcher.addToQueue(createLogEntry("ERROR", message, this.sessionManager.currentSessionID()));
+      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createLogEntry("ERROR", message, SessionManager.instance?.currentSessionID()) } }));
     }
   }
 }

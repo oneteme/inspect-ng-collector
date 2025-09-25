@@ -1,14 +1,12 @@
 import {ExceptionInfo, RestRequest} from "./trace.model";
-import {createReport, dateNow} from "./util";
+import {createReport, dateNow, DISPATCH} from "./util";
 import {HttpRequest, HttpResponse} from "@angular/common/http";
 import {SessionManager} from "./session-manager.service";
-import {EventTraceScheduledDispatcherService} from "./event-trace-scheduled-dispatcher.service";
 
 export class RestRequestMonitor{
     restRequest: RestRequest;
     constructor(private readonly sessionManager: SessionManager,
-                restRequest: HttpRequest<any>,
-                private readonly dispatcher: EventTraceScheduledDispatcherService){
+                restRequest: HttpRequest<any>){
       const start = dateNow();
       const url = toHref(restRequest.urlWithParams);
       const auth_user = extractAuthSchemeAnduser(restRequest.headers);
@@ -59,14 +57,17 @@ export class RestRequestMonitor{
         requestId : this.restRequest.id
       }
 
-      this.dispatcher.addToQueue(this.restRequest);
-      this.dispatcher.addToQueue(stage);
+      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : this.restRequest } }));
+      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : stage } }));
     }
 
   assertSessionID(id:string, headers:any) {
     if(headers?.has('x-tracert')){
       if(id !== headers.get('x-tracert')){
-        this.dispatcher.addToQueue(createReport("The received x-tracert header (" + headers.get('x-tracert') + ") does not match the request id (" + id + ") for instance: " + this.dispatcher.instanceEnvironment.id));
+        window.dispatchEvent(new CustomEvent( DISPATCH,
+          {
+            detail :  { traces : createReport("The received x-tracert header (" + headers.get('x-tracert') + ") does not match the request id (" + id + ")") }
+          }));
       }
     }
   }

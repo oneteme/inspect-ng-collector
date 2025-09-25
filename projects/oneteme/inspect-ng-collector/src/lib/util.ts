@@ -6,6 +6,9 @@ export function dateNow() {
     return Date.now() / 1_000;
 }
 
+export const DISPATCH = 'dispatch';
+export const PRE_DISPATCH = 'pre-dispatch';
+export const BEFOREUNLOAD ='beforeunload'
 export function initDebug(value: {app: boolean, user: boolean}){
    WIN["inspect"] = { app : value.app, user: value.user };
 }

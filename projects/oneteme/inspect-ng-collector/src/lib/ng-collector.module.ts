@@ -1,36 +1,36 @@
-import {NgModule, APP_INITIALIZER, ModuleWithProviders, ErrorHandler} from '@angular/core';
+import {
+  NgModule,
+  ModuleWithProviders,
+  ErrorHandler,
+  provideAppInitializer
+} from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
-import { logInspect} from './util';
-import { NavigationEnd, NavigationStart, Router } from '@angular/router';
-import { ApplicationConf, GetInstanceEnvironement, validateAndGetConfig } from './configuration';
+import { logInspect } from './util';
 import { HttpInterceptorService } from './http-interceptor.service';
-import { SessionManager } from './session-manager.service';
-import { AnalyticsCollector } from "./analytics-collect.service";
 import { GlobalErrorHandlerService } from "./global-error-handler.service";
+import {ContextManager} from "./context-manager";
+import {CollectorConfig} from "./configuration";
+import {storageEventListener} from "./storage-event-trace.service";
 import {EventTraceScheduledDispatcherService} from "./event-trace-scheduled-dispatcher.service";
-import {StorageEventTraceService} from "./storage-event-trace.service";
+
+import {beforeDispatchListener, beforeUnloadListener, routerEventsListener } from "./listeners";
+import {analyticsEventsListener} from "./analytics-collect.service";
 
 @NgModule()
 export class NgCollectorModule {
   private static forRootCalled: boolean = false;
-  static forRoot(configuration: ApplicationConf): ModuleWithProviders<NgCollectorModule> {
+  static forRoot(configuration: CollectorConfig): ModuleWithProviders<NgCollectorModule> {
     if (configuration?.enabled && !NgCollectorModule.forRootCalled) {
+      NgCollectorModule.forRootCalled = true;
       try {
-        NgCollectorModule.forRootCalled = true;
-        let config = validateAndGetConfig(configuration);
-        let instance = GetInstanceEnvironement(configuration);
-        let deps:any[] = [Router, SessionManager, EventTraceScheduledDispatcherService ]
-        logInspect('app',JSON.stringify(config));
-        logInspect('app',JSON.stringify(instance));
-        config.analytics && deps.push(AnalyticsCollector);
-        config.storage && deps.push(StorageEventTraceService);
+        let c = ContextManager.init(configuration);
+        logInspect('app',JSON.stringify(c.techConfig));
+        logInspect('app',JSON.stringify(c.instanceEnv));
         return {
           ngModule: NgCollectorModule,
           providers: [
-            { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: deps, multi: true },
+             provideAppInitializer(initializeEvents),
             { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
-            { provide: 'instance', useValue: instance },
-            { provide: 'config', useValue: config },
             { provide: ErrorHandler, useClass: GlobalErrorHandlerService }
           ]
         };
@@ -44,34 +44,14 @@ export class NgCollectorModule {
   }
 }
 
-export function initializeEvents(router: Router, sessionManager: SessionManager,dispatcher: EventTraceScheduledDispatcherService, ...services: any[]) {
-  return () => {
-    logInspect('app','initialize routing events listeners');
-    window.addEventListener('beforeunload', event => {
-      if(!sessionManager.getCurrentSession().loading){
-        sessionManager.newSession();
-      }
-      dispatcher.sendSessions(true);
-    });
-    router.events.subscribe(event => {
-      if (event instanceof NavigationStart) {
-        sessionManager.newSession(event.url);
-      }
-      if (event instanceof NavigationEnd) {
-        delete sessionManager.getCurrentSession().loading;
-      }
-    })
-
-    services.forEach(service => {
-      if (service instanceof AnalyticsCollector) {
-        service.subscribeToEvents();
-      }
-      if (service instanceof StorageEventTraceService) {
-      // service.subscribeToStorageEvent();
-      }
-    });
-
-  }
+export function initializeEvents() {
+  logInspect('app','initialize routing events listeners');
+  EventTraceScheduledDispatcherService.init(ContextManager.instance.techConfig, ContextManager.instance.instanceEnv)
+  analyticsEventsListener();
+  storageEventListener();
+  beforeDispatchListener();
+  beforeUnloadListener();
+  routerEventsListener();
 }
 
 

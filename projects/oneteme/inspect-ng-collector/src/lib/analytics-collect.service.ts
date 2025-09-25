@@ -1,35 +1,27 @@
-import {Inject, Injectable} from "@angular/core";
-import {DOCUMENT} from "@angular/common";
 import {extractName} from "./trace.model";
 import {SessionManager} from "./session-manager.service";
-import {dateNow, logInspect, prettyActionUserFormat} from "./util";
-import {EventTraceScheduledDispatcherService} from "./event-trace-scheduled-dispatcher.service";
+import {createReport, dateNow, DISPATCH, logInspect, prettyActionUserFormat} from "./util";
+import {ContextManager} from "./context-manager";
 
-@Injectable({
-  providedIn: 'root'
-})
-export class AnalyticsCollector {
-
-  eventHandlers :  {[key:string]: (target: HTMLElement)=>boolean} = {
-    'click' : (target:HTMLElement)=> this.lookUpChild(target,1),
+  const elementsWithClickListeners = new WeakSet();
+  let  eventHandlers :  {[key:string]: (target: HTMLElement)=>boolean} = {
+    'click' : (target:HTMLElement)=> lookUpChild(target,1),
   }
-  patchedEvent : {[key:string]:boolean}  = {};
-  elementsWithClickListeners = new WeakSet();
-  constructor(@Inject(DOCUMENT) private readonly document: Document,
-              private readonly sessionManager: SessionManager,
-              private readonly dispatcher: EventTraceScheduledDispatcherService) {
-
-  }
-  subscribeToEvents(){
-    const body = this.document.body;
-    body.addEventListener('click', (event) => this.globalHandler(event), true);
-    body.addEventListener('change', (event) => this.globalHandler(event), true);
-    body.addEventListener('scrollend', (event) => this.globalHandler(event), true);
-    body.addEventListener('dragend', (event) => this.globalHandler(event), true);
-    this.document.addEventListener('DOMContentLoaded', (event) => this.globalHandler(event), true);
-
-   /* let that =this;
-
+  export function analyticsEventsListener(){
+    try{
+      if( ContextManager.instance.techConfig.analytics){
+        const body = window.document.body;
+        body.addEventListener('click', globalHandler, true);
+        body.addEventListener('change', (event) => globalHandler(event), true);
+        body.addEventListener('scrollend', (event) => globalHandler(event), true);
+        body.addEventListener('dragend', (event) => globalHandler(event), true);
+        window.document.addEventListener('DOMContentLoaded', (event) => globalHandler(event), true);
+      }
+    }catch(e){
+      console.warn(e)
+      window.dispatchEvent(new CustomEvent( DISPATCH,{ detail : { traces : createReport("Error while subscribing to analytics user events: " + JSON.stringify(e)) } }));
+    }
+    /* let that =this;
     const originalAddEventListener = EventTarget.prototype.addEventListener;
     EventTarget.prototype.addEventListener = function(type: string, listener: any, options?: boolean | AddEventListenerOptions) {
       if(type === "click"){
@@ -48,45 +40,44 @@ export class AnalyticsCollector {
   }
 
 
-
-  globalHandler(event: Event | MouseEvent){
+  function globalHandler(event: Event | MouseEvent){
    // event.stopPropagation()
    // event.preventDefault()
     let target = event.target as HTMLElement;
     let eventType = event.type;
     try {
-      if(this.eventHandlers.hasOwnProperty(eventType) && !this.eventHandlers[eventType](target)){
+      if(eventHandlers.hasOwnProperty(eventType) && !eventHandlers[eventType](target)){
         return;
       }
-      this.addActionUser(eventType,target);
+      addActionUser(eventType,target);
     }catch(err){
       console.warn(err);
     }
   }
 
-  lookUpChild(t: HTMLElement, depth: number):boolean {
+  function lookUpChild(t: HTMLElement, depth: number):boolean {
     if(t.hasChildNodes() && t.children.length <= 5) {
       if(++depth > 5){
         return false;
       }
       return Array.from(t.childNodes).reduce((acc, c) =>
-        acc && this.lookUpChild(c as HTMLElement, depth), true);
+        acc && lookUpChild(c as HTMLElement, depth), true);
     }
     return true;
   }
 
-  addActionUser(eventType: string, target: HTMLElement){
+  function addActionUser(eventType: string, target: HTMLElement){
     const ua = {
       '@type': "", // todo: set this type for user action
       type: eventType,
       start: dateNow(),
       name : extractName(target),
       nodeName : target.tagName?.toLowerCase(),
-      sessionId: this.sessionManager.getCurrentSession().id
+      sessionId: SessionManager.instance?.getCurrentSession().id
     }
-    logInspect('user',() => prettyActionUserFormat(this.sessionManager.getCurrentSession(),ua));
-    this.dispatcher.addToQueue(ua);
+    logInspect('user',() => prettyActionUserFormat(SessionManager.instance?.getCurrentSession(),ua));
+   //  window.dispatchEvent(new CustomEvent( DISPATCH ,{ detail : ua})); // DISPATCH
   }
 
 
-}
+

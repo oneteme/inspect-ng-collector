@@ -1,22 +1,19 @@
-import {Injectable} from '@angular/core';
-import {createReport, dateNow, logInspect} from './util';
-import {EventTraceScheduledDispatcherService} from "./event-trace-scheduled-dispatcher.service";
 
+import {createReport, dateNow, DISPATCH, logInspect} from './util';
 
-@Injectable({ providedIn: 'root' })
 export class SessionManager {
 
-    //config: TechnicalConf;
     currentSession!: any
 
     private static _instance: SessionManager;
-
-    constructor(private readonly dispatcher: EventTraceScheduledDispatcherService) {
-      SessionManager._instance = this;
+    private constructor() {
         logInspect('app','SessionManager initialized');
     }
 
     static get instance(): SessionManager{
+        if(!SessionManager._instance) {
+            SessionManager._instance = new SessionManager();
+        }
         return SessionManager._instance;
     }
 
@@ -25,7 +22,7 @@ export class SessionManager {
             this.currentSession.end = dateNow();
             this.currentSession.name = document.title;
             this.currentSession.location = document.URL;
-            this.dispatcher.addToQueue(this.currentSession);
+             window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { traces :  this.currentSession } }));
             // todo fix this
            // logInspect('app',() => prettySessionFormat(this.currentSession));
         }
@@ -40,7 +37,7 @@ export class SessionManager {
                 loading: true,
                 exceptions: []
             }
-            this.dispatcher.addToQueue(this.currentSession)
+        window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { traces :  this.currentSession} }));
         }
     }
 
@@ -48,7 +45,7 @@ export class SessionManager {
       if(this.currentSession){
         return this.currentSession.id;
       }
-      this.dispatcher.addToQueue(createReport("no active session found for instance: "+ this.dispatcher.instanceEnvironment.id))
+      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found for instance: ") } }));
       return undefined;
     }
 
@@ -60,8 +57,10 @@ export class SessionManager {
         if (this.currentSession) {
             this.currentSession.exceptions.push(exception);
         }else {
-            this.dispatcher.addToQueue(createReport("no active session found for instance1: "+ this.dispatcher.instanceEnvironment.id))
+        window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found for instance: ") } }));
         }
     }
-
 }
+
+
+

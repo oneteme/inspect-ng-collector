@@ -1,24 +1,20 @@
 import {ErrorHandler, Injectable} from "@angular/core";
 import {SessionManager} from "./session-manager.service";
-import {createReport} from "./util";
-import {EventTraceScheduledDispatcherService} from "./event-trace-scheduled-dispatcher.service";
-
+import {createReport, DISPATCH} from "./util";
 @Injectable({ providedIn: 'root' })
 export class  GlobalErrorHandlerService implements ErrorHandler {
 
-  constructor(private readonly sessionManager: SessionManager,
-              private readonly dispatcher: EventTraceScheduledDispatcherService) {
-  }
+  constructor() {}
   handleError(error:any ) {
     try {
-      this.sessionManager.addException({
+      SessionManager.instance.addException({
         type: error?.name,
         message: error?.message
       })
 
     }catch (e) {
       console.warn(e)
-      this.dispatcher.addToQueue(createReport("Erreur dans GlobalErrorHandlerService: " + JSON.stringify(e)));
+      window.dispatchEvent(new CustomEvent( DISPATCH,{ detail : { traces : createReport("Erreur dans GlobalErrorHandlerService: " + JSON.stringify(e)) } }));
     }
     throw error;
   }

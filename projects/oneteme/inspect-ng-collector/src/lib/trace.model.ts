@@ -34,7 +34,7 @@ export interface InstanceEnvironment {
     instant?:number;
     collector?:string; //ng-collector
     resource: MachineResource;
-    additionalProperties?: ()=> {[key:string]: any};
+    additionalProperties?: {[key:string]: any};
     configuration?: {[key:string]: any};
 
 }
@@ -70,6 +70,7 @@ export interface HttpRequestStage extends EventTrace {
 
 export interface LocalRequest extends EventTrace {
     '@type': string;
+    id: string;
     name: string;
     location: string;
     user?: string;
@@ -102,7 +103,7 @@ export interface LogEntry extends EventTrace{
 }
 
 export interface MachineResource extends EventTrace {
-  maxHeap: number;
+  maxHeap?: number;
 }
 
 export interface MachineRessourceUsage extends  EventTrace{

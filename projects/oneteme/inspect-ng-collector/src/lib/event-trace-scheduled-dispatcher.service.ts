@@ -1,12 +1,8 @@
-import {Inject, Injectable, OnDestroy} from "@angular/core";
 import {interval, startWith, Subscription, tap} from "rxjs";
 import {EventTrace, InstanceEnvironment, MainSession} from "./trace.model";
 import {TechnicalConf} from "./configuration";
-import {createReport, logInspect} from "./util";
-import {MachineRessourceMonitorService} from "./machine-ressource-monitor.service";
-
-@Injectable({ providedIn: 'root' })
-export class  EventTraceScheduledDispatcherService implements OnDestroy {
+import {createReport, DISPATCH, logInspect, PRE_DISPATCH} from "./util";
+export class  EventTraceScheduledDispatcherService{
 
   config: TechnicalConf;
   instanceEnvironment: InstanceEnvironment;
@@ -17,28 +13,30 @@ export class  EventTraceScheduledDispatcherService implements OnDestroy {
   instanceSaved: boolean = false;
   private static _instance: EventTraceScheduledDispatcherService;
 
-  constructor(@Inject('config') config: TechnicalConf,
-              @Inject('instance') instance: InstanceEnvironment,
-              private readonly mrmService: MachineRessourceMonitorService) {
-
+  constructor(config: TechnicalConf,
+              instance: InstanceEnvironment) {
     this.config = config;
     this.instanceEnvironment = instance;
-    EventTraceScheduledDispatcherService._instance = this;
     this.scheduledSessionSender = interval(config.interval)
       .pipe(startWith(0))
       .pipe(tap(() => {
         if (this.sendSessionfinished) {
           this.sendSessionfinished = false;
-          this.addToQueue(this.mrmService.getMemoryInfo())
+          window.dispatchEvent(new CustomEvent(PRE_DISPATCH));
           this.manageCache().finally(() => { this.sendSessionfinished = true });
         }
       }))
       .subscribe();
+    window.addEventListener( DISPATCH, (e: Event) => {
+      (e as CustomEvent).detail.traces &&  this.dispatch((e as CustomEvent).detail.traces);
+      (e as CustomEvent).detail.force && this.sendSessions(true);
+    });
+
     logInspect('app','Dispatcher initialized');
   }
 
-  static get instance(): EventTraceScheduledDispatcherService{
-    return EventTraceScheduledDispatcherService._instance;
+  static init(techConfig: TechnicalConf, instanceEnv: InstanceEnvironment) {
+    return EventTraceScheduledDispatcherService._instance = new EventTraceScheduledDispatcherService(techConfig, instanceEnv);
   }
 
   manageCache(): Promise<any> {
@@ -60,7 +58,7 @@ export class  EventTraceScheduledDispatcherService implements OnDestroy {
         if (this.config.sessionApi.includes('end=')) {
           this.config.sessionApi = this.config.sessionApi.replace(/end=[^&]*/g, "end=" + new Date().toISOString());
         } else {
-          this.config.sessionApi += (this.config.sessionApi.includes('?') ? '&' : '?') + "end=" + new Date().toISOString();
+          this.config.sessionApi += "?end=" + new Date().toISOString();
         }
       }
       this.sessionSendAttempts++;
@@ -84,7 +82,6 @@ export class  EventTraceScheduledDispatcherService implements OnDestroy {
   }
 
   putSessions(sessionList: EventTrace[]): Promise<boolean> {
-    console.log(sessionList.map((s:any) => (s.id)))
     return fetch(this.config.sessionApi, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -121,12 +118,12 @@ export class  EventTraceScheduledDispatcherService implements OnDestroy {
     }
   }
 
-  async addToQueue(event: EventTrace | null) {
+  async dispatch(event: EventTrace | null) {
     try{
       if(event){
         if(this.isSessionExcluded(event)) return
         while (!this.sendSessionfinished) {
-          await new Promise(resolve => setTimeout(resolve, 10)); // attend 10ms
+          await new Promise(resolve => setTimeout(resolve, 10));
         }
         const index = this.traceQueue.findIndex((e:any)=>e.id && (<any>event).id  && e.id === (<any>event).id);
         if(index !== -1) {
@@ -139,7 +136,7 @@ export class  EventTraceScheduledDispatcherService implements OnDestroy {
       }
     }catch(e){
       console.warn(e)
-      this.addToQueue(createReport(String(e)))
+      this.dispatch(createReport(String(e)))
     }
    }
 
@@ -147,9 +144,4 @@ export class  EventTraceScheduledDispatcherService implements OnDestroy {
       return !!('@type' in event && event['@type'] === 'main-ses' && this.config.exclude?.some((e) => e.test((<MainSession>event).location)))
    }
 
-  ngOnDestroy(): void {
-    if (this.scheduledSessionSender) {
-      this.scheduledSessionSender.unsubscribe();
-    }
-  }
 }

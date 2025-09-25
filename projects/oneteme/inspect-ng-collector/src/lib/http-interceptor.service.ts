@@ -4,18 +4,17 @@ import {finalize, Observable} from 'rxjs';
 import { tap } from 'rxjs/operators'
 import { SessionManager } from './session-manager.service';
 import {RestRequestMonitor} from "./rest-request-monitor";
-import {EventTraceScheduledDispatcherService} from "./event-trace-scheduled-dispatcher.service";
+import {DISPATCH} from "./util";
 
 @Injectable({ providedIn: 'root' })
 export class HttpInterceptorService implements HttpInterceptor {
 
-  constructor(private readonly sessionManager: SessionManager,
-              private readonly dispatcher: EventTraceScheduledDispatcherService) {}
+  constructor() {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    let restRequestMonitor: RestRequestMonitor = new RestRequestMonitor(this.sessionManager, req, this.dispatcher);
+    let restRequestMonitor: RestRequestMonitor = new RestRequestMonitor(SessionManager.instance, req);
     let e:any;
-    this.dispatcher.addToQueue(restRequestMonitor.restRequest);
+    window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : restRequestMonitor.restRequest } }));
     req = req.clone({headers :req.headers.set('x-tracert',restRequestMonitor.restRequest.id)});
     return next.handle(req).pipe(tap( // set object response in next and error, move
       (event: any) => {
@@ -27,7 +26,7 @@ export class HttpInterceptorService implements HttpInterceptor {
           e = error
       }
     ),finalize(()=> {
-        e instanceof HttpResponse ?  restRequestMonitor.postProcess(e, null): restRequestMonitor.postProcess(null,e || {
+        e instanceof HttpResponse ?  restRequestMonitor.postProcess(e, null): restRequestMonitor.postProcess(null, e ?? {
         status: 0,
         name: "IOException",
         message: "The remote server is unavailable.",

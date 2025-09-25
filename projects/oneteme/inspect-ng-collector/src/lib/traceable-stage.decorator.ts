@@ -1,8 +1,8 @@
 import { SessionManager } from "./session-manager.service";
-import {EventTraceScheduledDispatcherService} from "./event-trace-scheduled-dispatcher.service";
+import { DISPATCH} from "./util";
 
 
-export function TraceableStage(){
+  export function TraceableStage(){
     return function (
       target: any,
       propertyKey: string,
@@ -11,7 +11,7 @@ export function TraceableStage(){
         const originalMethod = descriptor.value;
         descriptor.value = function (...args: any[]){
           if(SessionManager){
-            let session = SessionManager.instance.getCurrentSession();
+            let session = SessionManager.instance?.getCurrentSession();
             let exception;
             let start,end;
 
@@ -37,16 +37,22 @@ export function TraceableStage(){
               throw e;
             }finally{
               end = Date.now();
-              EventTraceScheduledDispatcherService.instance.addToQueue({
-                  "@type":"locl-req",
-                  name: propertyKey,
-                  location: target.constructor.name,
-                  user: session.user,
-                  start: start,
-                  end: end,
-                  exception: exception,
-                  sessionId : SessionManager.instance.getCurrentSession().id
-              })
+              window.dispatchEvent(new CustomEvent(
+                DISPATCH,
+                { detail :
+                    { traces : {
+                      "@type":"locl-req",
+                      id: crypto.randomUUID(),
+                      name: propertyKey,
+                      location: target.constructor.name,
+                      user: session.user,
+                      start: start,
+                      end: end,
+                      exception: exception,
+                      sessionId : SessionManager.instance?.getCurrentSession().id
+                      }
+                    }
+                }));
             }
           }
         }

@@ -1,23 +1,21 @@
-import {Injectable} from "@angular/core";
-import {logInspect} from "./util";
-@Injectable({
-  providedIn: 'root'
-})
-export class StorageEventTraceService {
+import {ContextManager} from "./context-manager";
+import {createReport, DISPATCH} from "./util";
 
-  constructor() {
-    logInspect('app','StorageEventTrace initialized');
+export function storageEventListener() {
+  try{
+      if( ContextManager.instance.techConfig.storage) {
+        addEventListener("storage", (event) => {
+          let storageType = event.storageArea == window.localStorage ? 'localStorage'
+              : event.storageArea == window.sessionStorage ? 'sessionStorage'
+                  : null;
+        })
+      }
+    }catch(e){
+      console.warn(e)
+      window.dispatchEvent(new CustomEvent( DISPATCH,{ detail : { traces : createReport("Error while subscribing to storage events: " + JSON.stringify(e)) } }));
+    }
   }
-
-  subscribeToStorageEvent() {
-    addEventListener("storage", (event) => {
-      let storageType = event.storageArea == window.localStorage ? 'localStorage'
-        : event.storageArea == window.sessionStorage ? 'sessionStorage'
-          : null;
-    })
-  }
-
-  subscribeToStorageEventPrototype(){
+  function subscribeToStorageEventPrototype(){
     const originalSetItem = Storage.prototype.setItem;
     const originalGetItem = Storage.prototype.getItem;
 
@@ -48,4 +46,4 @@ export class StorageEventTraceService {
     });
 
   }
-}
+
