@@ -65,7 +65,7 @@ export class EventTraceDebugger{
           this.localRequests.push(trace);
           break;
         case 'log':
-          trace.sessionId ?? logEntries.push(trace) : console.warn(this.prettyLogEntryFormat(trace));
+          trace.sessionId ? this.logEntries.push(trace) : console.warn(this.prettyLogEntryFormat(trace));
           break;
         case 'rsrc-usg':
           console.log(this.prettyMachineResourceUsageFormat(trace))
@@ -90,6 +90,7 @@ export class EventTraceDebugger{
     s+= this.getChildPrint(this.restRequests, this.prettyRestRequestFormat.bind(this));
     s+= this.getChildPrint(this.localRequests, this.prettyLocalRequestFormat.bind(this));
     s+= this.getChildPrint(this.userActions, this.prettyActionUserFormat.bind(this));
+    s+= this.getChildPrint(this.logEntries, this.prettyLogEntryFormat.bind(this))
     this.resetList()
     return s;
   }

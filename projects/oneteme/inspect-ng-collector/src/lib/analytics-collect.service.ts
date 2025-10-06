@@ -7,7 +7,7 @@ import {ContextManager} from "./context-manager";
     'click' : (target:HTMLElement)=> lookUpChild(target,1),
   }
   export function analyticsEventsListener() {
-    if (ContextManager.instance.techConfig.analytics) { // todo use document instead of body
+    if (ContextManager.instance.techConfig.analytics) {
         try {
           const body = window.document.body;
           body.addEventListener('click', globalHandler, true);
@@ -56,7 +56,7 @@ import {ContextManager} from "./context-manager";
       nodeName : target.tagName?.toLowerCase(),
       sessionId: SessionManager.instance?.getCurrentSession().id
     }
-     //window.dispatchEvent(new CustomEvent( DISPATCH ,{ detail :  { traces:ua }})); // DISPATCH // todo remove this once type added to backend
+   //  window.dispatchEvent(new CustomEvent( DISPATCH ,{ detail :  { traces:ua }}));
   }
 
 

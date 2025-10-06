@@ -48,10 +48,9 @@ export class  EventTraceScheduledDispatcherService {
 
   sendSessions(instanceComplete?:boolean) : Promise<number>{
     if (this.traceQueue.size > 0) {
-      let uri = new URL(ContextManager.instance.techConfig.sessionApi);
-      uri.searchParams.set("attempts", (++this.sessionSendAttempts).toString());
+      let uri = ContextManager.instance.techConfig.sessionApi + "?attempts=" + ++this.sessionSendAttempts;
       if(instanceComplete){
-        uri.searchParams.set("end",new Date().toISOString())
+        uri += "&end=" + new Date().toISOString();
       }
       let sessions: Set<EventTrace> = this.traceQueue;
       this.traceQueue = new Set();
@@ -99,8 +98,6 @@ export class  EventTraceScheduledDispatcherService {
   }
 
   revertQueueSize(sessions: Set<EventTrace> ){
-    console.log("sessions reverted", sessions);
-    console.log("traceQueue before revert", this.traceQueue);
     sessions.forEach(session => this.traceQueue.add(session));
     if (this.traceQueue.size > ContextManager.instance.techConfig.queueCapacity) {
       const items = Array.from(this.traceQueue).slice(0, ContextManager.instance.techConfig.queueCapacity);

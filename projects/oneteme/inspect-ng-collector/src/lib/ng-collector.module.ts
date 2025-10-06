@@ -21,6 +21,7 @@ import {eventTraceDebugger} from "./event-trace-debugger";
 export class NgCollectorModule {
   private static forRootCalled: boolean = false;
   static forRoot(configuration: CollectorConfig): ModuleWithProviders<NgCollectorModule> {
+    console.log("forRootCalled");
     if (configuration?.enabled && !NgCollectorModule.forRootCalled) {
       NgCollectorModule.forRootCalled = true;
       try {
