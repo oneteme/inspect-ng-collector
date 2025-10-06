@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { HttpInterceptor, HttpEvent, HttpHandler, HttpRequest, HttpResponse } from '@angular/common/http';
 import {finalize, Observable} from 'rxjs';
 import { tap } from 'rxjs/operators'
-import { SessionManager } from './session-manager.service';
 import {RestRequestMonitor} from "./rest-request-monitor";
 import {DISPATCH} from "./util";
 
@@ -12,11 +11,11 @@ export class HttpInterceptorService implements HttpInterceptor {
   constructor() {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    let restRequestMonitor: RestRequestMonitor = new RestRequestMonitor(SessionManager.instance, req);
+    let restRequestMonitor: RestRequestMonitor = new RestRequestMonitor(req);
     let e:any;
     window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : restRequestMonitor.restRequest } }));
     req = req.clone({headers :req.headers.set('x-tracert',restRequestMonitor.restRequest.id)});
-    return next.handle(req).pipe(tap( // set object response in next and error, move
+    return next.handle(req).pipe(tap(
       (event: any) => {
         if (event instanceof HttpResponse) {
           e = event;

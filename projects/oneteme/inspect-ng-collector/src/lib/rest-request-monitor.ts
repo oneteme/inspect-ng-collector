@@ -4,9 +4,10 @@ import {HttpRequest, HttpResponse} from "@angular/common/http";
 import {SessionManager} from "./session-manager.service";
 
 export class RestRequestMonitor{
-    restRequest: RestRequest;
-    constructor(private readonly sessionManager: SessionManager,
-                restRequest: HttpRequest<any>){
+
+    readonly restRequest: RestRequest;
+
+    constructor(restRequest: HttpRequest<any>){
       const start = dateNow();
       const url = toHref(restRequest.urlWithParams);
       const auth_user = extractAuthSchemeAnduser(restRequest.headers);
@@ -24,12 +25,12 @@ export class RestRequestMonitor{
         user: auth_user.user,
         ouDataSize: sizeOf(restRequest.body),
         start: start,
-        sessionId: sessionManager.currentSessionID()
+        sessionId: SessionManager.instance.currentSessionID()
       };
     }
 
     postProcess(event: HttpResponse<any> | null, error: any) {
-      let status: number=0, exception: ExceptionInfo | null = null; // tobe changed
+      let status: number=0, exception: ExceptionInfo | null = null;
       if(event){
         status = +event.status;
         this.restRequest.inDataSize = sizeOf(event.body);
@@ -103,8 +104,7 @@ export function extractAuthSchemeAnduser(headers: any): {user: string | undefine
       }
     }
   }catch(err){
-    console.warn(err);
-  //  this.sessionManager.traceQueue.push(createReport(JSON.stringify(err)))
+    createReport(JSON.stringify(err));
   }
   return auth_user;
 }

@@ -12,7 +12,6 @@ export function routeHandler(event: any){
 }
 
 export function windowUnloadHandler(event:any) {
-  debugger;
   if(!SessionManager.instance.getCurrentSession().loading){
     SessionManager.instance.newSession();
   }

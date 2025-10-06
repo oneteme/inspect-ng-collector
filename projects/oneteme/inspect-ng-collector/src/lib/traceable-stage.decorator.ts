@@ -49,7 +49,7 @@ import { DISPATCH} from "./util";
                       start: start,
                       end: end,
                       exception: exception,
-                      sessionId : SessionManager.instance?.getCurrentSession().id
+                      sessionId : SessionManager.instance.currentSessionID()
                       }
                     }
                 }));

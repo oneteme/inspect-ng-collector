@@ -1,4 +1,4 @@
-import {dateNow, initDebug} from "./util";
+import {dateNow} from "./util";
 import {
   adaptedConfig,
   CollectorConfig,
@@ -14,9 +14,9 @@ export class ContextManager {
 
   private static _instance: ContextManager;
 
-  constructor(
+  constructor(   private readonly _instanceEnv: any,
     private readonly _techConfig: any,
-    private readonly _instanceEnv: any) {
+ ) {
   }
 
   get techConfig(): any {
@@ -28,28 +28,28 @@ export class ContextManager {
 
   static  get instance(){
     if(!ContextManager._instance){
-      console.warn("ContextManager not initialized");
-      // report ?
+      console.warn("[Inspect-ng-collecotor] Error while initializing ContextManager");
     }
     return ContextManager._instance;
   }
 
   static init(conf:CollectorConfig){
-      return ContextManager._instance = new ContextManager(ContextManager.validateAndGetConfig(conf), ContextManager.createInstance(conf));
+      let id = crypto.randomUUID();
+      return ContextManager._instance = new ContextManager(ContextManager.createInstance(conf,id),ContextManager.validateAndGetConfig(conf,id));
   }
 
-    static validateAndGetConfig(conf:CollectorConfig):TechnicalConf{
+    static validateAndGetConfig(conf:CollectorConfig, instanceId: string):TechnicalConf{
     let host = matchRegex(getStringOrCall(conf?.tracing?.remote?.host), "host" , HOST_PATERN)
     let sessionApi =   "v4/trace/instance/:id/session"
     let instanceApi =  "v4/trace/instance"
-    initDebug(conf.debugMode? {app: true, user: true} : {app: false, user: false}); // todo fix this to use one bool
+
     return  {
       user : getStringOrCall(conf?.monitoring?.user),
-      queueCapacity:  requirePostitiveValue(getNumberOrCall(conf?.tracing?.queueCapacity),"queueCapacity", 1000) , // queueCapacity increase ?
+      queueCapacity:  requirePostitiveValue(getNumberOrCall(conf?.tracing?.queueCapacity),"queueCapacity", 1000) ,
       interval: requirePostitiveValue(getNumberOrCall(conf?.scheduling?.interval),"interval", 60000),
       delayIfPending: requirePostitiveValue(getNumberOrCall(conf?.tracing?.delayIfPending),"delayIfPending", 30),
       instanceApi: sessionApiURL(host, instanceApi),
-      sessionApi: instanceApiURL(host, sessionApi),
+      sessionApi: instanceApiURL(host, sessionApi).replace(':id', instanceId),
       exclude: getRegArrOrCall(conf?.monitoring?.httpRoute?.excludes?.path) || [],
       debugMode: conf.debugMode ?? false,
       analytics: conf?.monitoring?.analytics?.enabled ?? false,
@@ -60,9 +60,9 @@ export class ContextManager {
   }
 
 
-  static createInstance(conf:CollectorConfig): InstanceEnvironment{
+  static createInstance(conf:CollectorConfig,instanceId: string): InstanceEnvironment{
       return {
-      id: crypto.randomUUID(),
+      id: instanceId,
       name: require(getStringOrCall(conf?.monitoring?.name), 'name'),
       version: getStringOrCall(conf?.monitoring?.version),
       address: undefined, //server side

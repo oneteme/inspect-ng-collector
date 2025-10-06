@@ -1,14 +1,11 @@
 
-import {createReport, dateNow, DISPATCH, logInspect} from './util';
+import {createReport, dateNow, DISPATCH} from './util';
+import {ContextManager} from "./context-manager";
 
 export class SessionManager {
 
     currentSession!: any
-
     private static _instance: SessionManager;
-    private constructor() {
-        logInspect('app','SessionManager initialized');
-    }
 
     static get instance(): SessionManager{
         if(!SessionManager._instance) {
@@ -22,9 +19,9 @@ export class SessionManager {
             this.currentSession.end = dateNow();
             this.currentSession.name = document.title;
             this.currentSession.location = document.URL;
-             window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { traces :  this.currentSession } }));
-            // todo fix this
-           // logInspect('app',() => prettySessionFormat(this.currentSession));
+            if(!ContextManager.instance.techConfig.exclude?.some((e:any) => e.test(this.currentSession.location))){
+              window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { traces :  this.currentSession } }));
+            }
         }
         if (url) {
             this.currentSession = {
@@ -45,7 +42,7 @@ export class SessionManager {
       if(this.currentSession){
         return this.currentSession.id;
       }
-      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found for instance: ") } }));
+      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
       return undefined;
     }
 
@@ -57,7 +54,7 @@ export class SessionManager {
         if (this.currentSession) {
             this.currentSession.exceptions.push(exception);
         }else {
-        window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found for instance: ") } }));
+        window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
         }
     }
 }

@@ -1,147 +1,124 @@
-import {interval, startWith, Subscription, tap} from "rxjs";
-import {EventTrace, InstanceEnvironment, MainSession} from "./trace.model";
-import {TechnicalConf} from "./configuration";
-import {createReport, DISPATCH, logInspect, PRE_DISPATCH} from "./util";
-export class  EventTraceScheduledDispatcherService{
+import {interval, startWith, tap} from "rxjs";
+import {EventTrace} from "./trace.model";
+import {createReport, DISPATCH, PRE_DISPATCH} from "./util";
+import {ContextManager} from "./context-manager";
 
-  config: TechnicalConf;
-  instanceEnvironment: InstanceEnvironment;
-  scheduledSessionSender: Subscription;
-  traceQueue: EventTrace[] = []; //
+
+export function eventTraceScheduledDispatcher() {
+  return EventTraceScheduledDispatcherService._instance = new EventTraceScheduledDispatcherService();
+}
+
+export class  EventTraceScheduledDispatcherService {
+  traceQueue: Set<EventTrace> = new Set();
   sessionSendAttempts: number = 0
   sendSessionfinished: boolean = true;
   instanceSaved: boolean = false;
-  private static _instance: EventTraceScheduledDispatcherService;
+  static _instance: EventTraceScheduledDispatcherService;
 
-  constructor(config: TechnicalConf,
-              instance: InstanceEnvironment) {
-    this.config = config;
-    this.instanceEnvironment = instance;
-    this.scheduledSessionSender = interval(config.interval)
+  constructor() {
+    interval(ContextManager.instance.techConfig.interval)
       .pipe(startWith(0))
       .pipe(tap(() => {
         if (this.sendSessionfinished) {
           this.sendSessionfinished = false;
-          window.dispatchEvent(new CustomEvent(PRE_DISPATCH));
-          this.manageCache().finally(() => { this.sendSessionfinished = true });
+          setTimeout(() => window.dispatchEvent(new CustomEvent(PRE_DISPATCH)),50)
+          this.Dispatch().finally(() => { this.sendSessionfinished = true });
         }
       }))
       .subscribe();
     window.addEventListener( DISPATCH, (e: Event) => {
-      (e as CustomEvent).detail.traces &&  this.dispatch((e as CustomEvent).detail.traces);
+      (e as CustomEvent).detail.traces &&  this.addtoQueue((e as CustomEvent).detail.traces);
       (e as CustomEvent).detail.force && this.sendSessions(true);
     });
-
-    logInspect('app','Dispatcher initialized');
   }
 
-  static init(techConfig: TechnicalConf, instanceEnv: InstanceEnvironment) {
-    return EventTraceScheduledDispatcherService._instance = new EventTraceScheduledDispatcherService(techConfig, instanceEnv);
-  }
 
-  manageCache(): Promise<any> {
+  Dispatch(): Promise<any> {
     if(this.instanceSaved){
       return this.sendSessions();
     }
-    return this.postInstanceEnv().then((id: boolean | null) => {
-      if (id) {
+    return this.postInstanceEnv().then((ok: boolean) => {
+      if (ok) {
         return this.sendSessions();
       }
-      console.warn(`Error while attempting to send Environement instance, attempts ${this.sessionSendAttempts}`);
+      this.sessionSendAttempts % 5 == 0 && console.warn(`Error while attempting to send Environement instance, attempts ${this.sessionSendAttempts}`);
       return Promise.reject(new Error('No instance id'));
     });
   }
 
   sendSessions(instanceComplete?:boolean) : Promise<number>{
-    if (this.traceQueue.length > 0) {
+    if (this.traceQueue.size > 0) {
+      let uri = new URL(ContextManager.instance.techConfig.sessionApi);
+      uri.searchParams.set("attempts", (++this.sessionSendAttempts).toString());
       if(instanceComplete){
-        if (this.config.sessionApi.includes('end=')) {
-          this.config.sessionApi = this.config.sessionApi.replace(/end=[^&]*/g, "end=" + new Date().toISOString());
-        } else {
-          this.config.sessionApi += "?end=" + new Date().toISOString();
-        }
+        uri.searchParams.set("end",new Date().toISOString())
       }
-      this.sessionSendAttempts++;
-      let sessions: EventTrace[] = [...this.traceQueue];
-      this.traceQueue.splice(0, sessions.length); // add rest of sessions
-      logInspect('app',`sending sessions, attempts:${this.sessionSendAttempts}, queue size : ${sessions.length}`)
-      return this.putSessions(sessions)
-        .then(ok => {
-          if (ok) {
-            logInspect('app',`sessions sent successfully, queue size reset, new size is: ${this.traceQueue.length}`)
+      let sessions: Set<EventTrace> = this.traceQueue;
+      this.traceQueue = new Set();
+      return fetch(uri, this.getRequestInit(sessions))
+        .then(res => {
+          if (res.ok) {
             this.sessionSendAttempts = 0;
-            return sessions.length;
-          } else {
-            console.warn(`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)//
-            this.revertQueueSize(sessions);
-            return -1;
+            return sessions.size;
           }
+          return this.handleEventTraceSavingError(sessions)
         })
+        .catch(()=> this.handleEventTraceSavingError(sessions))
     }
     return Promise.resolve(0);
   }
 
-  putSessions(sessionList: EventTrace[]): Promise<boolean> {
-    return fetch(this.config.sessionApi, {
+  handleEventTraceSavingError(sessions: Set<EventTrace>){
+    this.sessionSendAttempts % 5 == 0 && console.warn(`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)
+    this.revertQueueSize(sessions);
+    return -1;
+  }
+
+  getRequestInit(sessionList: Set<EventTrace>): RequestInit  {
+    return {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       mode: 'cors',
-      body: JSON.stringify(sessionList)
-    })
-      .then(res => res.ok)
-      .catch(err => false);
+      body: JSON.stringify(Array.from(sessionList))
+    }
   }
 
-  postInstanceEnv(): Promise<boolean | null> {
+  postInstanceEnv(): Promise<boolean> {
     this.sessionSendAttempts++;
-    return fetch(this.config.instanceApi, {
+    return fetch(ContextManager.instance.techConfig.instanceApi, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       mode: 'cors',
-      body: JSON.stringify(this.instanceEnvironment)
+      body: JSON.stringify(ContextManager.instance.instanceEnv)
     })
       .then(res => res.ok ? res.text().then(id => {
-        this.config.sessionApi = this.config.sessionApi.replace(':id', id);
-        logInspect('app','Environement instance sent successfully', id);
         this.sessionSendAttempts = 0;
         return this.instanceSaved = true;
-      }) : null)
-      .catch(err => null);
+      }) : false)
+      .catch(err => false);
   }
 
-  revertQueueSize(sessions: EventTrace[]) {
-    this.traceQueue.unshift(...sessions);
-    if (this.traceQueue.length > this.config.queueCapacity) {
-      let diff = this.traceQueue.length - this.config.queueCapacity;
-      this.traceQueue = this.traceQueue.slice(0, this.config.queueCapacity);
-      logInspect('app',`Buffer size exeeded the max size,last sessions have been removed from buffer, (number of sessions removed):${diff}`)
+  revertQueueSize(sessions: Set<EventTrace> ){
+    console.log("sessions reverted", sessions);
+    console.log("traceQueue before revert", this.traceQueue);
+    sessions.forEach(session => this.traceQueue.add(session));
+    if (this.traceQueue.size > ContextManager.instance.techConfig.queueCapacity) {
+      const items = Array.from(this.traceQueue).slice(0, ContextManager.instance.techConfig.queueCapacity);
+      this.traceQueue = new Set(items);
     }
+
   }
 
-  async dispatch(event: EventTrace | null) {
+  async addtoQueue(event: EventTrace | null) {
     try{
       if(event){
-        if(this.isSessionExcluded(event)) return
-        while (!this.sendSessionfinished) {
-          await new Promise(resolve => setTimeout(resolve, 10));
-        }
-        const index = this.traceQueue.findIndex((e:any)=>e.id && (<any>event).id  && e.id === (<any>event).id);
-        if(index !== -1) {
-            this.traceQueue[index] = event;
-          logInspect('app',`Updated element to session queue, element id: ${(<any>event).id}`);
-        }else {
-          this.traceQueue.push(event);
-          logInspect('app',`added element to session queue, new size is: ${this.traceQueue.length}`);
-        }
+        this.traceQueue.add(event);
       }
     }catch(e){
-      console.warn(e)
-      this.dispatch(createReport(String(e)))
+      this.addtoQueue(createReport(String(e)))
     }
    }
 
-   isSessionExcluded(event: EventTrace): boolean{
-      return !!('@type' in event && event['@type'] === 'main-ses' && this.config.exclude?.some((e) => e.test((<MainSession>event).location)))
-   }
+
 
 }

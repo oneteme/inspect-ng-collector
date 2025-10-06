@@ -4,7 +4,6 @@ import {createReport, DISPATCH} from "./util";
 @Injectable({ providedIn: 'root' })
 export class  GlobalErrorHandlerService implements ErrorHandler {
 
-  constructor() {}
   handleError(error:any ) {
     try {
       SessionManager.instance.addException({
@@ -13,7 +12,6 @@ export class  GlobalErrorHandlerService implements ErrorHandler {
       })
 
     }catch (e) {
-      console.warn(e)
       window.dispatchEvent(new CustomEvent( DISPATCH,{ detail : { traces : createReport("Erreur dans GlobalErrorHandlerService: " + JSON.stringify(e)) } }));
     }
     throw error;

@@ -2,8 +2,6 @@ type InstantType = "SERVER"  | "CLIENT";
 type MainSessionType =  "VIEW" | "BATCH" | "STARTUP";
 export type Level = "INFO" | "WARN" | "ERROR";
 
-
-
 export interface EventTrace {
 
 }
@@ -17,7 +15,7 @@ export interface MainSession extends EventTrace{
     user?: string;
     start: number;
     end?: number;
-    exceptions: ExceptionInfo[], // to be changed ?
+    exceptions: ExceptionInfo[],
     loading?: boolean
 }
 
@@ -32,7 +30,7 @@ export interface InstanceEnvironment {
     user?: string;
     type?: InstantType;
     instant?:number;
-    collector?:string; //ng-collector
+    collector?:string;
     resource: MachineResource;
     additionalProperties?: {[key:string]: any};
     configuration?: {[key:string]: any};
@@ -80,7 +78,7 @@ export interface LocalRequest extends EventTrace {
     sessionId: string;
 }
 
-export interface ExceptionInfo { // to bechanged
+export interface ExceptionInfo {
     type: string | null;
     message: string | null;
 }

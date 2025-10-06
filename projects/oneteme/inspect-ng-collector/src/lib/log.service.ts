@@ -2,8 +2,6 @@ import {createLogEntry, DISPATCH} from './util';
 import {SessionManager} from "./session-manager.service";
 
 export class LogService {
-  private constructor() {}
-
   static info(message: string) {
     if (message) {
       window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createLogEntry("INFO", message, SessionManager.instance?.currentSessionID()) } }));

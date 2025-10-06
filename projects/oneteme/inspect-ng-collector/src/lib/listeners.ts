@@ -2,7 +2,8 @@ import {inject} from "@angular/core";
 import {Router} from "@angular/router";
 import {routeHandler, windowUnloadHandler} from "./handlers";
 import {BEFOREUNLOAD, PRE_DISPATCH} from "./util";
-import {MachineRessourceUsageHandler} from "./machine-ressource-monitor.service";
+import {machineRessourceUsageHandler} from "./machine-ressource-monitor.service";
+import {ContextManager} from "./context-manager";
 
 export function routerEventsListener (){
   inject(Router).events.subscribe(routeHandler);
@@ -13,5 +14,7 @@ export function beforeUnloadListener(){
 }
 
 export function beforeDispatchListener(){
-  window.addEventListener(PRE_DISPATCH, MachineRessourceUsageHandler);
+  if (ContextManager.instance.techConfig.resources && 'memory' in performance) {
+    window.addEventListener(PRE_DISPATCH, machineRessourceUsageHandler);
+  }
 }

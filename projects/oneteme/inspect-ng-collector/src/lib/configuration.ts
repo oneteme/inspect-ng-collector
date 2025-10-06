@@ -44,7 +44,7 @@ export interface TechnicalConf {
   delayIfPending: number
   interval: number;
   instanceApi: string;
-  sessionApi: string;
+   sessionApi: string;
   exclude?: RegExp[];
   debugMode: boolean;
   analytics: boolean;
