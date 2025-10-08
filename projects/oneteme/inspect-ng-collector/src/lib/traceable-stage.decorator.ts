@@ -1,8 +1,5 @@
 
 import {DISPATCH, RequestMask, WIN} from "./util";
-import {SessionManager} from "./session-manager.service";
-
-
   export function TraceableStage(){
     return function (
       target: any,

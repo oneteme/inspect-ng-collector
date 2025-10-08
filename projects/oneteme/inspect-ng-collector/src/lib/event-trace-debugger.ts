@@ -1,5 +1,4 @@
 import {
-  EventTrace,
   HttpRequestStage,
   LocalRequest,
   LogEntry, MachineRessourceUsage,
