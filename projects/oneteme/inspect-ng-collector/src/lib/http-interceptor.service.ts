@@ -4,6 +4,7 @@ import {finalize, Observable} from 'rxjs';
 import { tap } from 'rxjs/operators'
 import {RestRequestMonitor} from "./rest-request-monitor";
 import {DISPATCH} from "./util";
+import {ContextManager} from "./context-manager";
 
 @Injectable({ providedIn: 'root' })
 export class HttpInterceptorService implements HttpInterceptor {
@@ -14,7 +15,10 @@ export class HttpInterceptorService implements HttpInterceptor {
     let restRequestMonitor: RestRequestMonitor = new RestRequestMonitor(req);
     let e:any;
     window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : restRequestMonitor.restRequest } }));
-    req = req.clone({headers :req.headers.set('x-tracert',restRequestMonitor.restRequest.id)});
+    const host = new URL(req.url, window.location.origin).host;
+    if(!ContextManager.instance.techConfig.hostExcludes?.some((e:any) => e== host)) {
+      req = req.clone({headers :req.headers.set('x-tracert',restRequestMonitor.restRequest.id)});
+    }
     return next.handle(req).pipe(tap(
       (event: any) => {
         if (event instanceof HttpResponse) {

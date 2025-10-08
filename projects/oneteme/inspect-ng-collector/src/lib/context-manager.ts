@@ -51,6 +51,7 @@ export class ContextManager {
       instanceApi: sessionApiURL(host, instanceApi),
       sessionApi: instanceApiURL(host, sessionApi).replace(':id', instanceId),
       exclude: getRegArrOrCall(conf?.monitoring?.httpRoute?.excludes?.path) || [],
+      hostExcludes: conf?.monitoring?.httpRequest?.excludes?.host || [],
       debugMode: conf.debugMode ?? false,
       analytics: conf?.monitoring?.analytics?.enabled ?? false,
       resources: conf?.monitoring?.resources?.enabled ?? false,

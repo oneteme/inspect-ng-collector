@@ -1,5 +1,5 @@
 
-import {createReport, dateNow, DISPATCH} from './util';
+import {createReport, dateNow, DISPATCH, WIN} from './util';
 import {ContextManager} from "./context-manager";
 
 export class SessionManager {
@@ -10,6 +10,7 @@ export class SessionManager {
     static get instance(): SessionManager{
         if(!SessionManager._instance) {
             SessionManager._instance = new SessionManager();
+            WIN["inspect-session-manager"] = SessionManager._instance;
         }
         return SessionManager._instance;
     }
@@ -32,7 +33,8 @@ export class SessionManager {
                 type: "VIEW",
                 location: url,
                 loading: true,
-                exceptions: []
+                exceptions: [],
+                requestsMask: 0
             }
         window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { traces :  this.currentSession} }));
         }
@@ -48,6 +50,14 @@ export class SessionManager {
 
     getCurrentSession() {
         return this.currentSession;
+    }
+
+    updateMask(requestMask: number) {
+       if(this.currentSession){
+          this.currentSession.requestsMask |= requestMask
+       }else {
+         window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
+       }
     }
 
     addException(exception: any) {

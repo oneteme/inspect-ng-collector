@@ -11,6 +11,11 @@ export interface CollectorConfig {
         path?: RegExp[] | (() => RegExp[]); // replace this with string[]
       };
     };
+    httpRequest?: {
+      excludes?: {
+        host?: string[];
+      };
+    };
     resources?: {
       enabled?: boolean; // default: false
     };
@@ -44,8 +49,9 @@ export interface TechnicalConf {
   delayIfPending: number
   interval: number;
   instanceApi: string;
-   sessionApi: string;
+  sessionApi: string;
   exclude?: RegExp[];
+  hostExcludes?: string[];
   debugMode: boolean;
   analytics: boolean;
   resources: boolean;
@@ -160,6 +166,10 @@ export function require(v: string | undefined, name: string){
 export function adaptedConfig(conf: CollectorConfig) {
   return {
   ...conf,
+    scheduling: {
+    ...conf.scheduling,
+        interval: conf.scheduling?.interval && conf.scheduling.interval / 1000
+    },
     monitoring: {
   ...conf.monitoring,
       additionalProperties :String(conf.monitoring?.additionalProperties),

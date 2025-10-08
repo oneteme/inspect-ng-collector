@@ -1,5 +1,5 @@
 import {ExceptionInfo, RestRequest} from "./trace.model";
-import {createReport, dateNow, DISPATCH} from "./util";
+import {createReport, dateNow, DISPATCH, RequestMask} from "./util";
 import {HttpRequest, HttpResponse} from "@angular/common/http";
 import {SessionManager} from "./session-manager.service";
 
@@ -27,6 +27,7 @@ export class RestRequestMonitor{
         start: start,
         sessionId: SessionManager.instance.currentSessionID()
       };
+      SessionManager.instance.updateMask(RequestMask.REST);
     }
 
     postProcess(event: HttpResponse<any> | null, error: any) {

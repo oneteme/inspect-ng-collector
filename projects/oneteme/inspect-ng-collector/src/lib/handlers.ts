@@ -7,7 +7,7 @@ export function routeHandler(event: any){
       SessionManager.instance.newSession(event.url);
     }
     if (event instanceof NavigationEnd) {
-      delete SessionManager.instance?.getCurrentSession().loading;
+      delete SessionManager.instance.getCurrentSession().loading;
     }
 }
 

@@ -16,6 +16,7 @@ export interface MainSession extends EventTrace{
     start: number;
     end?: number;
     exceptions: ExceptionInfo[],
+    requestsMask: number;
     loading?: boolean
 }
 

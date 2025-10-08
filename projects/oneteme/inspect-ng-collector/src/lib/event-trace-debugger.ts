@@ -7,10 +7,9 @@ import {
   RestRequest,
   UserAction
 } from "./trace.model";
-import {createReport, DISPATCH} from "./util";
+import {createReport, DISPATCH, WIN} from "./util";
 import {ContextManager} from "./context-manager";
 import {SessionManager} from "./session-manager.service";
-const WIN:any = window;
 
 export function eventTraceDebugger(){
   EventTraceDebugger._instance = new EventTraceDebugger();
