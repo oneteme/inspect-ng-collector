@@ -120,13 +120,6 @@ export function detectOs() {
   return undefined;
 }
 
-function instanceApiURL(host:string, path:string){
-  return  toURL(host,path);
-}
-
-function sessionApiURL(host:string, path:string){
-  return  toURL(host,path);
-}
 
 function toURL(host:string, path:string ){
    return host.endsWith(SLASH) || path.startsWith(SLASH) ? host + path : [host,path].join(SLASH);
@@ -180,7 +173,7 @@ export function adaptedConfig(conf: CollectorConfig) {
       httpRoute: {
     ...conf.monitoring?.httpRoute,
         excludes: {
-        path: (conf?.monitoring?.httpRoute?.excludes?.path as RegExp[]).map(r => r.source) // convert to string array to conform to backend expectation
+        path: (conf?.monitoring?.httpRoute?.excludes?.path as RegExp[]).map(r => r.source)
       }
     }
   },
@@ -188,7 +181,8 @@ export function adaptedConfig(conf: CollectorConfig) {
     ...conf.tracing,
         remote: {
       ...conf.tracing?.remote,
-          '@type':"rest-rmt", // add this to conform to backend expectation
+          '@type':"rest-rmt",
+          retentionMaxAge : (conf.tracing?.remote?.retentionMaxAge ?? 10)  * 60 * 60 * 24
       }
     }
   }

@@ -28,7 +28,7 @@ export class ContextManager {
 
   static  get instance(){
     if(!ContextManager._instance){
-      console.warn("[Inspect-ng-collecotor] Error while initializing ContextManager");
+      console.warn("[Inspect-ng-collector] Error while initializing ContextManager");
     }
     return ContextManager._instance;
   }
