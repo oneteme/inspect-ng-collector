@@ -29,7 +29,7 @@ export class SessionManager {
             this.currentSession = {
                 '@type': "main-ses",
                 id: crypto.randomUUID(),
-                user: "",
+                user: ContextManager.instance.techConfig.user,
                 start: dateNow(),
                 type: "VIEW",
                 location: url,
