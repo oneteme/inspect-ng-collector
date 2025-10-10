@@ -54,7 +54,7 @@ import {ContextManager} from "./context-manager";
       start: dateNow(),
       name : extractName(target),
       nodeName : target.tagName?.toLowerCase(),
-      sessionId: SessionManager.instance?.getCurrentSession().id
+      sessionId: SessionManager.instance?.currentSessionID()
     }
    //  window.dispatchEvent(new CustomEvent( DISPATCH ,{ detail :  { traces:ua }}));
   }

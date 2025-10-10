@@ -17,7 +17,7 @@ export interface MainSession extends EventTrace{
     end?: number;
     exceptions: ExceptionInfo[],
     requestsMask: number;
-    loading?: boolean
+    traced?: boolean
 }
 
 export interface InstanceEnvironment {

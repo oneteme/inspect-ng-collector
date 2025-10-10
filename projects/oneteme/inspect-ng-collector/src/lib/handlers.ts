@@ -1,20 +1,15 @@
-import {NavigationEnd, NavigationStart} from "@angular/router";
-import {SessionManager} from "./session-manager.service";
-import {DISPATCH} from "./util";
+import {NavigationCancel, NavigationEnd, NavigationStart} from "@angular/router";
+import {SessionManager} from "./session-manager.service";;
 
 export function routeHandler(event: any){
     if (event instanceof NavigationStart) {
-      SessionManager.instance.newSession(event.url);
+      SessionManager.instance.navigate(event.url);
     }
-    if (event instanceof NavigationEnd) {
-      delete SessionManager.instance.getCurrentSession().loading;
+    if (event instanceof NavigationEnd ||  event instanceof NavigationCancel) {
+        SessionManager.instance.updateSession();
     }
 }
 
 export function windowUnloadHandler(event:any) {
-  if(!SessionManager.instance.getCurrentSession().loading){
-    SessionManager.instance.newSession();
-  }
-  window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { force: true }}));
+     SessionManager.instance.navigate();
 }
-

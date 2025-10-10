@@ -1,6 +1,7 @@
 
 import {createReport, dateNow, DISPATCH, WIN} from './util';
 import {ContextManager} from "./context-manager";
+import {MainSession} from "./trace.model";
 
 export class SessionManager {
 
@@ -15,15 +16,15 @@ export class SessionManager {
         return SessionManager._instance;
     }
 
-    newSession(url?: string) {
-        if (this.currentSession) {
-            this.currentSession.end = dateNow();
-            this.currentSession.name = document.title;
-            this.currentSession.location = document.URL;
-            if(!ContextManager.instance.techConfig.exclude?.some((e:any) => e.test(this.currentSession.location))){
-              window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { traces :  this.currentSession } }));
-            }
-        }
+    navigate(url?: string) {
+        this.getCurrentSession(s => {
+          if(s){
+            s.end = dateNow();
+            s.traced &&  window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { force: !url, traces :  s } }));
+          }
+          this.currentSession = null
+        })
+
         if (url) {
             this.currentSession = {
                 '@type': "main-ses",
@@ -36,36 +37,38 @@ export class SessionManager {
                 exceptions: [],
                 requestsMask: 0
             }
-        window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { traces :  this.currentSession} }));
         }
     }
 
-    currentSessionID(): string | undefined {
-      if(this.currentSession){
-        return this.currentSession.id;
-      }
-      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
-      return undefined;
+    updateSession(){
+      this.getCurrentSession(s => {
+            s.name = document.title;
+            s.location = document.URL;
+            if(!ContextManager.instance.techConfig.exclude?.some((e:any) => e.test(s.location))){
+              window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { traces :  s } }));
+              s.traced = true;
+            }
+        });
     }
 
-    getCurrentSession() {
-        return this.currentSession;
+    getCurrentSession( fn:(s:MainSession)=> any ) {
+      if(this.currentSession){
+        return fn(this.currentSession);
+      }
+      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
+      return undefined
+    }
+
+  currentSessionID(): string | undefined { // (s) => {}
+    return this.getCurrentSession(s=> s.id );
     }
 
     updateMask(requestMask: number) {
-       if(this.currentSession){
-          this.currentSession.requestsMask |= requestMask
-       }else {
-         window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
-       }
+       this.getCurrentSession(s => s.requestsMask |= requestMask)
     }
 
     addException(exception: any) {
-        if (this.currentSession) {
-            this.currentSession.exceptions.push(exception);
-        }else {
-        window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
-        }
+        this.getCurrentSession(s => s.exceptions.push(exception))
     }
 }
 
