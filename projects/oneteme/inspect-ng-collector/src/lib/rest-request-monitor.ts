@@ -37,10 +37,8 @@ export class RestRequestMonitor{
         status = +event.status;
         this.restRequest.inDataSize = sizeOf(event.body);
         this.restRequest.linked = this.assertSessionID(this.restRequest.id, event.headers);
-        console.log(this.restRequest)
       }
       if(error){
-        console.log(this.restRequest)
         this.restRequest.linked = error?.headers && this.assertSessionID(this.restRequest.id, error.headers);
         status = +error.status;
         exception = {

@@ -1,12 +1,11 @@
-import {inject} from "@angular/core";
 import {Router} from "@angular/router";
 import {routeHandler, windowUnloadHandler} from "./handlers";
 import {BEFOREUNLOAD, PRE_DISPATCH} from "./util";
 import {machineRessourceUsageHandler} from "./machine-ressource-monitor.service";
 import {ContextManager} from "./context-manager";
 
-export function routerEventsListener (){
-  inject(Router).events.subscribe(routeHandler);
+export function routerEventsListener (router: Router){
+  router.events.subscribe(routeHandler);
 }
 
 export function beforeUnloadListener(){

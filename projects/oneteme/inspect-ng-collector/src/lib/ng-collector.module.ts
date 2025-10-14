@@ -2,7 +2,7 @@ import {
   NgModule,
   ModuleWithProviders,
   ErrorHandler,
-  provideAppInitializer, APP_INITIALIZER
+  APP_INITIALIZER
 } from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
 import { HttpInterceptorService } from './http-interceptor.service';
@@ -16,6 +16,7 @@ import {
 import { beforeDispatchListener, beforeUnloadListener, routerEventsListener } from "./listeners";
 import { analyticsEventsListener } from "./analytics-collect.service";
 import { eventTraceDebugger } from "./event-trace-debugger";
+import {Router} from "@angular/router";
 
 @NgModule()
 export class NgCollectorModule {
@@ -30,7 +31,7 @@ export class NgCollectorModule {
           ngModule: NgCollectorModule,
           providers: [
             //provideAppInitializer(initializeEvents),
-            { provide: APP_INITIALIZER, useFactory: initializeEvents, multi: true },
+            { provide: APP_INITIALIZER, useFactory: initializeEvents,deps:[Router], multi: true },
             { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
             { provide: ErrorHandler, useClass: GlobalErrorHandlerService }
           ]
@@ -45,7 +46,7 @@ export class NgCollectorModule {
   }
 }
 
-export function initializeEvents() {
+export function initializeEvents(router:Router) {
   return () => {
     eventTraceScheduledDispatcher()
     eventTraceDebugger();
@@ -53,7 +54,7 @@ export function initializeEvents() {
     //storageEventListener();
     beforeDispatchListener();
     beforeUnloadListener();
-    routerEventsListener();
+    routerEventsListener(router);
   }
 }
 
