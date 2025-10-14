@@ -49,7 +49,9 @@ export function initializeEvents(router: Router, sessionManager: SessionManager,
       if(!sessionManager.getCurrentSession().loading){
         sessionManager.newSession();
       }
-      sessionManager.sendSessions(true);
+      if(sessionManager.sendSessionfinished){
+        sessionManager.sendSessions(true);
+      }
     });
     router.events.subscribe(event => {
       if (event instanceof NavigationStart) {
