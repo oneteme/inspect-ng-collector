@@ -81,14 +81,15 @@ export class SessionManager implements OnDestroy {
 
     sendSessions(instanceComplete?:boolean) : Promise<number>{
         if (this.sessionQueue.length > 0) {
+            let uri = this.config.sessionApi;
             if(instanceComplete){
-                this.config.sessionApi +="?end="+ new Date().toISOString();
+                uri += "?end="+ new Date().toISOString();
             }
             this.sessionSendAttempts++;
             let sessions: MainSession[] = [...this.sessionQueue];
             this.sessionQueue.splice(0, sessions.length); // add rest of sessions
             logInspect('app',`sending sessions, attempts:${this.sessionSendAttempts}, queue size : ${sessions.length}`)
-            return this.putSessions(sessions)
+            return this.putSessions(sessions,uri)
                 .then(ok => {
                     if (ok) {
                         logInspect('app',`sessions sent successfully, queue size reset, new size is: ${this.sessionQueue.length}`)
@@ -104,8 +105,8 @@ export class SessionManager implements OnDestroy {
         return Promise.resolve(0);
     }
 
-    putSessions(sessionList: MainSession[]): Promise<boolean> {
-        return fetch(this.config.sessionApi, {
+    putSessions(sessionList: MainSession[], uri: string): Promise<boolean> {
+        return fetch(uri, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             mode: 'cors',
