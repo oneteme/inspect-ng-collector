@@ -1,6 +1,6 @@
 {
   "name": "inspect-collectors",
-  "version": "1.2.3-beta.0",
+  "version": "1.2.3",
   "description": "Inspect ng collector",
   "private": false,
   "homepage": "https://github.com/oneteme/inspect-ng-collector",

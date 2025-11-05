@@ -22,20 +22,20 @@ export function logInspect(level: level, ...args: any[]){
   }
 }
 
-export function prettyActionUserFormat(session: MainSession,userAction:UserAction){
-  let s = `(${session.location}) `
+export function prettyActionUserFormat(session: MainSession | null, userAction:UserAction){
+  let s = ""
+  if(session){
+    s+=`(${session.location}) `
+  }
   if(userAction.type){
     s+= `[${userAction.type}]`;
   }
-
   if(userAction.nodeName){
     s+= `<${userAction.nodeName}>`
   }
-
   if(userAction.name){
     s+= `(${userAction.name}) `
   }
-
   s+=  ` >> ${new Date(userAction.start*1000).toISOString()}`
   return s;
 }
