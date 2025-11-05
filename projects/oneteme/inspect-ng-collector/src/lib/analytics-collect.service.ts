@@ -80,8 +80,8 @@ export class AnalyticsCollector {
       name : extractName(target),
       nodeName : target.tagName?.toLowerCase(),
     }
-    logInspect('user',() => prettyActionUserFormat(this.sessionManager.getCurrentSession(),ua));
-    this.sessionManager.getCurrentSession().userActions.push(ua);
+    logInspect('user',() => prettyActionUserFormat(this.sessionManager.getCurrentSession()!,ua));
+    this.sessionManager.getCurrentSession()!.userActions.push(ua);
   }
 
 

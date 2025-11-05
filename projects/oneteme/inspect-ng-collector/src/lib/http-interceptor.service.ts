@@ -23,15 +23,23 @@ export class HttpInterceptorService implements HttpInterceptor {
                 if (event instanceof HttpResponse) {
                     status = +event.status;
                     responseBody = event.body
-                    id = getReqid(event.headers);
+                    id = getReqid(event?.headers);
                 }
             },
             error => {
-                id = getReqid(error.headers);
-                status = +error.status;
-                exception = {
-                    type : error.name,
-                    message: error.error && error.status ?  JSON.stringify(error.error) : error.message
+                id = getReqid(error?.headers);
+                if(error){
+                  status = +error?.status || 0;
+                  exception = {
+                    type : error?.name,
+                    message: error.error && error.status ?  JSON.stringify(error.error) : error?.message
+                  }
+                }else {
+                  status= 0
+                  exception = {
+                    type : "IOException",
+                    message: "The remote server is unavailable.",
+                  }
                 }
             },
         ), finalize(() => {
@@ -39,7 +47,7 @@ export class HttpInterceptorService implements HttpInterceptor {
               if  (this.SessionManager.getCurrentSession()){
                 const url = toHref(req.urlWithParams);
                 const auth_user = extractAuthSchemeAnduser(req.headers);
-                this.SessionManager.getCurrentSession().restRequests.push({
+                this.SessionManager.getCurrentSession()?.restRequests.push({
                   id: id,
                   method: req.method,
                   protocol: url.protocol.slice(0, -1),
@@ -99,7 +107,7 @@ function extractAuthSchemeAnduser(headers: any): {user: string | undefined, auth
 }
 
 function getReqid(headers:any):string | undefined {
-    return headers.has('x-tracert')
+    return headers?.has('x-tracert')
         ? headers.get('x-tracert')
         : undefined;
 }

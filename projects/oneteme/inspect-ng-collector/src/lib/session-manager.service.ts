@@ -14,7 +14,7 @@ export class SessionManager implements OnDestroy {
     sessionQueue: MainSession[] = [];
     sessionSendAttempts: number = 0
     sendSessionfinished: boolean = true;
-    currentSession!: MainSession;
+    currentSession!: MainSession| null;
     private static _instance: SessionManager;
 
     constructor(@Inject('config') config: TechnicalConf,
@@ -43,12 +43,12 @@ export class SessionManager implements OnDestroy {
             this.currentSession.end = dateNow();
             this.currentSession.name = document.title;
             this.currentSession.location = document.URL;
-            if (this.config.exclude.every((e) => !e.test(this.currentSession.location))) {
+            if (this.config.exclude.every((e) => !e.test(this.currentSession!.location))) {
                 this.sessionQueue.push(this.currentSession);
                 logInspect('app',`added element to session queue, new size is:${this.sessionQueue.length}`);
             }
 
-            logInspect('app',() => prettySessionFormat(this.currentSession));
+            logInspect('app',() => prettySessionFormat(this.currentSession!));
         }
         if (url) {
             this.currentSession = {
@@ -150,5 +150,9 @@ export class SessionManager implements OnDestroy {
 
     getCurrentSession() {
         return this.currentSession;
+    }
+
+    resetCurrentSession(){
+      this.currentSession = null;
     }
 }

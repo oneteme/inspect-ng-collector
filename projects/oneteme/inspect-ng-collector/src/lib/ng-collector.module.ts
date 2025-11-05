@@ -46,19 +46,21 @@ export function initializeEvents(router: Router, sessionManager: SessionManager,
   return () => {
     logInspect('app','initialize routing events listeners');
     window.addEventListener('beforeunload', event => {
-      if(!sessionManager.getCurrentSession().loading){
+      if(!sessionManager.getCurrentSession()?.loading){
         sessionManager.newSession();
       }
       if(sessionManager.sendSessionfinished){
         sessionManager.sendSessions(true);
+        sessionManager.resetCurrentSession();
       }
     });
     router.events.subscribe(event => {
       if (event instanceof NavigationStart) {
+        logInspect('app',sessionManager.currentSession);
         sessionManager.newSession(event.url);
       }
       if (event instanceof NavigationEnd) {
-        delete sessionManager.getCurrentSession().loading;
+        delete sessionManager.getCurrentSession()?.loading;
       }
     })
     if(analyticsCollector){
