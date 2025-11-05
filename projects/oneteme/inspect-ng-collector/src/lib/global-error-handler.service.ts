@@ -7,7 +7,7 @@ export class  GlobalErrorHandlerService implements ErrorHandler {
   constructor(private readonly sessionManager: SessionManager) {
   }
   handleError(error:any ) {
-      this.sessionManager.getCurrentSession().exceptions.push({
+      this.sessionManager.getCurrentSession()?.exceptions.push({
         type: error?.name,
         message: error?.message
       })
