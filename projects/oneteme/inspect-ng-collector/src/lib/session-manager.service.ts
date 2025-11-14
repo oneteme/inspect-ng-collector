@@ -20,7 +20,7 @@ export class SessionManager {
         this.getCurrentSession(s => {
           if(s){
             s.end = dateNow();
-            s.traced &&  window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { force: !url, traces :  s } }));
+            window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { force: !url } }));
           }
           this.currentSession = null
         })
@@ -35,7 +35,9 @@ export class SessionManager {
                 location: url,
                 loading: true,
                 exceptions: [],
-                requestsMask: 0
+                requestsMask: 0,
+                end: null,
+                address : this.getSessionAddress()
             }
         }
     }
@@ -46,9 +48,17 @@ export class SessionManager {
             s.location = document.URL;
             if(!ContextManager.instance.techConfig.exclude?.some((e:any) => e.test(s.location))){
               window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { traces :  s } }));
-              s.traced = true;
             }
         });
+    }
+
+    getSessionAddress(){
+      let inspectId = localStorage.getItem("inspect-id");
+      if(!inspectId){
+        inspectId = crypto.randomUUID();
+        localStorage.setItem("inspect-id", inspectId);
+      }
+      return inspectId;
     }
 
     getCurrentSession( fn:(s:MainSession)=> any ) {

@@ -13,7 +13,7 @@ import {
   eventTraceScheduledDispatcher,
 } from "./event-trace-scheduled-dispatcher.service";
 
-import { beforeDispatchListener, beforeUnloadListener, routerEventsListener } from "./listeners";
+import {beforeDispatchListener, beforeUnloadListener, bfCacheListener, routerEventsListener} from "./listeners";
 import { analyticsEventsListener } from "./analytics-collect.service";
 import { eventTraceDebugger } from "./event-trace-debugger";
 import {Router} from "@angular/router";
@@ -21,8 +21,10 @@ import {Router} from "@angular/router";
 @NgModule()
 export class NgCollectorModule {
   private static forRootCalled: boolean = false;
+  static configuration: CollectorConfig;
   static forRoot(configuration: CollectorConfig): ModuleWithProviders<NgCollectorModule> {
-    console.log("forRoodtCalled");
+    console.log("forRootCalled");
+    this.configuration = configuration;
     if (configuration?.enabled && !NgCollectorModule.forRootCalled) {
       NgCollectorModule.forRootCalled = true;
       try {
@@ -48,6 +50,7 @@ export class NgCollectorModule {
 
 export function initializeEvents(router:Router) {
   return () => {
+    ContextManager.init(NgCollectorModule.configuration);
     eventTraceScheduledDispatcher()
     eventTraceDebugger();
     analyticsEventsListener();
@@ -55,6 +58,7 @@ export function initializeEvents(router:Router) {
     beforeDispatchListener();
     beforeUnloadListener();
     routerEventsListener(router);
+    bfCacheListener();
   }
 }
 

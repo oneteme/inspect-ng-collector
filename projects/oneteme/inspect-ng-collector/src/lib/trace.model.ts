@@ -17,6 +17,7 @@ export interface MainSession extends EventTrace{
     end?: number;
     exceptions: ExceptionInfo[],
     requestsMask: number;
+    address: string;
     traced?: boolean
 }
 
@@ -87,7 +88,7 @@ export interface ExceptionInfo {
 export interface UserAction extends EventTrace{
   '@type': string;
   type: string;
-  start: number;
+  start: number; //todo  rename to  instant
   name: string| null;
   nodeName: string;
   sessionId: string;

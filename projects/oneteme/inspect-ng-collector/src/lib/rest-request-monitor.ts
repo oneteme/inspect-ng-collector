@@ -26,6 +26,7 @@ export class RestRequestMonitor{
         ouDataSize: sizeOf(restRequest.body),
         start: start,
         linked: false,
+        end: undefined,
         sessionId: SessionManager.instance.currentSessionID()
       };
       SessionManager.instance.updateMask(RequestMask.REST);
@@ -58,8 +59,6 @@ export class RestRequestMonitor{
         exception: exception,
         requestId : this.restRequest.id
       }
-
-      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : this.restRequest } }));
       window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : stage } }));
     }
 
