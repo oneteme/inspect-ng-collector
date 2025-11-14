@@ -36,8 +36,7 @@ export class SessionManager {
                 loading: true,
                 exceptions: [],
                 requestsMask: 0,
-                end: null,
-                address : this.getSessionAddress()
+                end: null
             }
         }
     }
@@ -50,15 +49,6 @@ export class SessionManager {
               window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { traces :  s } }));
             }
         });
-    }
-
-    getSessionAddress(){
-      let inspectId = localStorage.getItem("inspect-id");
-      if(!inspectId){
-        inspectId = crypto.randomUUID();
-        localStorage.setItem("inspect-id", inspectId);
-      }
-      return inspectId;
     }
 
     getCurrentSession( fn:(s:MainSession)=> any ) {
