@@ -1,153 +1,76 @@
-import { Inject, Injectable, OnDestroy } from '@angular/core';
-import { InstanceEnvironment, MainSession } from './trace.model';
-import { interval, startWith, Subscription, tap } from 'rxjs';
-import { dateNow, logInspect, prettySessionFormat } from './util';
-import { TechnicalConf } from './configuration';
 
+import {createReport, dateNow, DISPATCH, WIN} from './util';
+import {ContextManager} from "./context-manager";
+import {MainSession} from "./trace.model";
 
-@Injectable({ providedIn: 'root' })
-export class SessionManager implements OnDestroy {
+export class SessionManager {
 
-    config: TechnicalConf;
-    instanceEnvironment: InstanceEnvironment;
-    scheduledSessionSender: Subscription;
-    sessionQueue: MainSession[] = [];
-    sessionSendAttempts: number = 0
-    sendSessionfinished: boolean = true;
-    currentSession!: MainSession;
+    currentSession!: any
     private static _instance: SessionManager;
 
-    constructor(@Inject('config') config: TechnicalConf,
-        @Inject('instance') instance: InstanceEnvironment) {
-        this.config = config;
-        this.instanceEnvironment = instance;
-        SessionManager._instance = this;
-        this.scheduledSessionSender = interval(config.delay)
-            .pipe(startWith(0))
-            .pipe(tap(() => {
-                if (this.sendSessionfinished) {
-                    this.sendSessionfinished = false;
-                    this.manageCache().finally(() => { this.sendSessionfinished = true });
-                }
-            }))
-            .subscribe();
-        logInspect('app','SessionManager initialized');
-    }
-
     static get instance(): SessionManager{
+        if(!SessionManager._instance) {
+            SessionManager._instance = new SessionManager();
+            WIN["inspect-session-manager"] = SessionManager._instance;
+        }
         return SessionManager._instance;
     }
 
-    newSession(url?: string) {
-        if (this.currentSession) {
-            this.currentSession.end = dateNow();
-            this.currentSession.name = document.title;
-            this.currentSession.location = document.URL;
-            if (this.config.exclude.every((e) => !e.test(this.currentSession.location))) {
-                this.sessionQueue.push(this.currentSession);
-                logInspect('app',`added element to session queue, new size is:${this.sessionQueue.length}`);
-            }
+    navigate(url?: string) {
+        this.getCurrentSession(s => {
+          if(s){
+            s.end = dateNow();
+            window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { force: !url } }));
+          }
+          this.currentSession = null
+        })
 
-            logInspect('app',() => prettySessionFormat(this.currentSession));
-        }
         if (url) {
             this.currentSession = {
-                '@type': "main",
-                user: this.config.user(),
+                '@type': "main-ses",
+                id: crypto.randomUUID(),
+                user: ContextManager.instance.techConfig.user,
                 start: dateNow(),
                 type: "VIEW",
                 location: url,
                 loading: true,
-                restRequests: [],
-                localRequests: [],
-                userActions: [],
-                exceptions: []
+                exceptions: [],
+                requestsMask: 0,
+                end: null
             }
         }
     }
 
-    manageCache(): Promise<any> {
-        if(this.instanceEnvironment.id){
-            return this.sendSessions();
-        }
-        return this.postInstanceEnv().then((id: string | null) => {
-            if (id) {
-               return this.sendSessions();
+    updateSession(){
+      this.getCurrentSession(s => {
+            s.name = document.title;
+            s.location = document.URL;
+            if(!ContextManager.instance.techConfig.exclude?.some((e:any) => e.test(s.location))){
+              window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { traces :  s } }));
             }
-            console.warn(`Error while attempting to send Environement instance, attempts ${this.sessionSendAttempts}`);
-            return Promise.reject(new Error('No instance id'));
         });
     }
 
-    sendSessions(instanceComplete?:boolean) : Promise<number>{
-        if (this.sessionQueue.length > 0) {
-            if(instanceComplete){
-                this.config.sessionApi +="?end="+ new Date().toISOString();
-            }
-            this.sessionSendAttempts++;
-            let sessions: MainSession[] = [...this.sessionQueue];
-            this.sessionQueue.splice(0, sessions.length); // add rest of sessions
-            logInspect('app',`sending sessions, attempts:${this.sessionSendAttempts}, queue size : ${sessions.length}`)
-            return this.putSessions(sessions)
-                .then(ok => {
-                    if (ok) {
-                        logInspect('app',`sessions sent successfully, queue size reset, new size is: ${this.sessionQueue.length}`)
-                        this.sessionSendAttempts = 0;
-                        return sessions.length;
-                    } else {
-                        console.warn(`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)//
-                        this.revertQueueSize(sessions);
-                        return -1;
-                    }
-                })
-        }
-        return Promise.resolve(0);
+    getCurrentSession( fn:(s:MainSession)=> any ) {
+      if(this.currentSession){
+        return fn(this.currentSession);
+      }
+      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
+      return undefined
     }
 
-    putSessions(sessionList: MainSession[]): Promise<boolean> {
-        return fetch(this.config.sessionApi, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'cors',
-            body: JSON.stringify(sessionList)
-        })
-            .then(res => res.ok)
-            .catch(err => false);
+  currentSessionID(): string | undefined { // (s) => {}
+    return this.getCurrentSession(s=> s.id );
     }
 
-    postInstanceEnv(): Promise<string | null> {
-        this.sessionSendAttempts++;
-        return fetch(this.config.instanceApi, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            mode: 'cors',
-            body: JSON.stringify(this.instanceEnvironment)
-        })
-        .then(res => res.ok ? res.text().then(id => {
-            this.config.sessionApi = this.config.sessionApi.replace(':id', id);
-            logInspect('app','Environement instance sent successfully', id);
-            this.sessionSendAttempts = 0;
-            return this.instanceEnvironment.id = id;
-        }) : null)
-        .catch(err => null);
+    updateMask(requestMask: number) {
+       this.getCurrentSession(s => s.requestsMask |= requestMask)
     }
 
-    revertQueueSize(sessions: MainSession[]) {
-        this.sessionQueue.unshift(...sessions);
-        if (this.sessionQueue.length > this.config.bufferMaxSize) {
-            let diff = this.sessionQueue.length - this.config.bufferMaxSize;
-            this.sessionQueue = this.sessionQueue.slice(0, this.config.bufferMaxSize);
-            logInspect('app',`Buffer size exeeded the max size,last sessions have been removed from buffer, (number of sessions removed):${diff}`)
-        }
-    }
-
-    ngOnDestroy(): void {
-        if (this.scheduledSessionSender) {
-            this.scheduledSessionSender.unsubscribe();
-        }
-    }
-
-    getCurrentSession() {
-        return this.currentSession;
+    addException(exception: any) {
+        this.getCurrentSession(s => s.exceptions.push(exception))
     }
 }
+
+
+

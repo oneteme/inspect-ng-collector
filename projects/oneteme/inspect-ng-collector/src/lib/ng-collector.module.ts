@@ -1,34 +1,40 @@
-import {NgModule, APP_INITIALIZER, ModuleWithProviders, ErrorHandler} from '@angular/core';
+import {
+  NgModule,
+  ModuleWithProviders,
+  ErrorHandler,
+  APP_INITIALIZER
+} from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
-import { logInspect } from './util';
-import { NavigationEnd, NavigationStart, Router } from '@angular/router';
-import { ApplicationConf, GetInstanceEnvironement, validateAndGetConfig } from './configuration';
 import { HttpInterceptorService } from './http-interceptor.service';
-import { SessionManager } from './session-manager.service';
-import {AnalyticsCollector} from "./analytics-collect.service";
-import {GlobalErrorHandlerService} from "./global-error-handler.service";
+import { GlobalErrorHandlerService } from "./global-error-handler.service";
+import { ContextManager } from "./context-manager";
+import { CollectorConfig } from "./configuration";
+import {
+  eventTraceScheduledDispatcher,
+} from "./event-trace-scheduled-dispatcher.service";
+
+import {beforeDispatchListener, beforeUnloadListener, bfCacheListener, routerEventsListener} from "./listeners";
+import { analyticsEventsListener } from "./analytics-collect.service";
+import { eventTraceDebugger } from "./event-trace-debugger";
+import {Router} from "@angular/router";
 
 @NgModule()
 export class NgCollectorModule {
-
-  static forRoot(configuration: ApplicationConf): ModuleWithProviders<NgCollectorModule> {
-    if (configuration?.enabled) {
+  private static forRootCalled: boolean = false;
+  static configuration: CollectorConfig;
+  static forRoot(configuration: CollectorConfig): ModuleWithProviders<NgCollectorModule> {
+    console.log("forRootCalled");
+    this.configuration = configuration;
+    if (configuration?.enabled && !NgCollectorModule.forRootCalled) {
+      NgCollectorModule.forRootCalled = true;
       try {
-        let config = validateAndGetConfig(configuration);
-        let instance = GetInstanceEnvironement(configuration);
-        let deps:any[] = [Router, SessionManager]
-        logInspect('app',JSON.stringify(config));
-        logInspect('app',JSON.stringify(instance));
-        config.analytics && deps.push(AnalyticsCollector);
-
+        ContextManager.init(configuration);
         return {
           ngModule: NgCollectorModule,
           providers: [
-            SessionManager,
-            { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: deps, multi: true },
+            //provideAppInitializer(initializeEvents),
+            { provide: APP_INITIALIZER, useFactory: initializeEvents,deps:[Router], multi: true },
             { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
-            { provide: 'instance', useValue: instance },
-            { provide: 'config', useValue: config },
             { provide: ErrorHandler, useClass: GlobalErrorHandlerService }
           ]
         };
@@ -42,27 +48,17 @@ export class NgCollectorModule {
   }
 }
 
-export function initializeEvents(router: Router, sessionManager: SessionManager, analyticsCollector: AnalyticsCollector) {
+export function initializeEvents(router:Router) {
   return () => {
-    logInspect('app','initialize routing events listeners');
-    window.addEventListener('beforeunload', event => {
-      if(!sessionManager.getCurrentSession().loading){
-        sessionManager.newSession();
-      }
-      sessionManager.sendSessions(true);
-    });
-    router.events.subscribe(event => {
-      if (event instanceof NavigationStart) {
-        sessionManager.newSession(event.url);
-      }
-      if (event instanceof NavigationEnd) {
-        delete sessionManager.getCurrentSession().loading;
-      }
-    })
-    if(analyticsCollector){
-      analyticsCollector.subscribeToEvents();
-    }
-
+    ContextManager.init(NgCollectorModule.configuration);
+    eventTraceScheduledDispatcher()
+    eventTraceDebugger();
+    analyticsEventsListener();
+    //storageEventListener();
+    beforeDispatchListener();
+    beforeUnloadListener();
+    routerEventsListener(router);
+    bfCacheListener();
   }
 }
 

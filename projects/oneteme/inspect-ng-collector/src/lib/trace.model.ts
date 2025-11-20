@@ -1,23 +1,27 @@
 type InstantType = "SERVER"  | "CLIENT";
 type MainSessionType =  "VIEW" | "BATCH" | "STARTUP";
+export type Level = "INFO" | "WARN" | "ERROR";
 
-export interface MainSession {
-    '@type'?: string;
+export interface EventTrace {
+
+}
+
+export interface MainSession extends EventTrace{
+    '@type': string;
+    id: string;
     type: MainSessionType;
     name?: string;
     location: string;
     user?: string;
     start: number;
     end?: number;
-    exceptions: ExceptionInfo[], // to be changed ?
-    restRequests: RestRequest[],
-    localRequests: LocalRequest[],
-    userActions: UserAction[],
-    loading?: boolean
+    exceptions: ExceptionInfo[],
+    requestsMask: number;
+    traced?: boolean
 }
 
 export interface InstanceEnvironment {
-    id?:string;
+    id:string;
     name?: string;
     address?: string;
     version?: string;
@@ -28,10 +32,14 @@ export interface InstanceEnvironment {
     type?: InstantType;
     instant?:number;
     collector?:string;
+    resource: MachineResource;
+    additionalProperties?: {[key:string]: any};
+    configuration?: {[key:string]: any};
 }
 
-export interface RestRequest {
-    id?: string;
+export interface RestRequest extends EventTrace {
+   '@type': string;
+    id: string;
     method: string;
     protocol: string;
     host: string;
@@ -40,34 +48,68 @@ export interface RestRequest {
     query: string;
     contentType: string;
     authScheme?: string;
-    status: number;
-    inDataSize: number;
-    ouDataSize: number;
+    status?: number;
+    inDataSize?: number;
+    ouDataSize?: number;
     user?:string;
     start: number;
-    end: number;
-    exception?: ExceptionInfo
+    end?: number;
+    linked: boolean;
+    sessionId: string | undefined;
 }
 
-export interface LocalRequest {
+export interface HttpRequestStage extends EventTrace {
+  '@type': string;
+  name: string;
+  start: number;
+  end?: number;
+  exception?: ExceptionInfo | null;
+  requestId: string;
+}
+
+export interface LocalRequest extends EventTrace {
+    '@type': string;
+    id: string;
     name: string;
     location: string;
     user?: string;
     start: number;
-    end: number;
+    end?: number;
     exception?: ExceptionInfo
+    sessionId: string;
 }
 
-export interface ExceptionInfo { // to bechanged
+export interface ExceptionInfo {
     type: string | null;
     message: string | null;
 }
 
-export interface UserAction{
+export interface UserAction extends EventTrace{
+  '@type': string;
   type: string;
-  start: number;
+  start: number; //todo  rename to  instant
   name: string| null;
   nodeName: string;
+  sessionId: string;
+}
+
+export interface LogEntry extends EventTrace{
+  '@type': string;
+  instant: number;
+  level: Level;
+  message: string;
+  sessionId?: string;
+}
+
+export interface MachineResource extends EventTrace {
+  maxHeap?: number;
+}
+
+export interface MachineRessourceUsage extends  EventTrace{
+  '@type': string;
+  instant: number;
+  commitedHeap: number;
+  usedHeap: number;
 }
 
 export const genericMap : ((t:HTMLElement)=>string|null)[] = [

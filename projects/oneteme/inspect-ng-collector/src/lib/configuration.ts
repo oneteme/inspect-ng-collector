@@ -1,67 +1,64 @@
-import { dateNow, initDebug } from "./util";
 const SLASH = '/';
-const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
-const PATH_PATERN = /[\w-]+(\/[\w-]+)*/;
-export interface ApplicationConf {
-  host?: string;
-  name?: string | (() => string);
-  version?: string | (() => string);
-  env?: string | (() => string);
-  user?: string | (() => string);
-  bufferMaxSize?: number | (() => number);
-  delay?: number| (() => number);
-  instanceApi?: string | (() => string);
-  sessionApi?: string | (() => string);
-  exclude?: RegExp[] | (() => RegExp[]);
-  debug?: {app: boolean, user: boolean};
-  analytics?:boolean;
-  enabled?: boolean;
+export interface CollectorConfig {
+  enabled?: boolean; // default: false
+  debugMode?: boolean;
+  scheduling?: {
+    interval?: number; // default: '60s'
+  };
+  monitoring?: {
+    httpRoute?: {
+      excludes?: {
+        path?: RegExp[] | (() => RegExp[]); // replace this with string[]
+      };
+    };
+    httpRequest?: {
+      excludes?: {
+        host?: string[];
+      };
+    };
+    resources?: {
+      enabled?: boolean; // default: false
+    };
+    analytics?: {
+      enabled?: boolean; // default: false
+    };
+    storage?: {
+      enabled: boolean // default: false
+    }
+    name: string | (() => string);
+    version?: string | (() => string);
+    env?: string | (() => string);
+    user?: string | (() => string);
+    additionalProperties: ()=> {[key:string]: any};
+  };
+  tracing?: {
+    queueCapacity?: number; // default: 10000
+    delayIfPending?: number; // default: 30
+    remote?: {
+      '@type'?: string;
+      mode?: string; // default: null
+      host?: string; // default: 'localhost'
+      retentionMaxAge?: number; // default: '30'
+    };
+  };
 }
 
 export interface TechnicalConf {
-  user: () => string ;
-  bufferMaxSize: number;
-  delay: number;
+  user?: string;
+  queueCapacity: number;
+  delayIfPending: number
+  interval: number;
   instanceApi: string;
   sessionApi: string;
-  exclude: RegExp[];
-  debug: {app: boolean, user: boolean};
-  analytics?: boolean;
+  exclude?: RegExp[];
+  hostExcludes?: string[];
+  debugMode: boolean;
+  analytics: boolean;
+  resources: boolean;
+  storage: boolean;
   enabled: boolean;
 }
 
-export function validateAndGetConfig(conf:any):TechnicalConf{
-  let host = matchRegex(getStringOrCall(conf.host), "host" , HOST_PATERN)
-  let sessionApi =   matchRegex(getStringOrCall(conf.sessionApi),"sessionApi", PATH_PATERN, "v3/trace/instance/:id/session")
-  let instanceApi =  matchRegex(getStringOrCall(conf.instanceApi),"intanceApi", PATH_PATERN, "v3/trace/instance")
-  initDebug(conf.debug ?? {app: false, user: false});
-  return  {
-    user : typeof conf.user  == 'function' ? conf.user : ()=> conf.user,
-    bufferMaxSize:  requirePostitiveValue(getNumberOrCall(conf.bufferMaxSize),"bufferMaxSize", 1000) ,
-    delay: requirePostitiveValue(getNumberOrCall(conf.delay),"delay", 60000),
-    instanceApi: sessionApiURL(host, instanceApi),
-    sessionApi: instanceApiURL(host, sessionApi),
-    exclude: getRegArrOrCall(conf.exclude) || [],
-    debug: conf.debug ?? {app: false, user: false},
-    analytics: conf.analytics ?? false,
-    enabled: conf.enabled ?? false
-  }
-}
-
-export function GetInstanceEnvironement(conf:ApplicationConf){
-  return {
-    name: require(getStringOrCall(conf.name), 'name'),
-    version: getStringOrCall(conf.version),
-    address: undefined, //server side
-    env: require(getStringOrCall(conf.env),'env'),
-    os: detectOs(),
-    re: detectBrowser(),
-    user: undefined, // cannot get user
-    type: "CLIENT",
-    instant: dateNow(),
-    collector: "inspect-ng-collector-0.0.1"
-  }
-}
 
 export function getNumberOrCall(o?: number | (() => number)): number | undefined {
   return typeof o === "function" ? o() : o;
@@ -123,13 +120,6 @@ export function detectOs() {
   return undefined;
 }
 
-function instanceApiURL(host:string, path:string){
-  return  toURL(host,path);
-}
-
-function sessionApiURL(host:string, path:string){
-  return  toURL(host,path);
-}
 
 function toURL(host:string, path:string ){
    return host.endsWith(SLASH) || path.startsWith(SLASH) ? host + path : [host,path].join(SLASH);
@@ -164,6 +154,38 @@ export function require(v: string | undefined, name: string){
     return v;
   }
   throw new Error(`${name} property is required`);
+}
+
+export function adaptedConfig(conf: CollectorConfig) {
+  return {
+  ...conf,
+    scheduling: {
+    ...conf.scheduling,
+        interval: conf.scheduling?.interval && conf.scheduling.interval / 1000
+    },
+    monitoring: {
+  ...conf.monitoring,
+      additionalProperties :String(conf.monitoring?.additionalProperties),
+      name: String(conf.monitoring?.name),
+      version: String(conf.monitoring?.version),
+      env: String(conf.monitoring?.env),
+      user: String(conf.monitoring?.user),
+      httpRoute: {
+    ...conf.monitoring?.httpRoute,
+        excludes: {
+        path: (conf?.monitoring?.httpRoute?.excludes?.path as RegExp[]).map(r => r.source)
+      }
+    }
+  },
+    tracing: {
+    ...conf.tracing,
+        remote: {
+      ...conf.tracing?.remote,
+          '@type':"rest-rmt",
+          retentionMaxAge : (conf.tracing?.remote?.retentionMaxAge ?? 10)  * 60 * 60 * 24
+      }
+    }
+  }
 }
 
 
