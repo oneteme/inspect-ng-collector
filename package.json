@@ -1,6 +1,6 @@
 {
   "name": "inspect-collectors",
-  "version": "1.3.0-beta.9",
+  "version": "1.3.0-beta.8",
   "description": "Inspect ng collector",
   "private": false,
   "homepage": "https://github.com/oneteme/inspect-ng-collector",
@@ -26,17 +26,17 @@
     "test": "ng test"
   },
   "dependencies": {
+    "rxjs": ">=7.4.0",
+    "tslib": ">=2.3.0",
+    "zone.js": ">=0.13.3"
+  },
+  "devDependencies": {
     "@angular/common": ">=16.2.12",
     "@angular/compiler": ">=16.2.12",
     "@angular/core": ">=16.2.12",
     "@angular/platform-browser": ">=16.2.12",
     "@angular/platform-browser-dynamic": ">=16.2.12",
     "@angular/router": ">=16.2.12",
-    "rxjs": ">=7.4.0",
-    "tslib": ">=2.3.0",
-    "zone.js": ">=0.13.3"
-  },
-  "devDependencies": {
     "@angular-devkit/build-angular": ">=16.2.10",
     "@angular/cli": ">=16.2.10",
     "@angular/compiler-cli": ">=16.2.12",
