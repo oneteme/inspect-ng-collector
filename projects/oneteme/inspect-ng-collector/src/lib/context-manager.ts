@@ -28,7 +28,7 @@ export class ContextManager {
 
   static  get instance(){
     if(!ContextManager._instance){
-      console.warn("[Inspect-ng-collecotor] Error while initializing ContextManager");
+      console.warn("[Inspect-ng-collector] Error while initializing ContextManager");
     }
     return ContextManager._instance;
   }
@@ -66,7 +66,7 @@ export class ContextManager {
       id: instanceId,
       name: require(getStringOrCall(conf?.monitoring?.name), 'name'),
       version: getStringOrCall(conf?.monitoring?.version),
-      address: undefined, //server side
+      address: getSessionAddress(), //server side
       env: require(getStringOrCall(conf?.monitoring?.env),'env'),
       os: detectOs(),
       re: detectBrowser(),
@@ -80,7 +80,14 @@ export class ContextManager {
     }
   }
 }
-
+function getSessionAddress(){
+  let inspectId = localStorage.getItem("inspect-id");
+  if(!inspectId){
+    inspectId = crypto.randomUUID();
+    localStorage.setItem("inspect-id", inspectId);
+  }
+  return inspectId;
+}
 function instanceApiURL(host:string, path:string){
   return  toURL(host,path);
 }

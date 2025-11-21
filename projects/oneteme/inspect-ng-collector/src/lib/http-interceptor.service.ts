@@ -16,24 +16,32 @@ export class HttpInterceptorService implements HttpInterceptor {
     let e:any;
     window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : restRequestMonitor.restRequest } }));
     const host = new URL(req.url, window.location.origin).host;
+
     if(!ContextManager.instance.techConfig.hostExcludes?.some((e:any) => e== host)) {
       req = req.clone({headers :req.headers.set('x-tracert',restRequestMonitor.restRequest.id)});
     }
-    return next.handle(req).pipe(tap(
-      (event: any) => {
+    return next.handle(req).pipe(tap({
+      next: (event: any) => {
         if (event instanceof HttpResponse) {
           e = event;
         }
       },
-      error => {
-          e = error
+      error: (error: any) => {
+        e = error;
       }
-    ),finalize(()=> {
+      ,unsubscribe: () => {
+        e = { status: 0,
+              name: "Unsubscribed",
+              message: "The request was cancelled before completion."
+        };
+      }
+    }),finalize(()=> {
         e instanceof HttpResponse ?  restRequestMonitor.postProcess(e, null): restRequestMonitor.postProcess(null, e ?? {
         status: 0,
         name: "IOException",
         message: "The remote server is unavailable.",
       })
-    }));
+    }))
+
   }
 }

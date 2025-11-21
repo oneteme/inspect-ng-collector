@@ -57,8 +57,7 @@ export class  EventTraceScheduledDispatcherService {
       if(instanceComplete){
         uri += "&end=" + new Date().toISOString();
       }
-      let sessions: Set<EventTrace> = this.traceQueue;
-      this.traceQueue = new Set();
+      let sessions: Set<EventTrace> = this.extractEventTrace();
       return fetch(uri, this.getRequestInit(sessions))
         .then(res => {
           if (res.ok) {

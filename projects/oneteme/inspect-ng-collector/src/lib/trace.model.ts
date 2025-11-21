@@ -35,7 +35,6 @@ export interface InstanceEnvironment {
     resource: MachineResource;
     additionalProperties?: {[key:string]: any};
     configuration?: {[key:string]: any};
-
 }
 
 export interface RestRequest extends EventTrace {
@@ -55,6 +54,7 @@ export interface RestRequest extends EventTrace {
     user?:string;
     start: number;
     end?: number;
+    linked: boolean;
     sessionId: string | undefined;
 }
 
@@ -87,7 +87,7 @@ export interface ExceptionInfo {
 export interface UserAction extends EventTrace{
   '@type': string;
   type: string;
-  start: number;
+  start: number; //todo  rename to  instant
   name: string| null;
   nodeName: string;
   sessionId: string;

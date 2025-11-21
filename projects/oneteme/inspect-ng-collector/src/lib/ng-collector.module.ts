@@ -2,7 +2,7 @@ import {
   NgModule,
   ModuleWithProviders,
   ErrorHandler,
-  provideAppInitializer, APP_INITIALIZER
+  APP_INITIALIZER
 } from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
 import { HttpInterceptorService } from './http-interceptor.service';
@@ -13,15 +13,18 @@ import {
   eventTraceScheduledDispatcher,
 } from "./event-trace-scheduled-dispatcher.service";
 
-import { beforeDispatchListener, beforeUnloadListener, routerEventsListener } from "./listeners";
+import {beforeDispatchListener, beforeUnloadListener, bfCacheListener, routerEventsListener} from "./listeners";
 import { analyticsEventsListener } from "./analytics-collect.service";
 import { eventTraceDebugger } from "./event-trace-debugger";
+import {Router} from "@angular/router";
 
 @NgModule()
 export class NgCollectorModule {
   private static forRootCalled: boolean = false;
+  static configuration: CollectorConfig;
   static forRoot(configuration: CollectorConfig): ModuleWithProviders<NgCollectorModule> {
-    console.log("forRoodtCalled");
+    console.log("forRootCalled");
+    this.configuration = configuration;
     if (configuration?.enabled && !NgCollectorModule.forRootCalled) {
       NgCollectorModule.forRootCalled = true;
       try {
@@ -30,7 +33,7 @@ export class NgCollectorModule {
           ngModule: NgCollectorModule,
           providers: [
             //provideAppInitializer(initializeEvents),
-            { provide: APP_INITIALIZER, useFactory: initializeEvents, multi: true },
+            { provide: APP_INITIALIZER, useFactory: initializeEvents,deps:[Router], multi: true },
             { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
             { provide: ErrorHandler, useClass: GlobalErrorHandlerService }
           ]
@@ -45,15 +48,17 @@ export class NgCollectorModule {
   }
 }
 
-export function initializeEvents() {
+export function initializeEvents(router:Router) {
   return () => {
+    ContextManager.init(NgCollectorModule.configuration);
     eventTraceScheduledDispatcher()
     eventTraceDebugger();
     analyticsEventsListener();
     //storageEventListener();
     beforeDispatchListener();
     beforeUnloadListener();
-    routerEventsListener();
+    routerEventsListener(router);
+    bfCacheListener();
   }
 }
 

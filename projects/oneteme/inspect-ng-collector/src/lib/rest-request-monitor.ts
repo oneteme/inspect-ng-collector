@@ -25,6 +25,8 @@ export class RestRequestMonitor{
         user: auth_user.user,
         ouDataSize: sizeOf(restRequest.body),
         start: start,
+        linked: false,
+        end: undefined,
         sessionId: SessionManager.instance.currentSessionID()
       };
       SessionManager.instance.updateMask(RequestMask.REST);
@@ -35,11 +37,10 @@ export class RestRequestMonitor{
       if(event){
         status = +event.status;
         this.restRequest.inDataSize = sizeOf(event.body);
-
-        this.assertSessionID(this.restRequest.id, event.headers);
+        this.restRequest.linked = this.assertSessionID(this.restRequest.id, event.headers);
       }
       if(error){
-        this.assertSessionID(this.restRequest.id, error?.headers);
+        this.restRequest.linked = error?.headers && this.assertSessionID(this.restRequest.id, error.headers);
         status = +error.status;
         exception = {
           type : error.name,
@@ -58,20 +59,20 @@ export class RestRequestMonitor{
         exception: exception,
         requestId : this.restRequest.id
       }
-
-      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : this.restRequest } }));
       window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : stage } }));
     }
 
   assertSessionID(id:string, headers:any) {
     if(headers?.has('x-tracert')){
-      if(id !== headers.get('x-tracert')){
-        window.dispatchEvent(new CustomEvent( DISPATCH,
-          {
-            detail :  { traces : createReport("The received x-tracert header (" + headers.get('x-tracert') + ") does not match the request id (" + id + ")") }
-          }));
+      if(id == headers.get('x-tracert')){
+          return true;
       }
+      window.dispatchEvent(new CustomEvent( DISPATCH,
+        {
+          detail :  { traces : createReport("The received x-tracert header (" + headers.get('x-tracert') + ") does not match the request id (" + id + ")") }
+        }));
     }
+    return false;
   }
 }
 

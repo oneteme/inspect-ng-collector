@@ -12,7 +12,7 @@ export enum RequestMask {
 
 export const DISPATCH = 'dispatch';
 export const PRE_DISPATCH = 'pre-dispatch';
-export const BEFOREUNLOAD ='beforeunload'
+export const BEFOREUNLOAD ='beforeunload';
 
 export function createLogEntry(level: Level, message: string, sessionId: string | undefined): LogEntry {
   return {
