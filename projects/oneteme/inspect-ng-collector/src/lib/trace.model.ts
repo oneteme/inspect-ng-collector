@@ -87,7 +87,7 @@ export interface ExceptionInfo {
 export interface UserAction extends EventTrace{
   '@type': string;
   type: string;
-  start: number; //todo  rename to  instant
+  start: number; //todo  rename  instant
   name: string| null;
   nodeName: string;
   sessionId: string;
