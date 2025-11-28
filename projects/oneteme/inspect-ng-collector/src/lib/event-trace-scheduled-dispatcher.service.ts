@@ -1,4 +1,4 @@
-  import {interval, startWith, tap} from "rxjs";
+  import {interval, startWith, tap, catchError} from "rxjs";
 import {EventTrace} from "./trace.model";
 import {createReport, DISPATCH, PRE_DISPATCH} from "./util";
 import {ContextManager} from "./context-manager";
@@ -23,7 +23,9 @@ export class  EventTraceScheduledDispatcherService {
           this.sendSessionfinished = false;
           window.dispatchEvent(new CustomEvent(PRE_DISPATCH));
           setTimeout(() =>
-            this.Dispatch().finally(() => { this.sendSessionfinished = true }),
+            this.Dispatch()
+              .catch(err => {})
+              .finally(() => { this.sendSessionfinished = true }),
             5)
         }
       }))
@@ -36,7 +38,6 @@ export class  EventTraceScheduledDispatcherService {
       }
     });
   }
-
 
   Dispatch(): Promise<any> {
     if(this.instanceSaved){
@@ -57,7 +58,8 @@ export class  EventTraceScheduledDispatcherService {
       if(instanceComplete){
         uri += "&end=" + new Date().toISOString();
       }
-      let sessions: Set<EventTrace> = this.extractEventTrace();
+      let sessions: Set<EventTrace> = this.traceQueue;
+      this.traceQueue = new Set();
       return fetch(uri, this.getRequestInit(sessions))
         .then(res => {
           if (res.ok) {
@@ -70,29 +72,6 @@ export class  EventTraceScheduledDispatcherService {
     }
     return Promise.resolve(0);
   }
-
-  extractEventTrace(): Set<EventTrace> {
-    let trc:Set<EventTrace>= this.traceQueue;
-    this.traceQueue = new Set();
-    let ses = new Set<EventTrace>();
-    trc.forEach(((e)=> {
-      if(e.hasOwnProperty("end")){
-        const copy:any = {...e}
-        if(!copy.end) {
-          ses.add(copy);
-          this.traceQueue.add(e);
-        }
-        else{
-          ses.add(e);
-        }
-      }
-      else {
-        ses.add(e);
-      }
-    }))
-    return ses;
-  }
-
 
   handleEventTraceSavingError(sessions: Set<EventTrace>){
     this.sessionSendAttempts % 5 == 0 && console.warn(`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)
@@ -125,7 +104,7 @@ export class  EventTraceScheduledDispatcherService {
   }
 
   revertQueueSize(sessions: Set<EventTrace> ){
-    sessions.forEach(session => (<any>session).end && this.traceQueue.add(session));
+    sessions.forEach(session => this.traceQueue.add(session));
     if (this.traceQueue.size > ContextManager.instance.techConfig.queueCapacity) {
       const items = Array.from(this.traceQueue).slice(0, ContextManager.instance.techConfig.queueCapacity);
       this.traceQueue = new Set(items);

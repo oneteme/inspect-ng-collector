@@ -181,7 +181,7 @@ export function adaptedConfig(conf: CollectorConfig) {
     ...conf.tracing,
         remote: {
       ...conf.tracing?.remote,
-          '@type':"rest-rmt",
+          '@type':"02",
           retentionMaxAge : (conf.tracing?.remote?.retentionMaxAge ?? 10)  * 60 * 60 * 24
       }
     }

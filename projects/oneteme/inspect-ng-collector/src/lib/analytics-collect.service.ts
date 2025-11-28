@@ -49,14 +49,14 @@ import {ContextManager} from "./context-manager";
 
   function addActionUser(eventType: string, target: HTMLElement){
     const ua = {
-      '@type': "user-act",
+      '@type': "300",
       type: eventType,
       start: dateNow(),
       name : extractName(target),
       nodeName : target.tagName?.toLowerCase(),
       sessionId: SessionManager.instance?.currentSessionID()
     }
-   //  window.dispatchEvent(new CustomEvent( DISPATCH ,{ detail :  { traces:ua }}));
+   // window.dispatchEvent(new CustomEvent( DISPATCH ,{ detail :  { traces:ua }}));
   }
 
 

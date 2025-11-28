@@ -34,19 +34,29 @@ import {DISPATCH, RequestMask, WIN} from "./util";
             throw e;
           }finally{
             end = Date.now();
+            let id = crypto.randomUUID();
             window.dispatchEvent(new CustomEvent(
               DISPATCH,
               { detail :
                   { traces : {
-                    "@type":"locl-req",
-                    id: crypto.randomUUID(),
+                    "@type":"110",
+                    id: id,
                     name: propertyKey,
                     location: target.constructor.name,
                     user: WIN["inspect-session-manager"]?.currentSession?.user,
                     start: start,
-                    end: end,
-                    exception: exception,
                     sessionId : WIN["inspect-session-manager"]?.currentSession?.id
+                    }
+                  }
+              }));
+            window.dispatchEvent(new CustomEvent(
+              DISPATCH,
+              { detail :
+                  { traces : {
+                      "@type":"111",
+                      id: id,
+                      exception: exception,
+                      end : end
                     }
                   }
               }));

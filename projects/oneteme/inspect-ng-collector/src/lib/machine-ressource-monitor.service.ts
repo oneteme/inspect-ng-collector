@@ -9,7 +9,7 @@ import {createReport, dateNow, DISPATCH} from "./util";
     try{
       const memory = (performance as any).memory;
       return {
-        '@type': 'rsrc-usg',
+        '@type': '01',
         instant: dateNow(),
         usedHeap: memory.usedJSHeapSize / (1024 * 1024),
         commitedHeap: memory.totalJSHeapSize / (1024 * 1024),

@@ -16,7 +16,7 @@ export const BEFOREUNLOAD ='beforeunload';
 
 export function createLogEntry(level: Level, message: string, sessionId: string | undefined): LogEntry {
   return {
-    "@type": "log",
+    "@type": "00",
     level: level,
     message: message,
     instant: dateNow(),
@@ -26,7 +26,7 @@ export function createLogEntry(level: Level, message: string, sessionId: string 
 
 export function createReport(message: string): LogEntry{
   return {
-    "@type": "log",
+    "@type": "00",
     level: "ERROR",
     message: message,
     instant: dateNow(),
