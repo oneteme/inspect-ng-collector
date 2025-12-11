@@ -76,7 +76,11 @@ export class SessionManager {
     }
 
     updateMask(requestMask: number) {
-       this.getCurrentSessionCallBack(s => s.requestMask |= requestMask)
+       return  this.getCurrentSessionCallBack(s => {
+         let before = s.requestMask;
+         s.requestMask |= requestMask
+         return s.requestMask !== before;
+       })
     }
 
     addException(exception: any) {

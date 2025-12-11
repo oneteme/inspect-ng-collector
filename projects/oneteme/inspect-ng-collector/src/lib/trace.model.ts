@@ -6,6 +6,13 @@ export interface EventTrace {
 
 }
 
+export interface  SessionMaskUpdate {
+  '@type': string;
+  id: string;
+  main: boolean;
+  mask: number;
+}
+
 export interface MainSession extends EventTrace{
     '@type': string;
     id: string;

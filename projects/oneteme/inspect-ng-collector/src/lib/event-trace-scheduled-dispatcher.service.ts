@@ -22,11 +22,9 @@ export class  EventTraceScheduledDispatcherService {
         if (this.sendSessionfinished) {
           this.sendSessionfinished = false;
           window.dispatchEvent(new CustomEvent(PRE_DISPATCH));
-          setTimeout(() =>
-            this.Dispatch()
-              .catch(err => {})
-              .finally(() => { this.sendSessionfinished = true }),
-            5)
+          this.Dispatch()
+            .catch(err=> {})
+            .finally(() => { this.sendSessionfinished = true })
         }
       }))
       .subscribe();

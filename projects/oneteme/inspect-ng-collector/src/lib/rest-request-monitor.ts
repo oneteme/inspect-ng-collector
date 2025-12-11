@@ -27,7 +27,6 @@ export class RestRequestMonitor{
         start: start,
         sessionId: SessionManager.instance.currentSessionID()
       };
-      SessionManager.instance.updateMask(RequestMask.REST);
       this.restRequestCallBack = {
         "@type":"121",
         id : this.restRequest.id,
@@ -67,6 +66,15 @@ export class RestRequestMonitor{
         exception: exception,
         requestId : this.restRequestCallBack.id
       }
+      let doUpdateMask = SessionManager.instance.updateMask(RequestMask.REST);
+      doUpdateMask && window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  {
+          traces : {
+            "@type":"03",
+            id : SessionManager.instance.currentSessionID(),
+            main: true,
+            mask: SessionManager.instance.getCurrentSessionCallBack(s =>  s.requestMask)
+          } }
+      }));
       window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : this.restRequestCallBack } }));
       window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : stage } }));
     }
