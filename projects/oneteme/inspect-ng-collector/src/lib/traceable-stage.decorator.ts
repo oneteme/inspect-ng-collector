@@ -35,15 +35,17 @@ import {MainSessionCallBack} from "./trace.model";
           }finally{
             end = Date.now();
             let id = crypto.randomUUID();
-            let doUpdateMask = WIN["inspect-session-manager"]?.updateMask(RequestMask.LOCAL);
-            doUpdateMask && window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  {
-                traces : {
-                  "@type":"03",
-                  id : WIN["inspect-session-manager"]?.currentSessionID(),
-                  main: true,
-                  mask: WIN["inspect-session-manager"]?.getCurrentSessionCallBack((s:MainSessionCallBack) =>  s.requestMask)
-                } }
-            }));
+            if(WIN["inspect-session-manager"]?.currentSessionID() != null){
+              let doUpdateMask = WIN["inspect-session-manager"]?.updateMask(RequestMask.LOCAL);
+              doUpdateMask &&  window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  {
+                  traces : {
+                    "@type":"03",
+                    id : WIN["inspect-session-manager"]?.currentSessionID(),
+                    main: true,
+                    mask: WIN["inspect-session-manager"]?.getCurrentSessionCallBack((s:MainSessionCallBack) =>  s.requestMask)
+                  } }
+              }));
+            }
             window.dispatchEvent(new CustomEvent(
               DISPATCH,
               { detail :

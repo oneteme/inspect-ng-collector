@@ -33,6 +33,17 @@ export class RestRequestMonitor{
         dataSize: -1,
         linked: false
       }
+      if(SessionManager.instance.currentSessionID() != null ){
+        let doUpdateMask = SessionManager.instance.updateMask(RequestMask.REST);
+        doUpdateMask && window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  {
+            traces : {
+              "@type":"03",
+              id : SessionManager.instance.currentSessionID(),
+              main: true,
+              mask: SessionManager.instance.getCurrentSessionCallBack(s =>  s.requestMask)
+            } }
+        }));
+      }
     }
 
     postProcess(event: HttpResponse<any> | null, error: any) {
@@ -66,15 +77,7 @@ export class RestRequestMonitor{
         exception: exception,
         requestId : this.restRequestCallBack.id
       }
-      let doUpdateMask = SessionManager.instance.updateMask(RequestMask.REST);
-      doUpdateMask && window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  {
-          traces : {
-            "@type":"03",
-            id : SessionManager.instance.currentSessionID(),
-            main: true,
-            mask: SessionManager.instance.getCurrentSessionCallBack(s =>  s.requestMask)
-          } }
-      }));
+
       window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : this.restRequestCallBack } }));
       window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : stage } }));
     }
