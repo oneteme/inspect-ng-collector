@@ -76,7 +76,7 @@ export class SessionManager {
     currentSessionID(): string | undefined { // (s) => {}
        return this.getCurrentSession(s=> s.id );
     }
-}
+
 
 
     updateMask(requestMask: number) {
