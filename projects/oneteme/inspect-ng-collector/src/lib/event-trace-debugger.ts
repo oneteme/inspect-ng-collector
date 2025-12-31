@@ -84,7 +84,7 @@ export class EventTraceDebugger{
     if(session.location){
       s+= `(${session.location}) `
     }
-    s+= this.prettyDurationFormat(session.start, session.end)+'\n';
+    //s+= this.prettyDurationFormat(session.start, session.end)+'\n';
     s+= this.getChildPrint(this.restRequests, this.prettyRestRequestFormat.bind(this));
     s+= this.getChildPrint(this.localRequests, this.prettyLocalRequestFormat.bind(this));
     s+= this.getChildPrint(this.userActions, this.prettyActionUserFormat.bind(this));
@@ -113,8 +113,9 @@ export class EventTraceDebugger{
     if(rest.query){
       s+= rest.query
     }
-    s+= ` >> ${rest.status} `
-    s+= this.prettyDurationFormat(rest.start,rest.end)+'\n';
+   // s+= ` >> ${rest.status} `
+   // s+= this.prettyDurationFormat(rest.start,rest.end);
+     s+='\n'
     this.httpRequestStages.filter((s)=>s.requestId == rest.id).forEach((stage:HttpRequestStage) => {
       s+= this.prettyHttpRequestStageFormat(stage)  ;
     })
@@ -138,14 +139,14 @@ export class EventTraceDebugger{
     if(local.location){
       s+= `(${local.location})`
     }
-     s+= " >> ";
+     /*s+= " >> ";
     if(local.exception?.type){
       s+= ` ${local.exception?.type}:`;
     }
     if(local.exception?.message){
       s+= ` ${local.exception.message}`
     }
-    s+= ` ${this.prettyDurationFormat(local.start, local.end)}`;
+    s+= ` ${this.prettyDurationFormat(local.start, local.end)}`;*/
     return s;
   }
 

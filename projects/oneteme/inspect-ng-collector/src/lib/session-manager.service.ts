@@ -1,12 +1,14 @@
 
 import {createReport, dateNow, DISPATCH, WIN} from './util';
 import {ContextManager} from "./context-manager";
-import {MainSession} from "./trace.model";
+import {MainSession, MainSessionCallBack} from "./trace.model";
 
 export class SessionManager {
 
     currentSession!: any
+    currentSessionCallBack!: MainSessionCallBack;
     private static _instance: SessionManager;
+    initialized: boolean = false;
 
     static get instance(): SessionManager{
         if(!SessionManager._instance) {
@@ -19,24 +21,28 @@ export class SessionManager {
     navigate(url?: string) {
         this.getCurrentSession(s => {
           if(s){
-            s.end = dateNow();
-            window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { force: !url } }));
+            this.getCurrentSessionCallBack(cb => cb.end =dateNow())
+            window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { force: !url, traces :  this.currentSessionCallBack } }));
           }
           this.currentSession = null
         })
-
         if (url) {
+            let id = crypto.randomUUID()
             this.currentSession = {
-                '@type': "main-ses",
-                id: crypto.randomUUID(),
+                '@type': "10",
+                id: id,
                 user: ContextManager.instance.techConfig.user,
                 start: dateNow(),
                 type: "VIEW",
                 location: url,
                 loading: true,
-                exceptions: [],
-                requestsMask: 0,
-                end: null
+                requestMask: 0,
+            }
+            this.initialized = true;
+            this.currentSessionCallBack = {
+              '@type': "11",
+               id: id,
+               requestMask: 0,
             }
         }
     }
@@ -55,20 +61,34 @@ export class SessionManager {
       if(this.currentSession){
         return fn(this.currentSession);
       }
-      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
+      this.initialized && window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
       return undefined
     }
 
-  currentSessionID(): string | undefined { // (s) => {}
-    return this.getCurrentSession(s=> s.id );
+    getCurrentSessionCallBack( fn:(s:MainSessionCallBack)=> any ) {
+      if(this.currentSessionCallBack){
+        return fn(this.currentSessionCallBack);
+      }
+      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
+      return undefined;
     }
 
+    currentSessionID(): string | undefined { // (s) => {}
+       return this.getCurrentSession(s=> s.id );
+    }
+
+
+
     updateMask(requestMask: number) {
-       this.getCurrentSession(s => s.requestsMask |= requestMask)
+       return  this.getCurrentSessionCallBack(s => {
+         let before = s.requestMask;
+         s.requestMask |= requestMask
+         return s.requestMask !== before;
+       })
     }
 
     addException(exception: any) {
-        this.getCurrentSession(s => s.exceptions.push(exception))
+        this.getCurrentSessionCallBack(s => s.exception = exception)
     }
 }
 

@@ -8,7 +8,7 @@ export function routeHandler(event: any){
       SessionManager.instance.navigate(event.url);
     }
     if (event instanceof NavigationEnd ||  event instanceof NavigationCancel) {
-        SessionManager.instance.updateSession();
+        setTimeout(() => SessionManager.instance.updateSession(), 0);
     }
 }
 
@@ -20,6 +20,6 @@ export function bfCacheHandler(event:any)  {
   if (event.persisted) { // if the page was restored from bfcache
     ContextManager.init(NgCollectorModule.configuration);
     SessionManager.instance.navigate(document.URL);
-    SessionManager.instance.updateSession();
+    setTimeout(() => SessionManager.instance.updateSession(), 0);
   }
 }

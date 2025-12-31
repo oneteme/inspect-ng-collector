@@ -6,6 +6,13 @@ export interface EventTrace {
 
 }
 
+export interface  SessionMaskUpdate {
+  '@type': string;
+  id: string;
+  main: boolean;
+  mask: number;
+}
+
 export interface MainSession extends EventTrace{
     '@type': string;
     id: string;
@@ -14,10 +21,15 @@ export interface MainSession extends EventTrace{
     location: string;
     user?: string;
     start: number;
-    end?: number;
-    exceptions: ExceptionInfo[],
-    requestsMask: number;
-    traced?: boolean
+    requestMask: number;
+}
+
+export interface MainSessionCallBack extends EventTrace {
+  '@type': string;
+   id: string;
+   end?: number;
+   requestMask: number;
+   exception?: ExceptionInfo; // make a list ?
 }
 
 export interface InstanceEnvironment {
@@ -46,16 +58,23 @@ export interface RestRequest extends EventTrace {
     port: number;
     path: string;
     query: string;
-    contentType: string;
+    contentType?: string;
     authScheme?: string;
-    status?: number;
-    inDataSize?: number;
-    ouDataSize?: number;
+    dataSize:number;
     user?:string;
     start: number;
-    end?: number;
-    linked: boolean;
     sessionId: string | undefined;
+}
+
+export interface RestRequestCallBack extends EventTrace {
+  '@type': string;
+   id: string;
+   status?: number;
+   end?: number;
+   dataSize?:number;
+   linked?: boolean;
+   contentType?: string;
+   bodyContent? : string;
 }
 
 export interface HttpRequestStage extends EventTrace {
@@ -74,9 +93,12 @@ export interface LocalRequest extends EventTrace {
     location: string;
     user?: string;
     start: number;
-    end?: number;
-    exception?: ExceptionInfo
     sessionId: string;
+}
+
+export interface LocalRequestCallBack extends EventTrace {
+  '@type': string;
+  end: number;
 }
 
 export interface ExceptionInfo {
@@ -87,7 +109,7 @@ export interface ExceptionInfo {
 export interface UserAction extends EventTrace{
   '@type': string;
   type: string;
-  start: number; //todo  rename to  instant
+  start: number; //todo  rename  instant
   name: string| null;
   nodeName: string;
   sessionId: string;
