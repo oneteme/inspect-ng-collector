@@ -82,6 +82,7 @@ export class  EventTraceScheduledDispatcherService {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       mode: 'cors',
+      keepalive: true,
       body: JSON.stringify(Array.from(sessionList))
     }
   }
@@ -92,6 +93,7 @@ export class  EventTraceScheduledDispatcherService {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       mode: 'cors',
+      keepalive: true,
       body: JSON.stringify(ContextManager.instance.instanceEnv)
     })
       .then(res => res.ok ? res.text().then(id => {

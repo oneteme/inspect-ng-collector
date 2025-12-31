@@ -87,10 +87,6 @@ export class RestRequestMonitor{
       if(id == headers.get('x-tracert')){
           return true;
       }
-      window.dispatchEvent(new CustomEvent( DISPATCH,
-        {
-          detail :  { traces : createReport("The received x-tracert header (" + headers.get('x-tracert') + ") does not match the request id (" + id + ")") }
-        }));
     }
     return false;
   }

@@ -8,6 +8,7 @@ export class SessionManager {
     currentSession!: any
     currentSessionCallBack!: MainSessionCallBack;
     private static _instance: SessionManager;
+    initialized: boolean = false;
 
     static get instance(): SessionManager{
         if(!SessionManager._instance) {
@@ -37,6 +38,7 @@ export class SessionManager {
                 loading: true,
                 requestMask: 0,
             }
+            this.initialized = true;
             this.currentSessionCallBack = {
               '@type': "11",
                id: id,
@@ -59,7 +61,7 @@ export class SessionManager {
       if(this.currentSession){
         return fn(this.currentSession);
       }
-      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
+      this.initialized && window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
       return undefined
     }
 
