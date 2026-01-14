@@ -50,25 +50,30 @@ export class  EventTraceScheduledDispatcherService {
     });
   }
 
-  sendSessions(instanceComplete?:boolean) : Promise<number>{
-    if (this.traceQueue.size > 0) {
-      let uri = ContextManager.instance.techConfig.sessionApi + "?attempts=" + ++this.sessionSendAttempts;
-      if(instanceComplete){
-        uri += "&end=" + new Date().toISOString();
-      }
-      let sessions: Set<EventTrace> = this.traceQueue;
-      this.traceQueue = new Set();
-      return fetch(uri, this.getRequestInit(sessions))
-        .then(res => {
-          if (res.ok) {
-            this.sessionSendAttempts = 0;
-            return sessions.size;
-          }
-          return this.handleEventTraceSavingError(sessions)
-        })
-        .catch(()=> this.handleEventTraceSavingError(sessions))
+  sendSessions(instanceComplete?: boolean): Promise<number> {
+    if (this.traceQueue.size === 0) {
+      return Promise.resolve(0);
     }
-    return Promise.resolve(0);
+
+    let uri = ContextManager.instance.techConfig.sessionApi + "?attempts=" + ++this.sessionSendAttempts;
+    if (instanceComplete) {
+      uri += "&end=" + new Date().toISOString();
+    }
+
+    const sessions = this.traceQueue;
+    this.traceQueue = new Set();
+
+    return fetch(uri, this.getRequestInit(sessions))
+      .then(res => {
+        if (res.ok) {
+          this.sessionSendAttempts = 0;
+          return sessions.size;
+        }
+        return res.json()
+          .then(body => body.retry ? this.handleEventTraceSavingError(sessions) : -1)
+          .catch(() => this.handleEventTraceSavingError(sessions));
+      })
+      .catch(() => this.handleEventTraceSavingError(sessions));
   }
 
   handleEventTraceSavingError(sessions: Set<EventTrace>){
