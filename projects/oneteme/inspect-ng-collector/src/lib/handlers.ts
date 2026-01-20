@@ -1,7 +1,6 @@
 import {NavigationCancel, NavigationEnd, NavigationStart} from "@angular/router";
 import {SessionManager} from "./session-manager.service";
-import {ContextManager} from "./context-manager";
-import {NgCollectorModule} from "./ng-collector.module";
+import {initContextManagerAndDispatcher, } from "./ng-collector.module";
 
 export function routeHandler(event: any){
     if (event instanceof NavigationStart) {
@@ -18,7 +17,7 @@ export function windowUnloadHandler(event:any) {
 
 export function bfCacheHandler(event:any)  {
   if (event.persisted) { // if the page was restored from bfcache
-    ContextManager.init(NgCollectorModule.configuration);
+    initContextManagerAndDispatcher();
     SessionManager.instance.navigate(document.URL);
     setTimeout(() => SessionManager.instance.updateSession(), 0);
   }
