@@ -24,7 +24,6 @@ export class NgCollectorModule {
   private static forRootCalled: boolean = false;
   static configuration: CollectorConfig;
   static forRoot(configuration: CollectorConfig): ModuleWithProviders<NgCollectorModule> {
-    console.log("forRootCalled");
     this.configuration = configuration;
     if (configuration?.enabled && !NgCollectorModule.forRootCalled) {
       NgCollectorModule.forRootCalled = true;
