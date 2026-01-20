@@ -44,7 +44,7 @@ export interface CollectorConfig {
 }
 
 export interface TechnicalConf {
-  user?: string;
+  user?: string | (() => string);
   queueCapacity: number;
   delayIfPending: number
   interval: number;

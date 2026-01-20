@@ -17,6 +17,7 @@ import {beforeDispatchListener, beforeUnloadListener, bfCacheListener, routerEve
 import { analyticsEventsListener } from "./analytics-collect.service";
 import { eventTraceDebugger } from "./event-trace-debugger";
 import {Router} from "@angular/router";
+import {DISPATCH} from "./util";
 
 @NgModule()
 export class NgCollectorModule {
@@ -50,8 +51,7 @@ export class NgCollectorModule {
 
 export function initializeEvents(router:Router) {
   return () => {
-    ContextManager.init(NgCollectorModule.configuration);
-    eventTraceScheduledDispatcher()
+    initContextManagerAndDispatcher()
     eventTraceDebugger();
     analyticsEventsListener();
     //storageEventListener();
@@ -60,6 +60,18 @@ export function initializeEvents(router:Router) {
     routerEventsListener(router);
     bfCacheListener();
   }
+
+
+}
+
+export function initContextManagerAndDispatcher(){
+  ContextManager.init(NgCollectorModule.configuration);
+  const dispatcher = eventTraceScheduledDispatcher()
+  window.addEventListener( DISPATCH, (e: Event) => {
+    if((e as CustomEvent).detail.force){
+      dispatcher.onDestroy();
+    }
+  });
 }
 
 
