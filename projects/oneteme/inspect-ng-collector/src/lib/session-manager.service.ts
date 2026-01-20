@@ -2,6 +2,7 @@
 import {createReport, dateNow, DISPATCH, WIN} from './util';
 import {ContextManager} from "./context-manager";
 import {MainSession, MainSessionCallBack} from "./trace.model";
+import {getStringOrCall} from "./configuration";
 
 export class SessionManager {
 
@@ -31,7 +32,7 @@ export class SessionManager {
             this.currentSession = {
                 '@type': "10",
                 id: id,
-                user: ContextManager.instance.techConfig.user,
+                user: getStringOrCall(ContextManager.instance.techConfig.user),
                 start: dateNow(),
                 type: "VIEW",
                 location: url,

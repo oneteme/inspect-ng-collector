@@ -13,16 +13,17 @@ export class  EventTraceScheduledDispatcherService {
   sessionSendAttempts: number = 0
   sendSessionfinished: boolean = true;
   instanceSaved: boolean = false;
+  interval: any
   static _instance: EventTraceScheduledDispatcherService;
-
   constructor() {
-    interval(ContextManager.instance.techConfig.interval)
+    this.interval = interval(ContextManager.instance.techConfig.interval)
       .pipe(startWith(0))
       .pipe(tap(() => {
         if (this.sendSessionfinished) {
           this.sendSessionfinished = false;
           window.dispatchEvent(new CustomEvent(PRE_DISPATCH));
           this.Dispatch()
+            .then(arr=> this.revertQueueSize(arr))
             .catch(err=> {})
             .finally(() => { this.sendSessionfinished = true })
         }
@@ -32,7 +33,6 @@ export class  EventTraceScheduledDispatcherService {
       (e as CustomEvent).detail.traces &&  this.addtoQueue((e as CustomEvent).detail.traces);
       if((e as CustomEvent).detail.force){
         this.sendSessions(true)
-        this.onDestroy();
       }
     });
   }
@@ -50,31 +50,39 @@ export class  EventTraceScheduledDispatcherService {
     });
   }
 
-  sendSessions(instanceComplete?:boolean) : Promise<number>{
-    if (this.traceQueue.size > 0) {
-      let uri = ContextManager.instance.techConfig.sessionApi + "?attempts=" + ++this.sessionSendAttempts;
-      if(instanceComplete){
-        uri += "&end=" + new Date().toISOString();
-      }
-      let sessions: Set<EventTrace> = this.traceQueue;
-      this.traceQueue = new Set();
-      return fetch(uri, this.getRequestInit(sessions))
-        .then(res => {
-          if (res.ok) {
-            this.sessionSendAttempts = 0;
-            return sessions.size;
-          }
-          return this.handleEventTraceSavingError(sessions)
-        })
-        .catch(()=> this.handleEventTraceSavingError(sessions))
+  sendSessions(instanceComplete?: boolean): Promise<Set<EventTrace>> {
+    if (this.traceQueue.size === 0) {
+      return Promise.resolve(new Set<EventTrace>());
     }
-    return Promise.resolve(0);
+
+    let uri = ContextManager.instance.techConfig.sessionApi + "?attempts=" + ++this.sessionSendAttempts;
+    if (instanceComplete) {
+      uri += "&end=" + new Date().toISOString();
+    }
+
+    const sessions = this.traceQueue;
+    this.traceQueue = new Set();
+
+    return fetch(uri, this.getRequestInit(sessions))
+      .then(res => {
+        if (res.ok) {
+          this.sessionSendAttempts = 0;
+          return new Set<EventTrace>();
+
+        }
+        if(res.status >= 400 && res.status < 500 ){
+         return this.handleEventTraceSavingError(sessions)
+        }
+        return res.json()
+          .then(body => body?.retry ? this.handleEventTraceSavingError(sessions) : new Set<EventTrace>())
+          .catch(()=>new Set<EventTrace>());
+      })
+      .catch(() => this.handleEventTraceSavingError(sessions));
   }
 
   handleEventTraceSavingError(sessions: Set<EventTrace>){
     this.sessionSendAttempts % 5 == 0 && console.warn(`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)
-    this.revertQueueSize(sessions);
-    return -1;
+    return sessions;
   }
 
   getRequestInit(sessionList: Set<EventTrace>): RequestInit  {
@@ -122,10 +130,8 @@ export class  EventTraceScheduledDispatcherService {
    }
 
   onDestroy() {
-    this.traceQueue.clear();
-    this.sendSessionfinished=true;
-    this.instanceSaved =false;
-    this.sessionSendAttempts = 0;
+    if(this.interval) {
+      this.interval.unsubscribe();
+    }
   }
-
 }

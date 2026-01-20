@@ -42,9 +42,8 @@ export class ContextManager {
     let host = matchRegex(getStringOrCall(conf?.tracing?.remote?.host), "host" , HOST_PATERN)
     let sessionApi =   "v4/trace/instance/:id/session"
     let instanceApi =  "v4/trace/instance"
-
     return  {
-      user : getStringOrCall(conf?.monitoring?.user),
+      user : conf?.monitoring?.user,
       queueCapacity:  requirePostitiveValue(getNumberOrCall(conf?.tracing?.queueCapacity),"queueCapacity", 1000) ,
       interval: requirePostitiveValue(getNumberOrCall(conf?.scheduling?.interval),"interval", 60000),
       delayIfPending: requirePostitiveValue(getNumberOrCall(conf?.tracing?.delayIfPending),"delayIfPending", 30),
