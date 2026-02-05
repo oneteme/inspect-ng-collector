@@ -35,8 +35,8 @@ import {MainSessionCallBack} from "./trace.model";
           }finally{
             end = Date.now();
             let id = crypto.randomUUID();
-            if(WIN["inspect-session-manager"]?.currentSessionID() != null){
-              let doUpdateMask = WIN["inspect-session-manager"]?.updateMask(RequestMask.LOCAL);
+            if(WIN["inspect-session-manager"]?.currentSessionID() != null){ //TODO DUAL EVENT TRACE !!??
+              let doUpdateMask = WIN["inspect-session-manager"]?.updateMask(RequestMask.LOCAL); //TODO use .createRequest 
               doUpdateMask &&  window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  {
                   traces : {
                     "@type":"03",

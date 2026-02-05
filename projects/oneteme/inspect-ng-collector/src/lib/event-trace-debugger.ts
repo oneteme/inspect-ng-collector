@@ -6,7 +6,7 @@ import {
   RestRequest,
   UserAction
 } from "./trace.model";
-import {createReport, DISPATCH, WIN} from "./util";
+import {emitReport, DISPATCH, WIN} from "./util";
 import {ContextManager} from "./context-manager";
 import {SessionManager} from "./session-manager.service";
 
@@ -36,8 +36,7 @@ export class EventTraceDebugger{
         printInstance: () => console.log(ContextManager.instance)
       }
     } catch (e) {
-      console.warn(e)
-      window.dispatchEvent(new CustomEvent(DISPATCH, {detail: {traces: createReport("Error while setting up debug mode: " + JSON.stringify(e))}}));
+      emitReport("EventTraceDebugger.constructor", e);
     }
   }
 
@@ -47,7 +46,7 @@ export class EventTraceDebugger{
       switch (trace['@type']){
         case 'main-ses':
           if(trace.end){
-            console.log(this.prettySessionFormat(SessionManager.instance.currentSession));
+            console.log(this.prettySessionFormat(SessionManager.instance.currentSession)); //TODO currentSession can be null
           }
           break;
         case 'http-req':

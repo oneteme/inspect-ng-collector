@@ -1,37 +1,29 @@
-import {Level, LogEntry} from "./trace.model";
+import { EventTrace, Level, LogEntry } from "./trace.model";
 
-export const WIN:any = window;
+export const WIN: any = window;
+
+export const DISPATCH = 'dispatch', PRE_DISPATCH = 'pre-dispatch', BEFOREUNLOAD = 'beforeunload';
+
+export enum RequestMask { LOCAL = 1, REST = 4 }
 
 export function dateNow() {
-    return Date.now() / 1_000;
-}
-export enum RequestMask {
-  LOCAL = 1,
-  REST = 4
+  return Date.now() / 1_000;
 }
 
-export const DISPATCH = 'dispatch';
-export const PRE_DISPATCH = 'pre-dispatch';
-export const BEFOREUNLOAD ='beforeunload';
+export function emitReport(message: string, error?: any) : void {
+  emitLog("REPORT", `${message} ${error ? JSON.stringify(error) : ''}` , undefined)
+}
 
-export function createLogEntry(level: Level, message: string, sessionId: string | undefined): LogEntry {
-  return {
+export function emitLog(level: Level, message: string, sessionId: string | undefined) {
+  emitTrace({
     "@type": "00",
     level: level,
     message: message,
     instant: dateNow(),
-    sessionId : sessionId
-  }
+    sessionId: sessionId
+  } as LogEntry);
 }
 
-export function createReport(message: string): LogEntry{
-  return {
-    "@type": "00",
-    level: "ERROR",
-    message: message,
-    instant: dateNow(),
-  }
+export function emitTrace(...traces: EventTrace[]): void {
+  window.dispatchEvent(new CustomEvent(DISPATCH, { detail: { traces } }));
 }
-
-
-

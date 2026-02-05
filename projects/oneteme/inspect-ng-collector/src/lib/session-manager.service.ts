@@ -1,97 +1,103 @@
 
-import {createReport, dateNow, DISPATCH, WIN} from './util';
-import {ContextManager} from "./context-manager";
-import {MainSession, MainSessionCallBack} from "./trace.model";
-import {getStringOrCall} from "./configuration";
+import { emitReport, dateNow, DISPATCH, emitTrace, WIN, RequestMask } from './util';
+import { ContextManager } from "./context-manager";
+import { MainSession, MainSessionCallBack, SessionMaskUpdate } from "./trace.model";
+import { getStringOrCall } from "./configuration";
 
 export class SessionManager {
+  
+  private static _instance: SessionManager;
 
-    currentSession!: any
-    currentSessionCallBack!: MainSessionCallBack;
-    private static _instance: SessionManager;
-    initialized: boolean = false;
+  currentSession?: MainSession;
+  currentSessionCallBack?: MainSessionCallBack;
+  initialized: boolean = false;
 
-    static get instance(): SessionManager{
-        if(!SessionManager._instance) {
-            SessionManager._instance = new SessionManager();
-            WIN["inspect-session-manager"] = SessionManager._instance;
-        }
-        return SessionManager._instance;
+  static get instance(): SessionManager {
+    if (!SessionManager._instance) {
+      SessionManager._instance = new SessionManager();
+      WIN["inspect-session-manager"] = SessionManager._instance;
     }
+    return SessionManager._instance;
+  }
 
-    navigate(url?: string) {
-        this.getCurrentSession(s => {
-          if(s){
-            this.getCurrentSessionCallBack(cb => cb.end =dateNow())
-            window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { force: !url, traces :  this.currentSessionCallBack } }));
-          }
-          this.currentSession = null
-        })
-        if (url) {
-            let id = crypto.randomUUID()
-            this.currentSession = {
-                '@type': "10",
-                id: id,
-                user: getStringOrCall(ContextManager.instance.techConfig.user),
-                start: dateNow(),
-                type: "VIEW",
-                location: url,
-                loading: true,
-                requestMask: 0,
-            }
-            this.initialized = true;
-            this.currentSessionCallBack = {
-              '@type': "11",
-               id: id,
-               requestMask: 0,
-            }
-        }
-    }
-
-    updateSession(){
-      this.getCurrentSession(s => {
-            s.name = document.title;
-            s.location = document.URL;
-            if(!ContextManager.instance.techConfig.exclude?.some((e:any) => e.test(s.location))){
-              window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { traces :  s } }));
-            }
-        });
-    }
-
-    getCurrentSession( fn:(s:MainSession)=> any ) {
-      if(this.currentSession){
-        return fn(this.currentSession);
+  navigate(url?: string) {
+    const now = dateNow();
+    this.endSession(!url);
+    if (url) {
+      this.initialized = true;
+      const id = crypto.randomUUID();
+      this.currentSession = {
+        '@type': '10',
+        id: id,
+        type: "VIEW",
+        user: getStringOrCall(ContextManager.instance.techConfig.user),
+        start: now,
+        location: url,
+        requestMask: 0,
+      };
+      this.currentSessionCallBack = {
+        '@type': "11",
+        id: id,
+        requestMask: 0,
       }
-      this.initialized && window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
-      return undefined
     }
+  }
 
-    getCurrentSessionCallBack( fn:(s:MainSessionCallBack)=> any ) {
-      if(this.currentSessionCallBack){
-        return fn(this.currentSessionCallBack);
+  private endSession(dispatchNow: boolean){
+    const now = dateNow();
+    this.getCurrentSessionCallBack(call => call.end = now);
+    window.dispatchEvent(new CustomEvent(DISPATCH, { detail: { force: dispatchNow, traces: this.currentSessionCallBack } })); //TODO emiTraces
+    this.currentSessionCallBack = undefined;
+  }
+
+  updateSession() {
+    if (this.currentSession) {
+      this.currentSession.name = document.title;
+      this.currentSession.location = document.URL;
+      if (!ContextManager.instance.techConfig.exclude?.some((e: any) => e.test(this.currentSession?.location))) {
+        emitTrace(this.currentSession)
       }
-      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
-      return undefined;
+      this.currentSession = undefined;
     }
-
-    currentSessionID(): string | undefined { // (s) => {}
-       return this.getCurrentSession(s=> s.id );
+    else{
+      emitReport('updateSession', 'no active session');
     }
+  }
 
-
-
-    updateMask(requestMask: number) {
-       return  this.getCurrentSessionCallBack(s => {
-         let before = s.requestMask;
-         s.requestMask |= requestMask
-         return s.requestMask !== before;
-       })
+  getCurrentSessionCallBack(fn: (s: MainSessionCallBack) => any) {
+    if (this.currentSessionCallBack) {
+      return fn(this.currentSessionCallBack);
     }
+    emitReport('getCurrentSessionCallBack', 'no active session');
+    return undefined;
+  }
 
-    addException(exception: any) {
-        this.getCurrentSessionCallBack(s => s.exception = exception)
-    }
+  currentSessionID(): string | undefined {
+    return this.getCurrentSessionCallBack(s=> s.id);
+  }
+
+  initRestRequest(){
+    var req = this.getCurrentSessionCallBack(s=>{
+      if ((s.requestMask & RequestMask.REST) !== RequestMask.REST) {
+        s.requestMask &= RequestMask.REST;
+        emitTrace({
+          "@type": "03",
+          id: s.id,
+          main: true,
+          mask: s.requestMask
+        } as SessionMaskUpdate);
+      }
+      return {sessionId:s.id};
+    });
+    return req || {};
+  }
+
+  initUserAction(){
+    var req = this.getCurrentSessionCallBack(s=> ({sessionId:s.id}));
+    return req || {};
+  }
+  
+  addException(exception: any) {
+    this.getCurrentSessionCallBack(s => s.exception = exception)
+  }
 }
-
-
-

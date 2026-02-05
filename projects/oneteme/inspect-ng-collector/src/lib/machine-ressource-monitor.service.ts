@@ -1,26 +1,20 @@
-import {MachineRessourceUsage} from "./trace.model";
-import {createReport, dateNow, DISPATCH} from "./util";
+import { MachineRessourceUsage } from "./trace.model";
+import { dateNow, emitTrace, emitReport } from "./util";
 
-  export function machineRessourceUsageHandler(event: Event){
-    window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : getMemoryInfo() } }));
+export function supportResourceUsage() {
+  return 'memory' in performance;
+}
+
+export function ressourceUsageHandler() {
+  try {
+    const memory = (performance as any).memory;
+    emitTrace({
+      '@type': '01',
+      instant: dateNow(),
+      usedHeap: memory.usedJSHeapSize / (1024 * 1024),
+      commitedHeap: memory.totalJSHeapSize / (1024 * 1024),
+    } as MachineRessourceUsage);
+  } catch (e) {
+    emitReport("ressourceUsageHandler", e);
   }
-
-  function getMemoryInfo():MachineRessourceUsage | null {
-    try{
-      const memory = (performance as any).memory;
-      return {
-        '@type': '01',
-        instant: dateNow(),
-        usedHeap: memory.usedJSHeapSize / (1024 * 1024),
-        commitedHeap: memory.totalJSHeapSize / (1024 * 1024),
-      };
-    }catch(e){
-      createReport(JSON.stringify(e));
-    }
-    return null;
-  }
-
-
-
-
-
+}

@@ -1,6 +1,6 @@
   import {interval, startWith, tap, catchError} from "rxjs";
 import {EventTrace} from "./trace.model";
-import {createReport, DISPATCH, PRE_DISPATCH} from "./util";
+import {emitReport, DISPATCH, PRE_DISPATCH} from "./util";
 import {ContextManager} from "./context-manager";
 
 
@@ -29,7 +29,7 @@ export class  EventTraceScheduledDispatcherService {
         }
       }))
       .subscribe();
-    window.addEventListener( DISPATCH, (e: Event) => {
+    window.addEventListener( DISPATCH, (e: CustomEvent) => {
       (e as CustomEvent).detail.traces &&  this.addtoQueue((e as CustomEvent).detail.traces);
       if((e as CustomEvent).detail.force){
         this.sendSessions(true)
@@ -119,13 +119,13 @@ export class  EventTraceScheduledDispatcherService {
     }
   }
 
-  async addtoQueue(event: EventTrace | null) {
+  async addtoQueue(event: EventTrace | null) { //TODO why event can be null 
     try{
       if(event){
         this.traceQueue.add(event);
       }
     }catch(e){
-      this.addtoQueue(createReport(String(e)))
+      emitReport(String(e)); //TODO choose one : JSON.stringify or new String
     }
    }
 

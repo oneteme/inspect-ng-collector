@@ -1,21 +1,33 @@
 type InstantType = "SERVER"  | "CLIENT";
 type MainSessionType =  "VIEW" | "BATCH" | "STARTUP";
-export type Level = "INFO" | "WARN" | "ERROR";
+
+export type Level = "INFO" | "WARN" | "ERROR" | "REPORT";
+export type UUID = `${string}-${string}-${string}-${string}-${string}`;
+
+export interface InstanceEnvironment {
+  id:string;
+  name?: string;
+  address?: string;
+  version?: string;
+  env?: string;
+  os?: string;
+  re?: string;
+  user?: string;
+  type?: InstantType;
+  instant?:number;
+  collector?:string;
+  resource: MachineResource;
+  additionalProperties?: {[key:string]: any};
+  configuration?: {[key:string]: any};
+}
 
 export interface EventTrace {
 
 }
 
-export interface  SessionMaskUpdate {
-  '@type': string;
-  id: string;
-  main: boolean;
-  mask: number;
-}
-
 export interface MainSession extends EventTrace{
-    '@type': string;
-    id: string;
+    '@type': '10';
+    id: UUID;
     type: MainSessionType;
     name?: string;
     location: string;
@@ -25,33 +37,23 @@ export interface MainSession extends EventTrace{
 }
 
 export interface MainSessionCallBack extends EventTrace {
-  '@type': string;
-   id: string;
+  '@type': '11';
+   id: UUID;
    end?: number;
    requestMask: number;
    exception?: ExceptionInfo; // make a list ?
 }
 
-export interface InstanceEnvironment {
-    id:string;
-    name?: string;
-    address?: string;
-    version?: string;
-    env?: string;
-    os?: string;
-    re?: string;
-    user?: string;
-    type?: InstantType;
-    instant?:number;
-    collector?:string;
-    resource: MachineResource;
-    additionalProperties?: {[key:string]: any};
-    configuration?: {[key:string]: any};
+export interface SessionMaskUpdate {
+  '@type': '03';
+  id: UUID;
+  main: boolean;
+  mask: number;
 }
 
 export interface RestRequest extends EventTrace {
-   '@type': string;
-    id: string;
+   '@type': '120';
+    id: UUID;
     method: string;
     protocol: string;
     host: string;
@@ -63,12 +65,12 @@ export interface RestRequest extends EventTrace {
     dataSize:number;
     user?:string;
     start: number;
-    sessionId: string | undefined;
+    sessionId?: UUID;
 }
 
 export interface RestRequestCallBack extends EventTrace {
-  '@type': string;
-   id: string;
+  '@type': '121';
+   id: UUID;
    status?: number;
    end?: number;
    dataSize?:number;
@@ -78,27 +80,28 @@ export interface RestRequestCallBack extends EventTrace {
 }
 
 export interface HttpRequestStage extends EventTrace {
-  '@type': string;
+  '@type': '220';
   name: string;
   start: number;
   end?: number;
-  exception?: ExceptionInfo | null;
+  exception?: ExceptionInfo;
   requestId: string;
 }
 
 export interface LocalRequest extends EventTrace {
-    '@type': string;
-    id: string;
+    '@type': '110';
+    id: UUID;
     name: string;
     location: string;
     user?: string;
     start: number;
-    sessionId: string;
+    sessionId: UUID;
 }
 
 export interface LocalRequestCallBack extends EventTrace {
-  '@type': string;
+  '@type': '111';
   end: number;
+  //TODO add id & exception ..
 }
 
 export interface ExceptionInfo {
@@ -127,7 +130,7 @@ export interface MachineResource extends EventTrace {
   maxHeap?: number;
 }
 
-export interface MachineRessourceUsage extends  EventTrace{
+export interface MachineRessourceUsage extends EventTrace {
   '@type': string;
   instant: number;
   commitedHeap: number;

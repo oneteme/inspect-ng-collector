@@ -72,55 +72,6 @@ export function getRegArrOrCall(o?: RegExp[] | (() => RegExp[])): RegExp[] | und
   return typeof o === "function" ? o() : o;
 }
 
-export function detectBrowser() {
-  try {
-      const agent = window.navigator.userAgent.toLowerCase()
-      switch (true) {
-          case agent.indexOf('edg') > -1:
-              return 'Edge';
-          case agent.indexOf('opr') > -1:
-              return 'Opera';
-          case agent.indexOf('chrome') > -1:
-              return 'Chrome';
-          case agent.indexOf('firefox') > -1:
-              return 'Firefox';
-          case agent.indexOf('safari') > -1:
-              return 'Safari';
-          case agent.indexOf('msie') > -1:
-            return 'Microsoft Internet Explorer';
-      }
-  }
-  catch (e) {
-      console.error(e);
-  }
-  return undefined;
-}
-
-export function detectOs() {
-  try {
-      let versionMatch, version;
-      const agent = window.navigator.userAgent.toLowerCase()
-      switch (true) {
-          case (/windows/.test(agent)):
-              versionMatch = /windows nt (\d+\.\d+)/.exec(agent);
-              version = versionMatch ? versionMatch[1] : 'Unknown';
-              return `Windows ${version}`;
-          case (/linux/.test(agent)):
-              return 'Linux';
-
-          case (/macintosh/.test(agent)):
-              versionMatch = /mac os x (\d+[._]\d+[._]\d+)/.exec(agent);
-              version = versionMatch ? versionMatch[1] : 'Unknown';
-              return `MacOs ${version}`
-      }
-  }
-  catch (e) {
-      console.error(e);
-  }
-  return undefined;
-}
-
-
 function toURL(host:string, path:string ){
    return host.endsWith(SLASH) || path.startsWith(SLASH) ? host + path : [host,path].join(SLASH);
 }

@@ -1,5 +1,5 @@
 import {ContextManager} from "./context-manager";
-import {createReport, DISPATCH} from "./util";
+import {emitReport} from "./util";
 
 export function storageEventListener() {
   try{
@@ -11,8 +11,7 @@ export function storageEventListener() {
         })
       }
     }catch(e){
-      console.warn(e)
-      window.dispatchEvent(new CustomEvent( DISPATCH,{ detail : { traces : createReport("Error while subscribing to storage events: " + JSON.stringify(e)) } }));
+      emitReport("storageEventListener", e);
     }
   }
   function subscribeToStorageEventPrototype(){

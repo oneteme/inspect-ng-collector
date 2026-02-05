@@ -6,7 +6,7 @@ import {
 } from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
 import { HttpInterceptorService } from './http-interceptor.service';
-import { GlobalErrorHandlerService } from "./global-error-handler.service";
+import { GlobalErrorHandler } from "./global-error-handler.service";
 import { ContextManager } from "./context-manager";
 import { CollectorConfig } from "./configuration";
 import {
@@ -35,7 +35,7 @@ export class NgCollectorModule {
             //provideAppInitializer(initializeEvents),
             { provide: APP_INITIALIZER, useFactory: initializeEvents,deps:[Router], multi: true },
             { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
-            { provide: ErrorHandler, useClass: GlobalErrorHandlerService }
+            { provide: ErrorHandler, useClass: GlobalErrorHandler }
           ]
         };
       } catch (e:any) {
@@ -59,8 +59,6 @@ export function initializeEvents(router:Router) {
     routerEventsListener(router);
     bfCacheListener();
   }
-
-
 }
 
 export function initContextManagerAndDispatcher(){
