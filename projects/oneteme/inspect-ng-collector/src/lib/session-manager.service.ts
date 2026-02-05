@@ -36,7 +36,7 @@ export class SessionManager {
         requestMask: 0,
       };
       this.currentSessionCallBack = {
-        '@type': "11",
+        '@type': '11',
         id: id,
         requestMask: 0,
       }
@@ -81,7 +81,7 @@ export class SessionManager {
       if ((s.requestMask & RequestMask.REST) !== RequestMask.REST) {
         s.requestMask &= RequestMask.REST;
         emitTrace({
-          "@type": "03",
+          "@type": '03',
           id: s.id,
           main: true,
           mask: s.requestMask
