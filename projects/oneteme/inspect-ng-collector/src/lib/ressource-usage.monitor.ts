@@ -1,9 +1,14 @@
 import { MachineRessourceUsage } from "./trace.model";
 import { dateNow, dispatchTraces, dispatchReport, addExportListener } from "./util";
 
-export function initResourceUsageHandlerModule(){
-  if ('memory' in performance) {
-    addExportListener(ressourceUsageHandler);
+export function initResourceUsageMonitor(){
+  try{
+    if ('memory' in performance) {
+      addExportListener(ressourceUsageHandler);
+    }
+  }
+  catch(e){
+    dispatchReport('initResourceUsageMonitor', e)
   }
 }
 

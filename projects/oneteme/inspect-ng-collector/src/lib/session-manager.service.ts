@@ -1,5 +1,5 @@
 
-import { dispatchReport, dateNow, dispatchTraces, WIN } from './util';
+import { dateNow, dispatchTraces, dispatchReport, WIN } from './util';
 import { ContextManager } from "./context-manager";
 import { MainSession, MainSessionCallBack, RequestMask, SessionMaskUpdate } from "./trace.model";
 import { getStringOrCall } from "./configuration";

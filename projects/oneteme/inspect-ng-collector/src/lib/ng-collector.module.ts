@@ -13,11 +13,11 @@ import {
   eventTraceScheduledDispatcher,
 } from "./event-trace-scheduled-dispatcher.service";
 
-import { initAnalyticsModule } from "./analytics-collect.service";
+import { initUserActionMonitor } from "./user-action.monitor";
 import { eventTraceDebugger } from "./event-trace-debugger";
 import { Router } from "@angular/router";
-import { initNavigationModule } from './navigation.service';
-import { initResourceUsageHandlerModule } from './machine-ressource-monitor.service';
+import { initNavigationMonitor } from './navigation.monitor';
+import { initResourceUsageMonitor } from './ressource-usage.monitor';
 
 @NgModule()
 export class NgCollectorModule {
@@ -53,12 +53,12 @@ export function initializeEvents(router: Router) {
     initContextManagerAndDispatcher();
     eventTraceDebugger();
     if (ContextManager.instance.techConfig.analytics) {
-      initAnalyticsModule();
+      initUserActionMonitor();
     }
     if (ContextManager.instance.techConfig.resources) {
-      initResourceUsageHandlerModule();
+      initResourceUsageMonitor();
     }
-    initNavigationModule(router);
+    initNavigationMonitor(router);
     //storageEventListener();
   }
 }

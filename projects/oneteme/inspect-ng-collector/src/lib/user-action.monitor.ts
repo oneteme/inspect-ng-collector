@@ -1,22 +1,22 @@
-import { UserAction, extractName } from "./trace.model";
+import { UserAction, extractName } from "./trace.model"; //TODO extractName in Model !!???
 import { SessionManager } from "./session-manager.service";
-import { dispatchReport, dateNow, dispatchTraces } from "./util";
+import { dateNow, dispatchReport, dispatchTraces } from "./util";
 
-let eventHandlers: { [key: string]: (target: HTMLElement) => boolean } = {
+let eventHandlers: { [key: string]: (target: HTMLElement) => boolean } = { //TODO let ??
   'click': (target: HTMLElement) => lookUpChild(target, 1),
 }
-export function initAnalyticsModule() {
-    try {
-      const body = window.document.body;
-      body.addEventListener('click', globalHandler, true);
-      body.addEventListener('change', event => globalHandler(event), true); //TODO choose one : globalHandler or event => globalHandler(event) 
-      body.addEventListener('scrollend', event => globalHandler(event), true);
-      body.addEventListener('dragend', event => globalHandler(event), true);
-      window.document.addEventListener('DOMContentLoaded', event => globalHandler(event), true);
-    }
-    catch (e) {
-      dispatchReport("analyticsEventsListener", e);
-    }
+export function initUserActionMonitor() {
+  try {
+    const body = window.document.body;
+    body.addEventListener('click', globalHandler, true);
+    body.addEventListener('change', event => globalHandler(event), true); //TODO choose one : globalHandler or event => globalHandler(event) 
+    body.addEventListener('scrollend', event => globalHandler(event), true);
+    body.addEventListener('dragend', event => globalHandler(event), true);
+    window.document.addEventListener('DOMContentLoaded', event => globalHandler(event), true);
+  }
+  catch (e) {
+    dispatchReport("initUserActionMonitor", e);
+  }
 }
 
 function globalHandler(event: Event | MouseEvent) {
@@ -37,7 +37,7 @@ function lookUpChild(t: HTMLElement, depth: number): boolean {
     if (++depth > 5) {
       return false;
     }
-    return Array.from(t.childNodes).reduce((acc, c) => 
+    return Array.from(t.childNodes).reduce((acc, c) =>
       acc && lookUpChild(c as HTMLElement, depth), true);
   }
   return true;

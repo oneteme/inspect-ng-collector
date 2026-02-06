@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpInterceptor, HttpEvent, HttpHandler, HttpRequest, HttpResponse } from '@angular/common/http';
 import { finalize, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators'
-import { RestRequestMonitor, TRACE_HEADER } from "./rest-request-monitor";
+import { RestRequestMonitor, TRACE_HEADER } from "./rest-request.monitor";
 import { ContextManager } from "./context-manager";
 
 @Injectable({ providedIn: 'root' })
