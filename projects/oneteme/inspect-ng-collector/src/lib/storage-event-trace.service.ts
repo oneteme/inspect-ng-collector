@@ -1,5 +1,5 @@
 import {ContextManager} from "./context-manager";
-import {emitReport} from "./util";
+import {dispatchReport} from "./util";
 
 export function storageEventListener() {
   try{
@@ -11,7 +11,7 @@ export function storageEventListener() {
         })
       }
     }catch(e){
-      emitReport("storageEventListener", e);
+      dispatchReport("storageEventListener", e);
     }
   }
   function subscribeToStorageEventPrototype(){

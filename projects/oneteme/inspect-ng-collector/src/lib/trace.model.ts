@@ -1,11 +1,13 @@
-type InstantType = "SERVER"  | "CLIENT";
-type MainSessionType =  "VIEW" | "BATCH" | "STARTUP";
+type InstantType = "SERVER" | "CLIENT";
+type MainSessionType = "VIEW" | "BATCH" | "STARTUP";
 
-export type Level = "INFO" | "WARN" | "ERROR" | "REPORT";
+export type LogLevel = "INFO" | "WARN" | "ERROR" | "REPORT";
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
+export enum RequestMask { LOCAL = 1, REST = 4 }
+
 export interface InstanceEnvironment {
-  id:string;
+  id: string;
   name?: string;
   address?: string;
   version?: string;
@@ -14,34 +16,32 @@ export interface InstanceEnvironment {
   re?: string;
   user?: string;
   type?: InstantType;
-  instant?:number;
-  collector?:string;
+  instant?: number;
+  collector?: string;
   resource: MachineResource;
-  additionalProperties?: {[key:string]: any};
-  configuration?: {[key:string]: any};
+  additionalProperties?: { [key: string]: any };
+  configuration?: { [key: string]: any };
 }
 
-export interface EventTrace {
+export interface EventTrace { }
 
-}
-
-export interface MainSession extends EventTrace{
-    '@type': '10';
-    id: UUID;
-    type: MainSessionType;
-    name?: string;
-    location: string;
-    user?: string;
-    start: number;
-    requestMask: number;
+export interface MainSession extends EventTrace {
+  '@type': '10';
+  id: UUID;
+  type: MainSessionType;
+  name?: string;
+  location: string;
+  user?: string;
+  start: number;
+  requestMask: number;
 }
 
 export interface MainSessionCallBack extends EventTrace {
   '@type': '11';
-   id: UUID;
-   end?: number;
-   requestMask: number;
-   exception?: ExceptionInfo; // make a list ?
+  id: UUID;
+  end?: number;
+  requestMask: number;
+  exception?: ExceptionInfo; // make a list ?
 }
 
 export interface SessionMaskUpdate {
@@ -52,31 +52,31 @@ export interface SessionMaskUpdate {
 }
 
 export interface RestRequest extends EventTrace {
-   '@type': '120';
-    id: UUID;
-    method: string;
-    protocol: string;
-    host: string;
-    port: number;
-    path: string;
-    query: string;
-    contentType?: string;
-    authScheme?: string;
-    dataSize:number;
-    user?:string;
-    start: number;
-    sessionId?: UUID;
+  '@type': '120';
+  id: UUID;
+  method: string;
+  protocol: string;
+  host: string;
+  port: number;
+  path: string;
+  query: string;
+  contentType?: string;
+  authScheme?: string;
+  dataSize: number;
+  user?: string;
+  start: number;
+  sessionId?: UUID;
 }
 
 export interface RestRequestCallBack extends EventTrace {
   '@type': '121';
-   id: UUID;
-   status?: number;
-   end?: number;
-   dataSize?:number;
-   linked?: boolean;
-   contentType?: string;
-   bodyContent? : string;
+  id: UUID;
+  status?: number;
+  end?: number;
+  dataSize?: number;
+  linked?: boolean;
+  contentType?: string;
+  bodyContent?: string;
 }
 
 export interface HttpRequestStage extends EventTrace {
@@ -89,13 +89,13 @@ export interface HttpRequestStage extends EventTrace {
 }
 
 export interface LocalRequest extends EventTrace {
-    '@type': '110';
-    id: UUID;
-    name: string;
-    location: string;
-    user?: string;
-    start: number;
-    sessionId: UUID;
+  '@type': '110';
+  id: UUID;
+  name: string;
+  location: string;
+  user?: string;
+  start: number;
+  sessionId: UUID;
 }
 
 export interface LocalRequestCallBack extends EventTrace {
@@ -105,25 +105,25 @@ export interface LocalRequestCallBack extends EventTrace {
 }
 
 export interface ExceptionInfo {
-    type: string | null;
-    message: string | null;
+  type?: string;
+  message?: string;
 }
 
-export interface UserAction extends EventTrace{
+export interface UserAction extends EventTrace {
   '@type': string;
   type: string;
   start: number; //todo  rename  instant
-  name: string| null;
+  name: string | null;
   nodeName: string;
   sessionId: string;
 }
 
-export interface LogEntry extends EventTrace{
+export interface LogEntry extends EventTrace {
   '@type': string;
   instant: number;
-  level: Level;
+  level: LogLevel;
   message: string;
-  sessionId?: string;
+  sessionId?: UUID;
 }
 
 export interface MachineResource extends EventTrace {
@@ -137,31 +137,31 @@ export interface MachineRessourceUsage extends EventTrace {
   usedHeap: number;
 }
 
-export const genericMap : ((t:HTMLElement)=>string|null)[] = [
-    t => t.getAttribute('placeholder'),
-    t => t.getAttribute('title'),
-    t => t.innerText,
-    t => t.getAttribute('name'),
-    t => t.getAttribute('id'),
-  ]
+export const genericMap: ((t: HTMLElement) => string | null)[] = [
+  t => t.getAttribute('placeholder'),
+  t => t.getAttribute('title'),
+  t => t.innerText,
+  t => t.getAttribute('name'),
+  t => t.getAttribute('id'),
+]
 
-export const MAP: {[key:string]:  ((t:HTMLElement)=>string|null)[]} = {
-  'img' : [
-    t=> t.getAttribute('alt'),
-    t=> t.getAttribute('src'),
+export const MAP: { [key: string]: ((t: HTMLElement) => string | null)[] } = {
+  'img': [
+    t => t.getAttribute('alt'),
+    t => t.getAttribute('src'),
   ],
   'input': [
-    t=> t.getAttribute('name'),
+    t => t.getAttribute('name'),
   ],
-  'a' : [
-    t=> t.getAttribute('href'),
+  'a': [
+    t => t.getAttribute('href'),
   ],
-  'label':[
-    t=> t.getAttribute('for'),
+  'label': [
+    t => t.getAttribute('for'),
   ],
 }
 
-export function getFirst(c:((t:HTMLElement)=>string|null)[], t: HTMLElement) {
+export function getFirst(c: ((t: HTMLElement) => string | null)[], t: HTMLElement) {
   for (const o of c) {
     let r = o(t)?.trim();
     if (r) {
@@ -171,20 +171,19 @@ export function getFirst(c:((t:HTMLElement)=>string|null)[], t: HTMLElement) {
   return null;
 }
 
-export function extractName(t: HTMLElement){
-  try
-  {
+export function extractName(t: HTMLElement) {
+  try {
     let tagName = t.tagName
-    if(tagName){
+    if (tagName) {
       let name;
-      let c =  MAP[tagName.toLowerCase()];
-      if(c){
-        name  = getFirst(c,t);
+      let c = MAP[tagName.toLowerCase()];
+      if (c) {
+        name = getFirst(c, t);
       }
-      return name ?? getFirst(genericMap,t)!;
+      return name ?? getFirst(genericMap, t)!;
     }
 
-  }catch(err){
+  } catch (err) {
     console.warn(err)
   }
   return null

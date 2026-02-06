@@ -13,11 +13,11 @@ import {
   eventTraceScheduledDispatcher,
 } from "./event-trace-scheduled-dispatcher.service";
 
-import {beforeDispatchListener, beforeUnloadListener, bfCacheListener, routerEventsListener} from "./listeners";
-import { analyticsEventsListener } from "./analytics-collect.service";
+import { initAnalyticsModule } from "./analytics-collect.service";
 import { eventTraceDebugger } from "./event-trace-debugger";
-import {Router} from "@angular/router";
-import {DISPATCH} from "./util";
+import { Router } from "@angular/router";
+import { initNavigationModule } from './navigation.service';
+import { initResourceUsageHandlerModule } from './machine-ressource-monitor.service';
 
 @NgModule()
 export class NgCollectorModule {
@@ -33,12 +33,12 @@ export class NgCollectorModule {
           ngModule: NgCollectorModule,
           providers: [
             //provideAppInitializer(initializeEvents),
-            { provide: APP_INITIALIZER, useFactory: initializeEvents,deps:[Router], multi: true },
+            { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: [Router], multi: true },
             { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
             { provide: ErrorHandler, useClass: GlobalErrorHandler }
           ]
         };
-      } catch (e:any) {
+      } catch (e: any) {
         console.warn(`invalid Configuration, Ng-collector is disabled because of this ${e.message}`);
       }
     }
@@ -48,27 +48,24 @@ export class NgCollectorModule {
   }
 }
 
-export function initializeEvents(router:Router) {
+export function initializeEvents(router: Router) {
   return () => {
-    initContextManagerAndDispatcher()
+    initContextManagerAndDispatcher();
     eventTraceDebugger();
-    analyticsEventsListener();
+    if (ContextManager.instance.techConfig.analytics) {
+      initAnalyticsModule();
+    }
+    if (ContextManager.instance.techConfig.resources) {
+      initResourceUsageHandlerModule();
+    }
+    initNavigationModule(router);
     //storageEventListener();
-    beforeDispatchListener();
-    beforeUnloadListener();
-    routerEventsListener(router);
-    bfCacheListener();
   }
 }
 
-export function initContextManagerAndDispatcher(){
+export function initContextManagerAndDispatcher() {
   ContextManager.init(NgCollectorModule.configuration);
-  const dispatcher = eventTraceScheduledDispatcher()
-  window.addEventListener( DISPATCH, (e: Event) => {
-    if((e as CustomEvent).detail.force){
-      dispatcher.onDestroy();
-    }
-  });
+  eventTraceScheduledDispatcher();
 }
 
 

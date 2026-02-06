@@ -1,13 +1,11 @@
 import { UserAction, extractName } from "./trace.model";
 import { SessionManager } from "./session-manager.service";
-import { emitReport, dateNow, DISPATCH, emitTrace } from "./util";
-import { ContextManager } from "./context-manager";
+import { dispatchReport, dateNow, dispatchTraces } from "./util";
 
 let eventHandlers: { [key: string]: (target: HTMLElement) => boolean } = {
   'click': (target: HTMLElement) => lookUpChild(target, 1),
 }
-export function analyticsEventsListener() {
-  if (ContextManager.instance.techConfig.analytics) {
+export function initAnalyticsModule() {
     try {
       const body = window.document.body;
       body.addEventListener('click', globalHandler, true);
@@ -17,11 +15,9 @@ export function analyticsEventsListener() {
       window.document.addEventListener('DOMContentLoaded', event => globalHandler(event), true);
     }
     catch (e) {
-      emitReport("analyticsEventsListener", e);
+      dispatchReport("analyticsEventsListener", e);
     }
-  }
 }
-
 
 function globalHandler(event: Event | MouseEvent) {
   const target = event.target as HTMLElement;
@@ -48,7 +44,7 @@ function lookUpChild(t: HTMLElement, depth: number): boolean {
 }
 
 function addActionUser(eventType: string, target: HTMLElement) {
-  emitTrace({
+  dispatchTraces({
     ...SessionManager.instance.initUserAction(),
     '@type': "300",
     type: eventType,

@@ -1,5 +1,5 @@
-import { ExceptionInfo, HttpRequestStage, RestRequest, RestRequestCallBack, UUID } from "./trace.model";
-import { dateNow, emitTrace, emitReport } from "./util";
+import { ExceptionInfo, HttpRequestStage, RestRequest, RestRequestCallBack, RequestMask, UUID } from "./trace.model";
+import { dateNow, dispatchTraces, dispatchReport } from "./util";
 import { HttpErrorResponse, HttpHeaders, HttpRequest, HttpResponse } from "@angular/common/http";
 import { SessionManager } from "./session-manager.service";
 
@@ -18,8 +18,8 @@ export class RestRequestMonitor {
   preProcess(restRequest: HttpRequest<any>) {
     const url = new URL(restRequest.urlWithParams, window.location.origin); //TDO check & remove toHref(restRequest.urlWithParams)
     const auth_user = extractAuthSchemeAnduser(restRequest.headers);
-    emitTrace({...SessionManager.instance.initRestRequest(),
-      "@type": '120', //TODO create constants
+    dispatchTraces({...SessionManager.instance.initRestRequest(RequestMask.REST),
+      "@type": '121', //TODO create constants
       id: this.id,
       method: restRequest.method,
       protocol: url.protocol.slice(0, -1),
@@ -31,7 +31,7 @@ export class RestRequestMonitor {
       authScheme: auth_user.authScheme,
       user: auth_user.user,
       dataSize: sizeOf(restRequest.body),
-      start: this.start
+      start: this.start,
     } as RestRequest);
   }
 
@@ -64,7 +64,7 @@ export class RestRequestMonitor {
       callback.contentType = extractContentType(headers);
     }
     callback.status = +status;
-    emitTrace(callback, {
+    dispatchTraces(callback, {
       "@type": '220',
       name: "PROCESS",
       start: this.start, //  use request
@@ -129,7 +129,7 @@ function extractContentType(headers: any): string | undefined {
       return headers.get('Content-Type');
     }
   } catch (err) {
-    emitReport('extractContentType', err);
+    dispatchReport('extractContentType', err);
   }
   return undefined;
 }

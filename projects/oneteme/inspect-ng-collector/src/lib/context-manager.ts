@@ -7,8 +7,10 @@ import {
   require, requirePostitiveValue, TechnicalConf
 } from "./configuration";
 import { InstanceEnvironment } from "./trace.model";
+
 export const SLASH = '/';
 export const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
+
 export class ContextManager {
 
   private static _instance: ContextManager;
@@ -90,48 +92,48 @@ function toURL(host: string, path: string) {
 
 export function detectBrowser() {
   try {
-      const agent = window.navigator.userAgent.toLowerCase()
-      switch (true) {
-          case agent.indexOf('edg') > -1:
-              return 'Edge';
-          case agent.indexOf('opr') > -1:
-              return 'Opera';
-          case agent.indexOf('chrome') > -1:
-              return 'Chrome';
-          case agent.indexOf('firefox') > -1:
-              return 'Firefox';
-          case agent.indexOf('safari') > -1:
-              return 'Safari';
-          case agent.indexOf('msie') > -1:
-            return 'Microsoft Internet Explorer';
-      }
+    const agent = window.navigator.userAgent.toLowerCase()
+    switch (true) {
+      case agent.indexOf('edg') > -1:
+        return 'Edge';
+      case agent.indexOf('opr') > -1:
+        return 'Opera';
+      case agent.indexOf('chrome') > -1:
+        return 'Chrome';
+      case agent.indexOf('firefox') > -1:
+        return 'Firefox';
+      case agent.indexOf('safari') > -1:
+        return 'Safari';
+      case agent.indexOf('msie') > -1:
+        return 'Microsoft Internet Explorer';
+    }
   }
   catch (e) {
-      console.error(e); //TODO report
+    console.error(e); //TODO report
   }
   return undefined;
 }
 
 export function detectOs() {
   try {
-      let versionMatch, version;
-      const agent = window.navigator.userAgent.toLowerCase()
-      switch (true) {
-          case (/windows/.test(agent)):
-              versionMatch = /windows nt (\d+\.\d+)/.exec(agent);
-              version = versionMatch ? versionMatch[1] : 'Unknown';
-              return `Windows ${version}`;
-          case (/linux/.test(agent)):
-              return 'Linux';
+    let versionMatch, version;
+    const agent = window.navigator.userAgent.toLowerCase()
+    switch (true) {
+      case (/windows/.test(agent)):
+        versionMatch = /windows nt (\d+\.\d+)/.exec(agent);
+        version = versionMatch ? versionMatch[1] : 'Unknown';
+        return `Windows ${version}`;
+      case (/linux/.test(agent)):
+        return 'Linux';
 
-          case (/macintosh/.test(agent)):
-              versionMatch = /mac os x (\d+[._]\d+[._]\d+)/.exec(agent);
-              version = versionMatch ? versionMatch[1] : 'Unknown';
-              return `MacOs ${version}`
-      }
+      case (/macintosh/.test(agent)):
+        versionMatch = /mac os x (\d+[._]\d+[._]\d+)/.exec(agent);
+        version = versionMatch ? versionMatch[1] : 'Unknown';
+        return `MacOs ${version}`
+    }
   }
   catch (e) {
-      console.error(e); //TODO report
+    console.error(e); //TODO report
   }
   return undefined;
 }

@@ -1,40 +1,38 @@
-  import {interval, startWith, tap, catchError} from "rxjs";
+import {interval, startWith, tap, Subscription} from "rxjs";
 import {EventTrace} from "./trace.model";
-import {emitReport, DISPATCH, PRE_DISPATCH} from "./util";
+import {dispatchReport, dispatchExport, addTraceListener, addShutdowListener} from "./util";
 import {ContextManager} from "./context-manager";
-
 
 export function eventTraceScheduledDispatcher() {
   return EventTraceScheduledDispatcherService._instance = new EventTraceScheduledDispatcherService();
 }
 
 export class  EventTraceScheduledDispatcherService {
+  
+  static _instance: EventTraceScheduledDispatcherService;
+  
   traceQueue: Set<EventTrace> = new Set();
   sessionSendAttempts: number = 0
   sendSessionfinished: boolean = true;
   instanceSaved: boolean = false;
-  interval: any
-  static _instance: EventTraceScheduledDispatcherService;
+  readonly interval: Subscription
+  
   constructor() {
     this.interval = interval(ContextManager.instance.techConfig.interval)
       .pipe(startWith(0))
       .pipe(tap(() => {
         if (this.sendSessionfinished) {
           this.sendSessionfinished = false;
-          window.dispatchEvent(new CustomEvent(PRE_DISPATCH));
+          dispatchExport();
           this.Dispatch()
             .then(arr=> this.revertQueueSize(arr))
-            .catch(err=> {})
+            .catch(err=> {}) //log error !?
             .finally(() => { this.sendSessionfinished = true })
         }
       }))
       .subscribe();
-    window.addEventListener( DISPATCH, (e: CustomEvent) => {
-      (e as CustomEvent).detail.traces &&  this.addtoQueue((e as CustomEvent).detail.traces);
-      if((e as CustomEvent).detail.force){
-        this.sendSessions(true)
-      }
-    });
+    addTraceListener(e => this.addtoQueue((e as CustomEvent).detail.traces));
+    addShutdowListener(e => this.destroy());
   }
 
   Dispatch(): Promise<any> {
@@ -119,19 +117,20 @@ export class  EventTraceScheduledDispatcherService {
     }
   }
 
-  async addtoQueue(event: EventTrace | null) { //TODO why event can be null 
+  async addtoQueue(...event: EventTrace[]) { //TODO why event can be null 
     try{
       if(event){
-        this.traceQueue.add(event);
+        event.forEach(this.traceQueue.add)
       }
     }catch(e){
-      emitReport(String(e)); //TODO choose one : JSON.stringify or new String
+      dispatchReport(String(e)); //TODO choose one : JSON.stringify or new String
     }
    }
 
-  onDestroy() {
+  destroy() {
     if(this.interval) {
       this.interval.unsubscribe();
     }
+    this.sendSessions(true);
   }
 }

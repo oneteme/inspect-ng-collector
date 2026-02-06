@@ -6,7 +6,7 @@ import {
   RestRequest,
   UserAction
 } from "./trace.model";
-import {emitReport, DISPATCH, WIN} from "./util";
+import {dispatchReport, WIN, addTraceListener} from "./util";
 import {ContextManager} from "./context-manager";
 import {SessionManager} from "./session-manager.service";
 
@@ -25,7 +25,7 @@ export class EventTraceDebugger{
   constructor() {
     try {
       if (ContextManager.instance.techConfig.debugMode || WIN['inspect']) {
-        window.addEventListener(DISPATCH,  this.handleTraces.bind(this))
+        addTraceListener(this.handleTraces)
       }
       WIN["inspect-setup"] =  {
         init:() => {
@@ -36,7 +36,7 @@ export class EventTraceDebugger{
         printInstance: () => console.log(ContextManager.instance)
       }
     } catch (e) {
-      emitReport("EventTraceDebugger.constructor", e);
+      dispatchReport("EventTraceDebugger.constructor", e);
     }
   }
 

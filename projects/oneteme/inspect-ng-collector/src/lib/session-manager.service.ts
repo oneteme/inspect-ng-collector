@@ -1,7 +1,7 @@
 
-import { emitReport, dateNow, DISPATCH, emitTrace, WIN, RequestMask } from './util';
+import { dispatchReport, dateNow, dispatchTraces, WIN } from './util';
 import { ContextManager } from "./context-manager";
-import { MainSession, MainSessionCallBack, SessionMaskUpdate } from "./trace.model";
+import { MainSession, MainSessionCallBack, RequestMask, SessionMaskUpdate } from "./trace.model";
 import { getStringOrCall } from "./configuration";
 
 export class SessionManager {
@@ -22,7 +22,7 @@ export class SessionManager {
 
   navigate(url?: string) {
     const now = dateNow();
-    this.endSession(!url);
+    this.endSession(now);
     if (url) {
       this.initialized = true;
       const id = crypto.randomUUID();
@@ -43,10 +43,11 @@ export class SessionManager {
     }
   }
 
-  private endSession(dispatchNow: boolean){
-    const now = dateNow();
-    this.getCurrentSessionCallBack(call => call.end = now);
-    window.dispatchEvent(new CustomEvent(DISPATCH, { detail: { force: dispatchNow, traces: this.currentSessionCallBack } })); //TODO emiTraces
+  private endSession(end : number){
+    this.getCurrentSessionCallBack(call =>{ 
+      call.end = end;
+      dispatchTraces(call);
+    });
     this.currentSessionCallBack = undefined;
   }
 
@@ -55,12 +56,12 @@ export class SessionManager {
       this.currentSession.name = document.title;
       this.currentSession.location = document.URL;
       if (!ContextManager.instance.techConfig.exclude?.some((e: any) => e.test(this.currentSession?.location))) {
-        emitTrace(this.currentSession)
+        dispatchTraces(this.currentSession)
       }
       this.currentSession = undefined;
     }
     else{
-      emitReport('updateSession', 'no active session');
+      dispatchReport('updateSession', 'no active session');
     }
   }
 
@@ -68,7 +69,7 @@ export class SessionManager {
     if (this.currentSessionCallBack) {
       return fn(this.currentSessionCallBack);
     }
-    emitReport('getCurrentSessionCallBack', 'no active session');
+    dispatchReport('getCurrentSessionCallBack', 'no active session');
     return undefined;
   }
 
@@ -76,11 +77,11 @@ export class SessionManager {
     return this.getCurrentSessionCallBack(s=> s.id);
   }
 
-  initRestRequest(){
+  initRestRequest(mask: RequestMask){
     var req = this.getCurrentSessionCallBack(s=>{
-      if ((s.requestMask & RequestMask.REST) !== RequestMask.REST) {
-        s.requestMask &= RequestMask.REST;
-        emitTrace({
+      if ((s.requestMask & mask) !== mask) {
+        s.requestMask &= mask;
+        dispatchTraces({
           "@type": '03',
           id: s.id,
           main: true,

@@ -1,21 +1,20 @@
-import { EventTrace, Level, LogEntry } from "./trace.model";
+import { EventTrace, LogLevel, LogEntry } from "./trace.model";
+
+const eventBus = new EventTarget();
+const TRACE = 'trace', EXPORT = 'export', SHUTDOW = 'shutdow';
 
 export const WIN: any = window;
-
-export const DISPATCH = 'dispatch', PRE_DISPATCH = 'pre-dispatch', BEFOREUNLOAD = 'beforeunload';
-
-export enum RequestMask { LOCAL = 1, REST = 4 }
 
 export function dateNow() {
   return Date.now() / 1_000;
 }
 
-export function emitReport(message: string, error?: any) : void {
-  emitLog("REPORT", `${message} ${error ? JSON.stringify(error) : ''}` , undefined)
+export function dispatchReport(message: string, error?: any) : void {
+  dispatchLog("REPORT", `${message} ${error && JSON.stringify(error)}`, undefined)
 }
 
-export function emitLog(level: Level, message: string, sessionId: string | undefined) {
-  emitTrace({
+export function dispatchLog(level: LogLevel, message: string, sessionId?: string) {
+  dispatchTraces({
     "@type": "00",
     level: level,
     message: message,
@@ -24,6 +23,26 @@ export function emitLog(level: Level, message: string, sessionId: string | undef
   } as LogEntry);
 }
 
-export function emitTrace(...traces: EventTrace[]): void {
-  window.dispatchEvent(new CustomEvent(DISPATCH, { detail: { traces } }));
+export function dispatchTraces(...traces: EventTrace[]): void {
+  eventBus.dispatchEvent(new CustomEvent(TRACE, { detail: { traces } }));
+}
+
+export function dispatchExport(): void {
+  eventBus.dispatchEvent(new CustomEvent(EXPORT));
+}
+
+export function dispatchShutown(): void {
+  eventBus.dispatchEvent(new CustomEvent(SHUTDOW));
+}
+
+export function addTraceListener(fn : EventListener): void {
+  eventBus.addEventListener(TRACE, fn);
+}
+
+export function addExportListener(fn : EventListener): void {
+  eventBus.addEventListener(EXPORT, fn);
+}
+
+export function addShutdowListener(fn : EventListener): void {
+  eventBus.addEventListener(SHUTDOW, fn);
 }
