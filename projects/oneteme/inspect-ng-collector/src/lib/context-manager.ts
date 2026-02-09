@@ -105,7 +105,7 @@ export function detectBrowser() {
       case agent.indexOf('safari') > -1:
         return 'Safari';
       case agent.indexOf('msie') > -1:
-        return 'Microsoft Internet Explorer';
+        return 'IE';
     }
   }
   catch (e) {
@@ -121,14 +121,14 @@ export function detectOs() {
     switch (true) {
       case (/windows/.test(agent)):
         versionMatch = /windows nt (\d+\.\d+)/.exec(agent);
-        version = versionMatch ? versionMatch[1] : 'Unknown';
+        version = versionMatch ? versionMatch[1] : '?';
         return `Windows ${version}`;
       case (/linux/.test(agent)):
         return 'Linux';
 
       case (/macintosh/.test(agent)):
         versionMatch = /mac os x (\d+[._]\d+[._]\d+)/.exec(agent);
-        version = versionMatch ? versionMatch[1] : 'Unknown';
+        version = versionMatch ? versionMatch[1] : '?';
         return `MacOs ${version}`
     }
   }
