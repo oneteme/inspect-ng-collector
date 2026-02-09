@@ -1,5 +1,5 @@
-import { MachineRessourceUsage } from "./trace.model";
-import { dateNow, dispatchTraces, dispatchReport, addExportListener } from "./util";
+import { dateNow, MachineRessourceUsage } from "./trace.model";
+import { dispatchTraces, dispatchReport, addExportListener } from "./event-bus";
 
 export function initResourceUsageMonitor(){
   try{

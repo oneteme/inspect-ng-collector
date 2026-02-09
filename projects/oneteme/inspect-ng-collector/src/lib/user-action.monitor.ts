@@ -1,6 +1,6 @@
-import { UserAction, extractName } from "./trace.model"; //TODO extractName in Model !!???
+import { dateNow, UserAction, extractName } from "./trace.model"; //TODO extractName in Model !!???
 import { SessionManager } from "./session-manager.service";
-import { dateNow, dispatchReport, dispatchTraces } from "./util";
+import { dispatchReport, dispatchTraces } from "./event-bus";
 
 let eventHandlers: { [key: string]: (target: HTMLElement) => boolean } = { //TODO let ??
   'click': (target: HTMLElement) => lookUpChild(target, 1),

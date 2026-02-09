@@ -1,6 +1,6 @@
 import { ErrorHandler, Injectable } from "@angular/core";
 import { SessionManager } from "./session-manager.service";
-import { dispatchReport } from "./util";
+import { dispatchReport } from "./event-bus";
 
 @Injectable({ providedIn: 'root' })
 export class GlobalErrorHandler implements ErrorHandler {

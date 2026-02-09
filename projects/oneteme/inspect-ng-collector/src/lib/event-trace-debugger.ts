@@ -6,7 +6,7 @@ import {
   RestRequest,
   UserAction
 } from "./trace.model";
-import {dispatchReport, WIN, addTraceListener} from "./util";
+import {dispatchReport, WIN, addTraceListener} from "./event-bus";
 import {ContextManager} from "./context-manager";
 import {SessionManager} from "./session-manager.service";
 

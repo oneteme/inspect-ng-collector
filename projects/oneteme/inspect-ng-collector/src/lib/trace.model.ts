@@ -6,6 +6,10 @@ export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
 export enum RequestMask { LOCAL = 1, REST = 4 }
 
+export function dateNow() {
+  return Date.now() / 1_000;
+}
+
 export interface InstanceEnvironment {
   id: string;
   name?: string;

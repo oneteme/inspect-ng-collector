@@ -1,6 +1,6 @@
 
-import { WIN, dateNow, dispatchTraces } from "./util";
-import { LocalRequest, LocalRequestCallBack, RequestMask } from "./trace.model";
+import { WIN, dispatchTraces } from "./event-bus";
+import { dateNow, LocalRequest, LocalRequestCallBack, RequestMask } from "./trace.model";
 
 export function TraceableStage() {
 

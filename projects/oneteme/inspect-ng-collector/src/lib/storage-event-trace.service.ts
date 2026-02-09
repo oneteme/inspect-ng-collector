@@ -1,5 +1,5 @@
 import { ContextManager } from "./context-manager";
-import { dispatchReport } from "./util";
+import { dispatchReport } from "./event-bus";
 
 export function storageEventListener() {
   try {

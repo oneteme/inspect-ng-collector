@@ -1,5 +1,5 @@
-import { ExceptionInfo, HttpRequestStage, RestRequest, RestRequestCallBack, RequestMask, UUID } from "./trace.model";
-import { dateNow, dispatchTraces, dispatchReport } from "./util";
+import { dateNow, ExceptionInfo, HttpRequestStage, RestRequest, RestRequestCallBack, RequestMask, UUID } from "./trace.model";
+import { dispatchTraces, dispatchReport } from "./event-bus";
 import { HttpErrorResponse, HttpHeaders, HttpRequest, HttpResponse } from "@angular/common/http";
 import { SessionManager } from "./session-manager.service";
 

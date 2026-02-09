@@ -1,22 +1,22 @@
-import {interval, startWith, tap, Subscription} from "rxjs";
-import {EventTrace} from "./trace.model";
-import {dispatchReport, dispatchExport, addTraceListener, addShutdowListener} from "./util";
-import {ContextManager} from "./context-manager";
+import { interval, startWith, tap, Subscription } from "rxjs";
+import { EventTrace } from "./trace.model";
+import { dispatchExport, addTraceListener, addShutdowListener } from "./event-bus";
+import { ContextManager } from "./context-manager";
 
 export function eventTraceScheduledDispatcher() {
   return EventTraceScheduledDispatcherService._instance = new EventTraceScheduledDispatcherService();
 }
 
-export class  EventTraceScheduledDispatcherService {
-  
+export class EventTraceScheduledDispatcherService {
+
   static _instance: EventTraceScheduledDispatcherService;
-  
+
   traceQueue: Set<EventTrace> = new Set();
   sessionSendAttempts: number = 0
   sendSessionfinished: boolean = true;
   instanceSaved: boolean = false;
   readonly interval: Subscription
-  
+
   constructor() {
     this.interval = interval(ContextManager.instance.techConfig.interval)
       .pipe(startWith(0))
@@ -25,8 +25,8 @@ export class  EventTraceScheduledDispatcherService {
           this.sendSessionfinished = false;
           dispatchExport();
           this.Dispatch()
-            .then(arr=> this.revertQueueSize(arr))
-            .catch(err=> {}) //log error !?
+            .then(arr => this.revertQueueSize(arr))
+            .catch(err => { }) //log error !?
             .finally(() => { this.sendSessionfinished = true })
         }
       }))
@@ -36,7 +36,7 @@ export class  EventTraceScheduledDispatcherService {
   }
 
   Dispatch(): Promise<any> {
-    if(this.instanceSaved){
+    if (this.instanceSaved) {
       return this.sendSessions();
     }
     return this.postInstanceEnv().then((ok: boolean) => {
@@ -68,22 +68,22 @@ export class  EventTraceScheduledDispatcherService {
           return new Set<EventTrace>();
 
         }
-        if(res.status >= 400 && res.status < 500 ){
-         return this.handleEventTraceSavingError(sessions)
+        if (res.status >= 400 && res.status < 500) {
+          return this.handleEventTraceSavingError(sessions)
         }
         return res.json()
           .then(body => body?.retry ? this.handleEventTraceSavingError(sessions) : new Set<EventTrace>())
-          .catch(()=>new Set<EventTrace>());
+          .catch(() => new Set<EventTrace>());
       })
       .catch(() => this.handleEventTraceSavingError(sessions));
   }
 
-  handleEventTraceSavingError(sessions: Set<EventTrace>){
+  handleEventTraceSavingError(sessions: Set<EventTrace>) {
     this.sessionSendAttempts % 5 == 0 && console.warn(`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)
     return sessions;
   }
 
-  getRequestInit(sessionList: Set<EventTrace>): RequestInit  {
+  getRequestInit(sessionList: Set<EventTrace>): RequestInit {
     return {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -109,7 +109,7 @@ export class  EventTraceScheduledDispatcherService {
       .catch(err => false);
   }
 
-  revertQueueSize(sessions: Set<EventTrace> ){
+  revertQueueSize(sessions: Set<EventTrace>) {
     sessions.forEach(session => this.traceQueue.add(session));
     if (this.traceQueue.size > ContextManager.instance.techConfig.queueCapacity) {
       const items = Array.from(this.traceQueue).slice(0, ContextManager.instance.techConfig.queueCapacity);
@@ -117,18 +117,18 @@ export class  EventTraceScheduledDispatcherService {
     }
   }
 
-  async addtoQueue(...event: EventTrace[]) { //TODO why event can be null 
-    try{
-      if(event){
-        event.forEach(this.traceQueue.add)
+  async addtoQueue(...events: EventTrace[]) { //TODO why event can be null 
+    try {
+      if (events) {
+        events.forEach(this.traceQueue.add);
       }
-    }catch(e){
-      dispatchReport(String(e)); //TODO choose one : JSON.stringify or new String
+    } catch (e) {
+      console.log('addtoQueue', events);
     }
-   }
+  }
 
   destroy() {
-    if(this.interval) {
+    if (this.interval) {
       this.interval.unsubscribe();
     }
     this.sendSessions(true);

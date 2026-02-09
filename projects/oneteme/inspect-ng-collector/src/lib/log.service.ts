@@ -1,4 +1,4 @@
-import {dispatchLog} from './util';
+import {dispatchLog} from './event-bus';
 import {SessionManager} from "./session-manager.service";
 
 export class LogService {

@@ -1,4 +1,4 @@
-import { dateNow } from "./util";
+import { dateNow } from "./trace.model";
 import {
   adaptedConfig,
   CollectorConfig,

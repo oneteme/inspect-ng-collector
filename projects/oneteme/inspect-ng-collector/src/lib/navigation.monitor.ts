@@ -1,7 +1,7 @@
 import { NavigationCancel, NavigationEnd, NavigationStart, Router } from "@angular/router";
 import { SessionManager } from "./session-manager.service";
 import { initContextManagerAndDispatcher } from "./ng-collector.module"; //TODO cycle dependency
-import { dispatchReport, dispatchShutown } from "./util";
+import { dispatchReport, dispatchShutown } from "./event-bus";
 
 export function initNavigationMonitor(router: Router){
   try{

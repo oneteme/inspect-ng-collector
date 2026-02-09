@@ -1,7 +1,7 @@
 
-import { dateNow, dispatchTraces, dispatchReport, WIN } from './util';
+import { dispatchTraces, dispatchReport, WIN } from './event-bus';
 import { ContextManager } from "./context-manager";
-import { MainSession, MainSessionCallBack, RequestMask, SessionMaskUpdate } from "./trace.model";
+import { dateNow, MainSession, MainSessionCallBack, RequestMask, SessionMaskUpdate } from "./trace.model";
 import { getStringOrCall } from "./configuration";
 
 export class SessionManager {
