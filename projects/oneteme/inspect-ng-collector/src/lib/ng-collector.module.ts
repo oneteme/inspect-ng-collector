@@ -13,11 +13,11 @@ import {
   eventTraceScheduledDispatcher,
 } from "./event-trace-scheduled-dispatcher.service";
 
-import { initUserActionMonitor } from "./user-action.monitor";
 import { eventTraceDebugger } from "./event-trace-debugger";
 import { Router } from "@angular/router";
+import { initUserActionMonitor } from "./user-action.monitor";
 import { initNavigationMonitor } from './navigation.monitor';
-import { initResourceUsageMonitor } from './ressource-usage.monitor';
+import { initResourceUsageMonitor } from './resource-usage.monitor';
 
 @NgModule()
 export class NgCollectorModule {
