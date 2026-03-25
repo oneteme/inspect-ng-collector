@@ -19,7 +19,7 @@ export class SessionManager {
         return SessionManager._instance;
     }
 
-    navigate(url?: string) {
+    navigate(url?: string) {// merge this function with update session
         this.getCurrentSession(s => {
           if(s){
             this.getCurrentSessionCallBack(cb => cb.end =dateNow())
@@ -50,7 +50,7 @@ export class SessionManager {
 
     updateSession(){
       this.getCurrentSession(s => {
-            s.name = document.title;
+            s.name = document.title; // set timeout to capture the updated URL after navigation
             s.location = document.URL;
             if(!ContextManager.instance.techConfig.exclude?.some((e:any) => e.test(s.location))){
               window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { traces :  s } }));

@@ -33,7 +33,7 @@ export class RestRequestMonitor{
         dataSize: -1,
         linked: false
       }
-      if(SessionManager.instance.currentSessionID() != null ){
+      if(SessionManager.instance.currentSessionID() != null ){ // remove ??
         let doUpdateMask = SessionManager.instance.updateMask(RequestMask.REST);
         doUpdateMask && window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  {
             traces : {
@@ -72,7 +72,7 @@ export class RestRequestMonitor{
         "@type": "220",
         name: "PROCESS",
         start: this.restRequest.start, //  use request
-        end: dateNow(),
+        end: this.restRequestCallBack.end,
         order: 0,
         exception: exception,
         requestId : this.restRequestCallBack.id
