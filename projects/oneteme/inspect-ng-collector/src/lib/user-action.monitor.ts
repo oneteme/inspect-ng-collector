@@ -1,4 +1,4 @@
-import {dateNow, UserAction, TRACE_TYPE_USER_ACTION, MAP, genericMap} from "./trace.model"; //TODO extractName in Model !!??? - DONE
+import { dateNow, UserAction, TRACE_TYPE_USER_ACTION } from "./trace.model"; //TODO extractName in Model !!??? - DONE
 import { SessionManager } from "./session-manager.service";
 import { dispatchReport, dispatchTraces } from "./event-bus";
 
@@ -81,5 +81,31 @@ function extractName(t: HTMLElement) {
     console.warn(err)
   }
   return null
+}
+
+
+
+const genericMap: ((t: HTMLElement) => string | null)[] = [
+  t => t.getAttribute('placeholder'),
+  t => t.getAttribute('title'),
+  t => t.innerText,
+  t => t.getAttribute('name'),
+  t => t.getAttribute('id'),
+]
+
+const MAP: { [key: string]: ((t: HTMLElement) => string | null)[] } = {
+  'img': [
+    t => t.getAttribute('alt'),
+    t => t.getAttribute('src'),
+  ],
+  'input': [
+    t => t.getAttribute('name'),
+  ],
+  'a': [
+    t => t.getAttribute('href'),
+  ],
+  'label': [
+    t => t.getAttribute('for'),
+  ],
 }
 

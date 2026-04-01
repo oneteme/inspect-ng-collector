@@ -168,28 +168,3 @@ export interface MachineRessourceUsage extends EventTrace {
   commitedHeap: number;
   usedHeap: number;
 }
-
-export const genericMap: ((t: HTMLElement) => string | null)[] = [
-  t => t.getAttribute('placeholder'),
-  t => t.getAttribute('title'),
-  t => t.innerText,
-  t => t.getAttribute('name'),
-  t => t.getAttribute('id'),
-]
-
-export const MAP: { [key: string]: ((t: HTMLElement) => string | null)[] } = {
-  'img': [
-    t => t.getAttribute('alt'),
-    t => t.getAttribute('src'),
-  ],
-  'input': [
-    t => t.getAttribute('name'),
-  ],
-  'a': [
-    t => t.getAttribute('href'),
-  ],
-  'label': [
-    t => t.getAttribute('for'),
-  ],
-}
-
