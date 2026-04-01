@@ -1,6 +1,7 @@
 import { TRACE_TYPE_COLLECTOR_CONFIGURATION } from "./trace.model";
 
 const SLASH = '/';
+
 export interface CollectorConfig {
   enabled?: boolean; // default: false
   debugMode?: boolean;
@@ -48,7 +49,6 @@ export interface CollectorConfig {
 export interface TechnicalConf {
   user?: string | (() => string);
   queueCapacity: number;
-  delayIfPending: number
   interval: number;
   instanceApi: string;
   sessionApi: string;
@@ -138,5 +138,28 @@ export function adaptedConfig(conf: CollectorConfig) {
           retentionMaxAge : (conf.tracing?.remote?.retentionMaxAge ?? 10)  * 60 * 60 * 24
       }
     }
+  }
+}
+
+export const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
+
+
+function validateAndGetConfig(conf: CollectorConfig, instanceId: string): TechnicalConf {
+  let host = matchRegex(getStringOrCall(conf?.tracing?.remote?.host), "host", HOST_PATERN)
+  let sessionApi = "v4/trace/instance/:id/session"
+  let instanceApi = "v4/trace/instance"
+  return {
+    user: conf?.monitoring?.user,
+    queueCapacity: requirePostitiveValue(getNumberOrCall(conf?.tracing?.queueCapacity), "queueCapacity", 1000),
+    interval: requirePostitiveValue(getNumberOrCall(conf?.scheduling?.interval), "interval", 60000),
+    instanceApi: toURL(host, instanceApi),
+    sessionApi: toURL(host, sessionApi).replace(':id', instanceId),
+    exclude: getRegArrOrCall(conf?.monitoring?.httpRoute?.excludes?.path) || [],
+    hostExcludes: conf?.monitoring?.httpRequest?.excludes?.host || [],
+    debugMode: conf.debugMode ?? false,
+    analytics: conf?.monitoring?.analytics?.enabled ?? false,
+    resources: conf?.monitoring?.resources?.enabled ?? false,
+    storage: conf?.monitoring?.storage?.enabled ?? false,
+    enabled: conf.enabled ?? false
   }
 }

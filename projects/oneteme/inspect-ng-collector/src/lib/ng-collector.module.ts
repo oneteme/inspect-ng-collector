@@ -2,7 +2,8 @@ import {
   NgModule,
   ModuleWithProviders,
   ErrorHandler,
-  APP_INITIALIZER
+  APP_INITIALIZER,
+  InjectionToken
 } from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
 import { HttpInterceptorService } from './http-interceptor.service';
@@ -18,39 +19,34 @@ import { Router } from "@angular/router";
 import { initUserActionMonitor } from "./user-action.monitor";
 import { initNavigationMonitor } from './navigation.monitor';
 import { initResourceUsageMonitor } from './resource-usage.monitor';
+import { addReloadListener } from './event-bus';
+
+export const COLLECTOR_CONFIG = new InjectionToken<CollectorConfig>('COLLECTOR_CONFIG');
 
 @NgModule()
 export class NgCollectorModule {
-  private static forRootCalled: boolean = false;
-  static configuration: CollectorConfig;
+  
   static forRoot(configuration: CollectorConfig): ModuleWithProviders<NgCollectorModule> {
-    this.configuration = configuration;
-    if (configuration?.enabled && !NgCollectorModule.forRootCalled) {
-      NgCollectorModule.forRootCalled = true;
+    const providers = [];
+    if (configuration?.enabled) {
       try {
-        ContextManager.init(configuration);
-        return {
-          ngModule: NgCollectorModule,
-          providers: [
-            //provideAppInitializer(initializeEvents),
-            { provide: APP_INITIALIZER, useFactory: initializeEvents, deps: [Router], multi: true },
-            { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
-            { provide: ErrorHandler, useClass: GlobalErrorHandler }
-          ]
-        };
+        providers.push(            
+          { provide: COLLECTOR_CONFIG, useValue: configuration },
+          { provide: APP_INITIALIZER, useFactory: initializeEventsFactory, deps: [COLLECTOR_CONFIG, Router], multi: true },
+          { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
+          { provide: ErrorHandler, useClass: GlobalErrorHandler });
       } catch (e: any) {
         console.warn(`invalid Configuration, Ng-collector is disabled because of this ${e.message}`);
       }
     }
-    return {
-      ngModule: NgCollectorModule
-    }
+    return {ngModule: NgCollectorModule, providers : providers}
   }
 }
 
-export function initializeEvents(router: Router) {
+export function initializeEventsFactory(config: CollectorConfig, router: Router) {
   return () => {
-    initContextManagerAndDispatcher();
+    ContextManager.init(config);
+    eventTraceScheduledDispatcher();
     eventTraceDebugger();
     if (ContextManager.instance.techConfig.analytics) {
       initUserActionMonitor();
@@ -60,12 +56,11 @@ export function initializeEvents(router: Router) {
     }
     initNavigationMonitor(router);
     //storageEventListener();
+    addReloadListener(e=>{
+      ContextManager.init(config);
+      eventTraceScheduledDispatcher();
+    });
   }
-}
-
-export function initContextManagerAndDispatcher() {
-  ContextManager.init(NgCollectorModule.configuration);
-  eventTraceScheduledDispatcher();
 }
 
 

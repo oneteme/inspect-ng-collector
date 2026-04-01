@@ -1,7 +1,7 @@
 import { dateNow, EventTrace, LogLevel, LogEntry, TRACE_TYPE_LOG } from "./trace.model";
 
 const eventTarget = new EventTarget();
-const TRACE = 'trace', EXPORT = 'export', SHUTDOWN = 'shutdown';
+const TRACE = 'trace', EXPORT = 'export', SHUTDOWN = 'shutdown', RELOAD = 'reload';
 
 export const WIN: any = window;
 
@@ -27,6 +27,10 @@ export function dispatchExport(): void {
   eventTarget.dispatchEvent(new CustomEvent(EXPORT));
 }
 
+export function dispatchReload(): void {
+  eventTarget.dispatchEvent(new CustomEvent(RELOAD));
+}
+
 export function dispatchShutown(): void {
   eventTarget.dispatchEvent(new CustomEvent(SHUTDOWN));
 }
@@ -37,6 +41,10 @@ export function addTraceListener(fn : EventListener): void {
 
 export function addExportListener(fn : EventListener): void {
   eventTarget.addEventListener(EXPORT, fn);
+}
+
+export function addReloadListener(fn : EventListener): void {
+  eventTarget.addEventListener(RELOAD, fn);
 }
 
 export function addShutdownListener(fn : EventListener): void {

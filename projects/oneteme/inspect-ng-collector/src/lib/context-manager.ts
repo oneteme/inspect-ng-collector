@@ -1,19 +1,20 @@
 import {
   adaptedConfig,
   CollectorConfig,
-  getNumberOrCall, getRegArrOrCall,
-  getStringOrCall, matchRegex,
-  require, requirePostitiveValue, TechnicalConf
+  getStringOrCall,
+  require,
+  validateAndGetConfig
 } from "./configuration";
 import { InstanceEnvironment, dateNow } from "./trace.model";
 import { dispatchReport } from "./event-bus";
 
 export const SLASH = '/';
-export const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
 
 export class ContextManager {
 
   private static _instance: ContextManager;
+
+  // private readonly config : CollectorConfig; 
 
   constructor(private readonly _instanceEnv: any, private readonly _techConfig: any) {
   }
@@ -34,50 +35,10 @@ export class ContextManager {
 
   static init(conf: CollectorConfig) {
     let id = crypto.randomUUID();
-    return ContextManager._instance = new ContextManager(ContextManager.createInstance(conf, id), ContextManager.validateAndGetConfig(conf, id));
+    return ContextManager._instance = new ContextManager(createInstance(conf, id), validateAndGetConfig(conf, id));
   }
 
-  static validateAndGetConfig(conf: CollectorConfig, instanceId: string): TechnicalConf {
-    let host = matchRegex(getStringOrCall(conf?.tracing?.remote?.host), "host", HOST_PATERN)
-    let sessionApi = "v4/trace/instance/:id/session"
-    let instanceApi = "v4/trace/instance"
-    return {
-      user: conf?.monitoring?.user,
-      queueCapacity: requirePostitiveValue(getNumberOrCall(conf?.tracing?.queueCapacity), "queueCapacity", 1000),
-      interval: requirePostitiveValue(getNumberOrCall(conf?.scheduling?.interval), "interval", 60000),
-      delayIfPending: requirePostitiveValue(getNumberOrCall(conf?.tracing?.delayIfPending), "delayIfPending", 30),
-      instanceApi: toURL(host, instanceApi),
-      sessionApi: toURL(host, sessionApi).replace(':id', instanceId),
-      exclude: getRegArrOrCall(conf?.monitoring?.httpRoute?.excludes?.path) || [],
-      hostExcludes: conf?.monitoring?.httpRequest?.excludes?.host || [],
-      debugMode: conf.debugMode ?? false,
-      analytics: conf?.monitoring?.analytics?.enabled ?? false,
-      resources: conf?.monitoring?.resources?.enabled ?? false,
-      storage: conf?.monitoring?.storage?.enabled ?? false,
-      enabled: conf.enabled ?? false
-    }
-  }
-
-  static createInstance(conf: CollectorConfig, instanceId: string): InstanceEnvironment {
-    return {
-      id: instanceId,
-      instant: dateNow(),
-      name: require(getStringOrCall(conf?.monitoring?.name), 'name'),
-      version: getStringOrCall(conf?.monitoring?.version),
-      address: getClientID(), //server side
-      env: require(getStringOrCall(conf?.monitoring?.env), 'env'),
-      os: detectOs(),
-      re: detectBrowser(),
-      user: undefined, // cannot get user
-      type: "CLIENT",
-      collector: "inspect-ng-collector-0.0.1",
-      resource: { maxHeap: (('memory' in performance) && (performance as any).memory.jsHeapSizeLimit / (1024 * 1024)) || undefined },
-      additionalProperties: conf?.monitoring?.additionalProperties(),
-      configuration: adaptedConfig(conf)
-    }
-  }
 }
-
 function getClientID() {
   let cid = localStorage.getItem("jarvis.inspect.cid");
   if (!cid) {
@@ -138,4 +99,24 @@ export function detectOs() {
     dispatchReport("ContextManager.detectBrowser", JSON.stringify(e))  // TODO cannot report here the event dispatcher is not initialized yet, maybe store it and dispatch it at initialization ?
   }
   return undefined;
+}
+
+
+export function createInstance(conf: CollectorConfig, instanceId: string): InstanceEnvironment {
+  return {
+    id: instanceId,
+    instant: dateNow(),
+    name: require(getStringOrCall(conf?.monitoring?.name), 'name'),
+    version: getStringOrCall(conf?.monitoring?.version),
+    address: getClientID(), //server side
+    env: require(getStringOrCall(conf?.monitoring?.env), 'env'),
+    os: detectOs(),
+    re: detectBrowser(),
+    user: undefined, // cannot get user
+    type: "CLIENT",
+    collector: "inspect-ng-collector-0.0.1",
+    resource: { maxHeap: (('memory' in performance) && (performance as any).memory.jsHeapSizeLimit / (1024 * 1024)) || undefined },
+    additionalProperties: conf?.monitoring?.additionalProperties(),
+    configuration: adaptedConfig(conf)
+  }
 }

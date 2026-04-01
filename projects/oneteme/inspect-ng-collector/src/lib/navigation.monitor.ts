@@ -1,7 +1,6 @@
 import { NavigationCancel, NavigationEnd, NavigationStart, Router } from "@angular/router";
 import { SessionManager } from "./session-manager.service";
-import { initContextManagerAndDispatcher } from "./ng-collector.module"; //TODO cycle dependency
-import { dispatchReport, dispatchShutown } from "./event-bus";
+import { dispatchReload, dispatchReport, dispatchShutown } from "./event-bus";
 
 export function initNavigationMonitor(router: Router){
   try{
@@ -30,7 +29,7 @@ function windowUnloadHandler(event: any) {
 
 function bfCacheHandler(event: any) {
   if (event.persisted) { // if the page was restored from bfcache
-    initContextManagerAndDispatcher(); //check context before
+    dispatchReload();
     SessionManager.instance.navigate(document.URL);
     setTimeout(() => SessionManager.instance.updateSession(), 0);
   }
