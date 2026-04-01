@@ -33,7 +33,7 @@ export class ContextManager {
     return ContextManager._instance;
   }
 
-  static init(conf: CollectorConfig) {
+  static init(conf: CollectorConfig) { //TODO function
     let id = crypto.randomUUID();
     return ContextManager._instance = new ContextManager(createInstance(conf, id), validateAndGetConfig(conf, id));
   }
