@@ -83,8 +83,6 @@ function extractName(t: HTMLElement) {
   return null
 }
 
-
-
 const genericMap: ((t: HTMLElement) => string | null)[] = [
   t => t.getAttribute('placeholder'),
   t => t.getAttribute('title'),

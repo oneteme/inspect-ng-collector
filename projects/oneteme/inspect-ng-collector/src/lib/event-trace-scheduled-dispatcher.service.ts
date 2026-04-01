@@ -45,7 +45,7 @@ class EventTraceScheduledDispatcherService {
     if (this.instanceDispatched) {
       return this.dispatchTraces();
     }
-    return this.dispatchInstance().then((ok: boolean) => {
+    return this.dispatchInstance().then(ok => {
       if (ok) {
         this.instanceDispatched = true;
         return this.dispatchTraces();

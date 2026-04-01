@@ -6,7 +6,7 @@ const TRACE = 'trace', EXPORT = 'export', SHUTDOWN = 'shutdown', RELOAD = 'reloa
 export const WIN: any = window;
 
 export function dispatchReport(message: string, error?: any) : void {
-  dispatchLog("REPORT", `${message} ${error && JSON.stringify(error)}`, undefined)
+  dispatchLog("REPORT", `${message} ${error && JSON.stringify(error)}`)
 }
 
 export function dispatchLog(level: LogLevel, message: string, sessionId?: string) {

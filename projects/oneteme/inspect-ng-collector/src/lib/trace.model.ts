@@ -19,7 +19,7 @@ export const TRACE_TYPE_REST_REQUEST_CALLBACK = '121';
 export const TRACE_TYPE_HTTP_REQUEST_STAGE = '220';
 export const TRACE_TYPE_USER_ACTION = '300';
 
-export type TraceType =
+export type TraceType = //TODO not used 
   | typeof TRACE_TYPE_LOG
   | typeof TRACE_TYPE_RESOURCE_USAGE
   | typeof TRACE_TYPE_COLLECTOR_CONFIGURATION
