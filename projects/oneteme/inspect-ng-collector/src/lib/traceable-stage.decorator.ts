@@ -15,10 +15,10 @@ export function TraceableStage() {
         monitor.preProcess(propertyKey,target);
         return originalMethod.apply(this, args);
       } catch (e: any) {
-        exception = resolveException(e);
+        exception = resolveException(e); // todo exception resolver- DONE
         throw e;
-      } finally {
-        monitor.postProcess(exception);
+      } finally { //TODO create Monitor -DONE
+        monitor.postProcess(exception)
       }
     }
     return descriptor;

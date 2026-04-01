@@ -1,6 +1,6 @@
 import { TRACE_TYPE_COLLECTOR_CONFIGURATION } from "./trace.model";
 
-type Provider<T> = T extends Function ? never : T | (() => T);
+type Provider<T> = T | (() => T);
 
 const SLASH = '/';
 const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
@@ -65,7 +65,7 @@ export interface TechnicalConf {
 }
 
 export function getOrCall<T>(o?: Provider<T>): T | undefined {
-  return typeof o === "function" ? (o as () => T)() : (o as T | undefined);
+  return typeof o === "function" ? (o as () => T)() : o;
 }
 
 
