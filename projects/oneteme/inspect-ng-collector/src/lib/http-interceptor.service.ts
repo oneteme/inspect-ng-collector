@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpInterceptor, HttpEvent, HttpHandler, HttpRequest, HttpResponse } from '@angular/common/http';
+import { HttpInterceptor, HttpEvent, HttpHandler, HttpRequest, HttpResponse, HttpErrorResponse, HttpResponseBase } from '@angular/common/http';
 import { finalize, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators'
 import { RestRequestMonitor, TRACE_HEADER } from "./rest-request.monitor";
@@ -18,31 +18,31 @@ export class HttpInterceptorService implements HttpInterceptor {
       req = req.clone({ headers: req.headers.set(TRACE_HEADER, monitor.id) });
     }
 
-    let e: any;
+    let response: HttpResponseBase | null = null;
+    let error: HttpErrorResponse | null = null;
+
     return next.handle(req).pipe(tap({
-      next: (event: any) => {
+      next: (event: HttpEvent<any>) => {
         if (event instanceof HttpResponse) {
-          e = event;
+          response = event;
         }
-        //TODO else !
+        //todo  autres types d'événements (UploadProgress, DownloadProgress, etc.) ignorés pour les traces
       },
-      error: (error: any) => {
-        e = error;
-      },
-      unsubscribe: () => {
-        e = {
-          status: 0,
-          name: "Unsubscribed",
-          message: "The request was cancelled before completion"
-        };
+      error: (err: HttpErrorResponse) => {
+        error = err;
       }
     }),
       finalize(() => {
-        e instanceof HttpResponse ? monitor.postProcess(e, null) : monitor.postProcess(null, e ?? {
-          status: 0,
-          name: "Unavailable",
-          message: "The remote server is unavailable",
-        })
+        // Si pas de réponse et pas d'erreur capturé, la requête a été annulée
+        if (!response && !error) {
+          error = new HttpErrorResponse({
+            error: 'The request was cancelled before completion',
+            status: 0,
+            statusText: 'Cancelled',
+            url: req.url
+          });
+        }
+        monitor.postProcess(response, error);
       }));
   }
 }

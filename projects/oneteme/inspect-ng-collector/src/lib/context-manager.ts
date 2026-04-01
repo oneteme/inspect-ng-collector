@@ -1,4 +1,3 @@
-import { dateNow } from "./trace.model";
 import {
   adaptedConfig,
   CollectorConfig,
@@ -6,7 +5,8 @@ import {
   getStringOrCall, matchRegex,
   require, requirePostitiveValue, TechnicalConf
 } from "./configuration";
-import { InstanceEnvironment } from "./trace.model";
+import { InstanceEnvironment, dateNow } from "./trace.model";
+import { dispatchReport } from "./event-bus";
 
 export const SLASH = '/';
 export const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
@@ -110,6 +110,7 @@ export function detectBrowser() {
   }
   catch (e) {
     console.error(e); //TODO report
+    dispatchReport("ContextManager.detectBrowser", JSON.stringify(e)) // TODO cannot report here the event dispatcher is not initialized yet, maybe store it and dispatch it at initialization ?
   }
   return undefined;
 }
@@ -134,6 +135,7 @@ export function detectOs() {
   }
   catch (e) {
     console.error(e); //TODO report
+    dispatchReport("ContextManager.detectBrowser", JSON.stringify(e))  // TODO cannot report here the event dispatcher is not initialized yet, maybe store it and dispatch it at initialization ?
   }
   return undefined;
 }

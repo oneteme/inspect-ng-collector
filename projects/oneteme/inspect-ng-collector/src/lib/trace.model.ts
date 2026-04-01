@@ -6,6 +6,33 @@ export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
 export enum RequestMask { LOCAL = 1, REST = 4 }
 
+export const TRACE_TYPE_LOG = '00' as const;
+export const TRACE_TYPE_RESOURCE_USAGE = '01' as const;
+export const TRACE_TYPE_COLLECTOR_CONFIGURATION = '02' as const;
+export const TRACE_TYPE_SESSION_MASK_UPDATE = '03' as const;
+export const TRACE_TYPE_MAIN_SESSION = '10' as const;
+export const TRACE_TYPE_MAIN_SESSION_CALLBACK = '11' as const;
+export const TRACE_TYPE_LOCAL_REQUEST = '110' as const;
+export const TRACE_TYPE_LOCAL_REQUEST_CALLBACK = '111' as const;
+export const TRACE_TYPE_REST_REQUEST = '120' as const;
+export const TRACE_TYPE_REST_REQUEST_CALLBACK = '121' as const;
+export const TRACE_TYPE_HTTP_REQUEST_STAGE = '220' as const;
+export const TRACE_TYPE_USER_ACTION = '300' as const;
+
+export type TraceType =
+  | typeof TRACE_TYPE_LOG
+  | typeof TRACE_TYPE_RESOURCE_USAGE
+  | typeof TRACE_TYPE_COLLECTOR_CONFIGURATION
+  | typeof TRACE_TYPE_SESSION_MASK_UPDATE
+  | typeof TRACE_TYPE_MAIN_SESSION
+  | typeof TRACE_TYPE_MAIN_SESSION_CALLBACK
+  | typeof TRACE_TYPE_LOCAL_REQUEST
+  | typeof TRACE_TYPE_LOCAL_REQUEST_CALLBACK
+  | typeof TRACE_TYPE_REST_REQUEST
+  | typeof TRACE_TYPE_REST_REQUEST_CALLBACK
+  | typeof TRACE_TYPE_HTTP_REQUEST_STAGE
+  | typeof TRACE_TYPE_USER_ACTION;
+
 export function dateNow() {
   return Date.now() / 1_000;
 }
@@ -30,7 +57,7 @@ export interface InstanceEnvironment {
 export interface EventTrace { }
 
 export interface MainSession extends EventTrace {
-  '@type': '10';
+  '@type': typeof TRACE_TYPE_MAIN_SESSION;
   id: UUID;
   type: MainSessionType;
   name?: string;
@@ -41,7 +68,7 @@ export interface MainSession extends EventTrace {
 }
 
 export interface MainSessionCallBack extends EventTrace {
-  '@type': '11';
+  '@type': typeof TRACE_TYPE_MAIN_SESSION_CALLBACK;
   id: UUID;
   end?: number;
   requestMask: number;
@@ -49,14 +76,14 @@ export interface MainSessionCallBack extends EventTrace {
 }
 
 export interface SessionMaskUpdate {
-  '@type': '03';
+  '@type': typeof TRACE_TYPE_SESSION_MASK_UPDATE;
   id: UUID;
   main: boolean;
   mask: number;
 }
 
 export interface RestRequest extends EventTrace {
-  '@type': '120';
+  '@type': typeof TRACE_TYPE_REST_REQUEST;
   id: UUID;
   method: string;
   protocol: string;
@@ -73,7 +100,7 @@ export interface RestRequest extends EventTrace {
 }
 
 export interface RestRequestCallBack extends EventTrace {
-  '@type': '121';
+  '@type': typeof TRACE_TYPE_REST_REQUEST_CALLBACK;
   id: UUID;
   status?: number;
   end?: number;
@@ -84,7 +111,7 @@ export interface RestRequestCallBack extends EventTrace {
 }
 
 export interface HttpRequestStage extends EventTrace {
-  '@type': '220';
+  '@type': typeof TRACE_TYPE_HTTP_REQUEST_STAGE;
   name: string;
   start: number;
   end?: number;
@@ -93,7 +120,7 @@ export interface HttpRequestStage extends EventTrace {
 }
 
 export interface LocalRequest extends EventTrace {
-  '@type': '110';
+  '@type': typeof TRACE_TYPE_LOCAL_REQUEST;
   id: UUID;
   name: string;
   location: string;
@@ -103,9 +130,10 @@ export interface LocalRequest extends EventTrace {
 }
 
 export interface LocalRequestCallBack extends EventTrace {
-  '@type': '111';
+  '@type': typeof TRACE_TYPE_LOCAL_REQUEST_CALLBACK;
+  id: UUID;
   end: number;
-  //TODO add id & exception ..
+  exception?: ExceptionInfo;//TODO add id & exception .. - DONE
 }
 
 export interface ExceptionInfo {
@@ -114,16 +142,16 @@ export interface ExceptionInfo {
 }
 
 export interface UserAction extends EventTrace {
-  '@type': string;
+  '@type': typeof TRACE_TYPE_USER_ACTION;
   type: string;
-  start: number; //todo  rename  instant
+  instant: number; //todo  rename  instant - DONE
   name: string | null;
   nodeName: string;
   sessionId: string;
 }
 
 export interface LogEntry extends EventTrace {
-  '@type': string;
+  '@type': typeof TRACE_TYPE_LOG;
   instant: number;
   level: LogLevel;
   message: string;
@@ -135,7 +163,7 @@ export interface MachineResource extends EventTrace {
 }
 
 export interface MachineRessourceUsage extends EventTrace {
-  '@type': string;
+  '@type': typeof TRACE_TYPE_RESOURCE_USAGE;
   instant: number;
   commitedHeap: number;
   usedHeap: number;
@@ -165,30 +193,3 @@ export const MAP: { [key: string]: ((t: HTMLElement) => string | null)[] } = {
   ],
 }
 
-export function getFirst(c: ((t: HTMLElement) => string | null)[], t: HTMLElement) {
-  for (const o of c) {
-    let r = o(t)?.trim();
-    if (r) {
-      return r;
-    }
-  }
-  return null;
-}
-
-export function extractName(t: HTMLElement) {
-  try {
-    let tagName = t.tagName
-    if (tagName) {
-      let name;
-      let c = MAP[tagName.toLowerCase()];
-      if (c) {
-        name = getFirst(c, t);
-      }
-      return name ?? getFirst(genericMap, t)!;
-    }
-
-  } catch (err) {
-    console.warn(err)
-  }
-  return null
-}

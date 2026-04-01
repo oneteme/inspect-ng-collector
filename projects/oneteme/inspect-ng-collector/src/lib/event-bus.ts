@@ -1,7 +1,7 @@
-import { dateNow, EventTrace, LogLevel, LogEntry } from "./trace.model";
+import { dateNow, EventTrace, LogLevel, LogEntry, TRACE_TYPE_LOG } from "./trace.model";
 
 const eventTarget = new EventTarget();
-const TRACE = 'trace', EXPORT = 'export', SHUTDOW = 'shutdow';
+const TRACE = 'trace', EXPORT = 'export', SHUTDOWN = 'shutdown';
 
 export const WIN: any = window;
 
@@ -11,7 +11,7 @@ export function dispatchReport(message: string, error?: any) : void {
 
 export function dispatchLog(level: LogLevel, message: string, sessionId?: string) {
   dispatchTraces({
-    "@type": "00",
+    "@type": TRACE_TYPE_LOG,
     level: level,
     message: message,
     instant: dateNow(),
@@ -28,7 +28,7 @@ export function dispatchExport(): void {
 }
 
 export function dispatchShutown(): void {
-  eventTarget.dispatchEvent(new CustomEvent(SHUTDOW));
+  eventTarget.dispatchEvent(new CustomEvent(SHUTDOWN));
 }
 
 export function addTraceListener(fn : EventListener): void {
@@ -39,6 +39,6 @@ export function addExportListener(fn : EventListener): void {
   eventTarget.addEventListener(EXPORT, fn);
 }
 
-export function addShutdowListener(fn : EventListener): void {
-  eventTarget.addEventListener(SHUTDOW, fn);
+export function addShutdownListener(fn : EventListener): void {
+  eventTarget.addEventListener(SHUTDOWN, fn);
 }

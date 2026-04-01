@@ -1,3 +1,5 @@
+import { TRACE_TYPE_COLLECTOR_CONFIGURATION } from "./trace.model";
+
 const SLASH = '/';
 export interface CollectorConfig {
   enabled?: boolean; // default: false
@@ -132,11 +134,9 @@ export function adaptedConfig(conf: CollectorConfig) {
     ...conf.tracing,
         remote: {
       ...conf.tracing?.remote,
-          '@type':"02",
+          '@type': TRACE_TYPE_COLLECTOR_CONFIGURATION,
           retentionMaxAge : (conf.tracing?.remote?.retentionMaxAge ?? 10)  * 60 * 60 * 24
       }
     }
   }
 }
-
-

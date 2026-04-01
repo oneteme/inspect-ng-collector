@@ -1,6 +1,17 @@
-import { dateNow, ExceptionInfo, HttpRequestStage, RestRequest, RestRequestCallBack, RequestMask, UUID } from "./trace.model";
+import {
+  dateNow,
+  ExceptionInfo,
+  HttpRequestStage,
+  RestRequest,
+  RestRequestCallBack,
+  RequestMask,
+  TRACE_TYPE_HTTP_REQUEST_STAGE,
+  TRACE_TYPE_REST_REQUEST,
+  TRACE_TYPE_REST_REQUEST_CALLBACK,
+  UUID
+} from "./trace.model";
 import { dispatchTraces, dispatchReport } from "./event-bus";
-import { HttpErrorResponse, HttpHeaders, HttpRequest, HttpResponse } from "@angular/common/http";
+import { HttpErrorResponse, HttpHeaders, HttpRequest, HttpResponse, HttpResponseBase } from "@angular/common/http";
 import { SessionManager } from "./session-manager.service";
 
 export const TRACE_HEADER = 'x-tracert';
@@ -18,13 +29,13 @@ export class RestRequestMonitor {
   preProcess(restRequest: HttpRequest<any>) {
     const url = new URL(restRequest.urlWithParams, window.location.origin); //TDO check & remove toHref(restRequest.urlWithParams)
     const auth_user = extractAuthSchemeAnduser(restRequest.headers);
-    dispatchTraces({...SessionManager.instance.initRestRequest(RequestMask.REST),
-      "@type": '121', //TODO create constants
+    /*dispatchTraces({...SessionManager.instance.initRestRequest(RequestMask.REST),
+      "@type": TRACE_TYPE_REST_REQUEST,
       id: this.id,
       method: restRequest.method,
       protocol: url.protocol.slice(0, -1),
       host: exctractHost(url.host),
-      port: +url.port || -1, //TODO +undefined => 0 || -1 => -1
+      port: url.port? Number(url.port) : 0, //TODO +undefined => 0 || -1 => -1  - DONE
       path: url.pathname,
       query: url.search.slice(1, url.search.length),
       contentType: restRequest.responseType,
@@ -32,47 +43,51 @@ export class RestRequestMonitor {
       user: auth_user.user,
       dataSize: sizeOf(restRequest.body),
       start: this.start,
-    } as RestRequest);
+    } as RestRequest);*/
   }
 
-  postProcess(event: HttpResponse<any> | null, error: any) { //TODO see HttpResponseBase 
+  postProcess(response: HttpResponseBase | null, error: HttpErrorResponse | null) { //TODO see HttpResponseBase - DONE
     const end = dateNow();
     const callback: RestRequestCallBack = {
-      "@type": "121",  //TODO create constants
+      "@type": TRACE_TYPE_REST_REQUEST_CALLBACK,
       id: this.id,
       dataSize: -1,
       linked: false,
       end: end
     }
     let status: number = 0, exception!: ExceptionInfo;
-    if (event) {
-      status = +event.status;
-      callback.dataSize = sizeOf(event.body);
+
+    // HttpResponseBase couvre à la fois HttpResponse (succès) et HttpErrorResponse (erreur HTTP)
+    if (response) {
+      status = response.status;
+      callback.dataSize = response instanceof HttpResponse ? sizeOf(response.body) : -1;
+      callback.contentType = response.headers?.get('Content-Type') || undefined;
+      callback.linked = assertSessionID(this.id, response.headers);
     }
+
+    // Erreur réseau/annulation
     if (error) {
-      status = +error.status;
+      status = error.status || 0;
       exception = {
         type: error.name,
         message: error.error && error.status ? JSON.stringify(error.error) : error.message
       }
-      callback.bodyContent = error instanceof HttpErrorResponse ? JSON.stringify(error.error) : undefined;
+      callback.bodyContent = JSON.stringify(error.error);
       callback.dataSize = sizeOf(error.error);
+      callback.contentType = error.headers?.get('Content-Type') || undefined;
+      callback.linked = assertSessionID(this.id, error.headers);
     }
-    const headers: HttpHeaders = (event || error).headers;
-    if (headers) {
-      callback.linked = assertSessionID(this.id, headers);
-      callback.contentType = extractContentType(headers);
-    }
-    callback.status = +status;
-    dispatchTraces(callback, {
-      "@type": '220',
+
+    callback.status = status;
+    /*dispatchTraces(callback, {
+      "@type": TRACE_TYPE_HTTP_REQUEST_STAGE,
       name: "PROCESS",
       start: this.start, //  use request
       end: end,
       order: 0,
       exception: exception,
       requestId: this.id
-    } as HttpRequestStage);
+    } as HttpRequestStage);*/
   }
 }
 
@@ -80,23 +95,11 @@ function assertSessionID(id: string, headers: HttpHeaders) { //browser cache !?
   return headers?.get(TRACE_HEADER) == id;
 }
 
-//deprecated 
-function toHref(url: string): HTMLAnchorElement {
-  const href = document.createElement('a');
-  href.setAttribute('href', url);
-  return href;
-}
-
-function exctractHost(path: string) {
-  const portregex = /:\d+/;
-  return path.replace(portregex, '')
-}
-
 function extractAuthSchemeAnduser(headers: any): { user: string | undefined, authScheme: string | undefined } {
   const scheme = headers.has('authorization') && headers.get('authorization').match(/^(\w+) /)?.at(1);
   return {
     authScheme: scheme,
-    user: extractUser(scheme, headers.get('authorization').split(" ")[1])
+    user : scheme ?? extractUser(scheme, headers.get('authorization').split(" ")[1])
   }
 }
 
@@ -109,16 +112,19 @@ function extractUser(scheme: 'Basic' | 'Bearer', authorization: string) {
         if (parts.length == 3) {
           return JSON.parse(atob(parts[1]).toString()).sub; //TODO regex .match(/^\w+\.\w+\.(\w+) /)?.at(1)
         }
-        //TODO else report
+        //TODO report - DONE
+        dispatchReport('extractUser', `Invalid Bearer token format: expected 3 parts, got ${parts.length}`);
         return undefined;
       }
       default: {
-        //TODO report
+        //TODO report - DONE
+        dispatchReport('extractUser', `Unknown auth scheme: ${scheme}`);
       }
     }
   }
   catch (e) {
-    //TODO report
+    //TODO report - DONE
+    dispatchReport('extractUser', e);
   }
   return undefined;
 }
@@ -140,7 +146,8 @@ function sizeOf(body: any): number {
       return new Blob([JSON.stringify(body)]).size;
     }
     catch (e) {
-      //TODO report
+      //TODO report - DONE
+      dispatchReport('sizeOf', e);
     }
   }
   return -1;

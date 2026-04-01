@@ -1,6 +1,4 @@
-
-import { WIN, dispatchTraces } from "./event-bus";
-import { dateNow, LocalRequest, LocalRequestCallBack, RequestMask } from "./trace.model";
+import {LocalRequestMonitor} from "./local-request.monitor";
 
 export function TraceableStage() {
 
@@ -11,9 +9,10 @@ export function TraceableStage() {
   ) {
     const originalMethod = descriptor.value;
     descriptor.value = function (...args: any[]) {
-      const start = dateNow();
+      const monitor = new LocalRequestMonitor();
       let exception;
       try {
+        monitor.preProcess(propertyKey,target);
         return originalMethod.apply(this, args);
       } catch (e: any) {
         let type = null, message = null;
@@ -33,25 +32,12 @@ export function TraceableStage() {
         }
         throw e;
       } finally { //TODO create Monitor
-        const end = dateNow(); 
-        const id = crypto.randomUUID();
-        dispatchTraces({
-          ...WIN["inspect-session-manager"]?.initRestRequest(RequestMask.LOCAL), //TODO DUAL EVENT TRACE !!??
-          "@type": "110",
-          id: id,
-          name: propertyKey,
-          location: target.constructor.name,
-          user: WIN["inspect-session-manager"]?.currentSession?.user, //bad access
-          start: start
-        } as LocalRequest);
-        dispatchTraces({
-          "@type": "111",
-          id: id,
-          exception: exception,
-          end: end
-        } as LocalRequestCallBack);
+        monitor.postProcess(exception)
       }
     }
     return descriptor;
   }
 }
+
+
+//TOTO exception resolver

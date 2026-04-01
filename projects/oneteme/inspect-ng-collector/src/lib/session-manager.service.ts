@@ -1,11 +1,19 @@
-
 import { dispatchTraces, dispatchReport, WIN } from './event-bus';
 import { ContextManager } from "./context-manager";
-import { dateNow, MainSession, MainSessionCallBack, RequestMask, SessionMaskUpdate } from "./trace.model";
+import {
+  dateNow,
+  MainSession,
+  MainSessionCallBack,
+  RequestMask,
+  SessionMaskUpdate,
+  TRACE_TYPE_MAIN_SESSION,
+  TRACE_TYPE_MAIN_SESSION_CALLBACK,
+  TRACE_TYPE_SESSION_MASK_UPDATE
+} from "./trace.model";
 import { getStringOrCall } from "./configuration";
 
 export class SessionManager {
-  
+
   private static _instance: SessionManager;
 
   currentSession?: MainSession;
@@ -27,7 +35,7 @@ export class SessionManager {
       this.initialized = true;
       const id = crypto.randomUUID();
       this.currentSession = {
-        '@type': '10',
+        '@type': TRACE_TYPE_MAIN_SESSION,
         id: id,
         type: "VIEW",
         user: getStringOrCall(ContextManager.instance.techConfig.user),
@@ -36,7 +44,7 @@ export class SessionManager {
         requestMask: 0,
       };
       this.currentSessionCallBack = {
-        '@type': '11',
+        '@type': TRACE_TYPE_MAIN_SESSION_CALLBACK,
         id: id,
         requestMask: 0,
       }
@@ -44,7 +52,7 @@ export class SessionManager {
   }
 
   private endSession(end : number){
-    this.getCurrentSessionCallBack(call =>{ 
+    this.getCurrentSessionCallBack(call =>{
       call.end = end;
       dispatchTraces(call);
     });
@@ -82,7 +90,7 @@ export class SessionManager {
       if ((s.requestMask & mask) !== mask) {
         s.requestMask &= mask;
         dispatchTraces({
-          "@type": '03',
+          "@type": TRACE_TYPE_SESSION_MASK_UPDATE,
           id: s.id,
           main: true,
           mask: s.requestMask
@@ -97,7 +105,7 @@ export class SessionManager {
     var req = this.getCurrentSessionCallBack(s=> ({sessionId:s.id}));
     return req || {};
   }
-  
+
   addException(exception: any) {
     this.getCurrentSessionCallBack(s => s.exception = exception)
   }

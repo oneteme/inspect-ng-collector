@@ -1,6 +1,6 @@
 import { interval, startWith, tap, Subscription } from "rxjs";
 import { EventTrace } from "./trace.model";
-import { dispatchExport, addTraceListener, addShutdowListener } from "./event-bus";
+import { dispatchExport, addTraceListener, addShutdownListener } from "./event-bus";
 import { ContextManager } from "./context-manager";
 
 export function eventTraceScheduledDispatcher() {
@@ -31,8 +31,10 @@ export class EventTraceScheduledDispatcherService {
         }
       }))
       .subscribe();
-    addTraceListener(e => this.addtoQueue((e as CustomEvent).detail.traces));
-    addShutdowListener(e => this.destroy());
+    addTraceListener(e => {
+      this.addtoQueue((e as CustomEvent).detail.traces)
+    });
+    addShutdownListener(e => this.destroy());
   }
 
   Dispatch(): Promise<any> {
@@ -117,13 +119,13 @@ export class EventTraceScheduledDispatcherService {
     }
   }
 
-  async addtoQueue(...events: EventTrace[]) { //TODO why event can be null 
+  async addtoQueue(events: EventTrace[]) { //TODO why event can be null
     try {
       if (events) {
-        events.forEach(this.traceQueue.add);
+        events.forEach(event => {this.traceQueue.add(event)});
       }
     } catch (e) {
-      console.log('addtoQueue', events);
+      console.log('addtoQueue', events, e);
     }
   }
 

@@ -46,7 +46,7 @@ export class EventTraceDebugger{
       switch (trace['@type']){
         case 'main-ses':
           if(trace.end){
-            console.log(this.prettySessionFormat(SessionManager.instance.currentSession)); //TODO currentSession can be null
+           //  console.log(this.prettySessionFormat(SessionManager.instance.currentSession)); //TODO currentSession can be null
           }
           break;
         case 'http-req':
@@ -178,7 +178,7 @@ export class EventTraceDebugger{
       s+= `(${userAction.name}) `
     }
 
-    s+=  ` >> ${new Date(userAction.start*1000).toISOString()}`
+    s+=  ` >> ${new Date(userAction.instant*1000).toISOString()}`
     return s;
   }
 
