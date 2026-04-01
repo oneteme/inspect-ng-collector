@@ -15,29 +15,27 @@ export function TraceableStage() {
         monitor.preProcess(propertyKey,target);
         return originalMethod.apply(this, args);
       } catch (e: any) {
-        let type = null, message = null;
-        if (e) {
-          if (typeof e === "string") {
-            message = e;
-          } else if (e instanceof Error) {
-            type = e.name;
-            message = e.message;
-          } else {
-            message = JSON.stringify(e)
-          }
-        }
-        exception = {
-          type: type,
-          message: message
-        }
+        exception = resolveException(e);
         throw e;
-      } finally { //TODO create Monitor
-        monitor.postProcess(exception)
+      } finally {
+        monitor.postProcess(exception);
       }
     }
     return descriptor;
   }
 }
+export function resolveException(e: any): { type: string | null; message: string | null } {
+  let type = null, message = null;
+  if (e) {
+    if (typeof e === "string") {
+      message = e;
+    } else if (e instanceof Error) {
+      type = e.name;
+      message = e.message;
+    } else {
+      message = JSON.stringify(e)
+    }
+  }
+  return { type, message };
+}
 
-
-//TOTO exception resolver

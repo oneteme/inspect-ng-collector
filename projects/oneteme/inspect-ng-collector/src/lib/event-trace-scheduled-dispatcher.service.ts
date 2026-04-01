@@ -24,7 +24,7 @@ export class EventTraceScheduledDispatcherService {
         if (this.sendSessionfinished) {
           this.sendSessionfinished = false;
           dispatchExport();
-          this.Dispatch()
+          this.dispatch()
             .then(arr => this.revertQueueSize(arr))
             .catch(err => { }) //log error !?
             .finally(() => { this.sendSessionfinished = true })
@@ -37,7 +37,7 @@ export class EventTraceScheduledDispatcherService {
     addShutdownListener(e => this.destroy());
   }
 
-  Dispatch(): Promise<any> {
+  dispatch(): Promise<any> {
     if (this.instanceSaved) {
       return this.sendSessions();
     }

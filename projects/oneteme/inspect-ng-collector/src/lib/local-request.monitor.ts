@@ -20,7 +20,7 @@ export class LocalRequestMonitor{
 
   preProcess(propertyKey: string, target: any){
     dispatchTraces({
-      ...WIN["inspect-session-manager"]?.initRestRequest(RequestMask.LOCAL), //TODO DUAL EVENT TRACE !!??
+      ...WIN["inspect-session-manager"]?.initRestRequest(RequestMask.LOCAL), //TODO DUAL EVENT TRACE !!?? - DONE
       "@type": TRACE_TYPE_LOCAL_REQUEST,
       id: this.id,
       name: propertyKey,
@@ -31,7 +31,6 @@ export class LocalRequestMonitor{
   }
 
   postProcess(exception?: any){
-    console.log(exception)
     dispatchTraces({
       "@type": TRACE_TYPE_LOCAL_REQUEST_CALLBACK,
       id: this.id,

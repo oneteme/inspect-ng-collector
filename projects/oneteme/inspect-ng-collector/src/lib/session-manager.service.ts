@@ -10,7 +10,7 @@ import {
   TRACE_TYPE_MAIN_SESSION_CALLBACK,
   TRACE_TYPE_SESSION_MASK_UPDATE
 } from "./trace.model";
-import { getStringOrCall } from "./configuration";
+import {getOrCall} from "./configuration";
 
 export class SessionManager {
 
@@ -38,7 +38,7 @@ export class SessionManager {
         '@type': TRACE_TYPE_MAIN_SESSION,
         id: id,
         type: "VIEW",
-        user: getStringOrCall(ContextManager.instance.techConfig.user),
+        user: getOrCall<string>(ContextManager.instance.techConfig.user),
         start: now,
         location: url,
         requestMask: 0,

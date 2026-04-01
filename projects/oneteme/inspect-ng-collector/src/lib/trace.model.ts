@@ -6,18 +6,18 @@ export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
 export enum RequestMask { LOCAL = 1, REST = 4 }
 
-export const TRACE_TYPE_LOG = '00' as const;
-export const TRACE_TYPE_RESOURCE_USAGE = '01' as const;
-export const TRACE_TYPE_COLLECTOR_CONFIGURATION = '02' as const;
-export const TRACE_TYPE_SESSION_MASK_UPDATE = '03' as const;
-export const TRACE_TYPE_MAIN_SESSION = '10' as const;
-export const TRACE_TYPE_MAIN_SESSION_CALLBACK = '11' as const;
-export const TRACE_TYPE_LOCAL_REQUEST = '110' as const;
-export const TRACE_TYPE_LOCAL_REQUEST_CALLBACK = '111' as const;
-export const TRACE_TYPE_REST_REQUEST = '120' as const;
-export const TRACE_TYPE_REST_REQUEST_CALLBACK = '121' as const;
-export const TRACE_TYPE_HTTP_REQUEST_STAGE = '220' as const;
-export const TRACE_TYPE_USER_ACTION = '300' as const;
+export const TRACE_TYPE_LOG = '00';
+export const TRACE_TYPE_RESOURCE_USAGE = '01';
+export const TRACE_TYPE_COLLECTOR_CONFIGURATION = '02';
+export const TRACE_TYPE_SESSION_MASK_UPDATE = '03';
+export const TRACE_TYPE_MAIN_SESSION = '10';
+export const TRACE_TYPE_MAIN_SESSION_CALLBACK = '11';
+export const TRACE_TYPE_LOCAL_REQUEST = '110';
+export const TRACE_TYPE_LOCAL_REQUEST_CALLBACK = '111';
+export const TRACE_TYPE_REST_REQUEST = '120';
+export const TRACE_TYPE_REST_REQUEST_CALLBACK = '121';
+export const TRACE_TYPE_HTTP_REQUEST_STAGE = '220';
+export const TRACE_TYPE_USER_ACTION = '300';
 
 export type TraceType =
   | typeof TRACE_TYPE_LOG

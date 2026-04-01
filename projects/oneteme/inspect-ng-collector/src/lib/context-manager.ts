@@ -1,7 +1,6 @@
 import {
   adaptedConfig,
-  CollectorConfig,
-  getStringOrCall,
+  CollectorConfig, getOrCall,
   require,
   validateAndGetConfig
 } from "./configuration";
@@ -10,11 +9,14 @@ import { dispatchReport } from "./event-bus";
 
 export const SLASH = '/';
 
+export function ContextManger(conf: CollectorConfig){
+  let id = crypto.randomUUID();
+  return ContextManager._instance = new ContextManager(createInstance(conf, id), validateAndGetConfig(conf, id));
+}
+
 export class ContextManager {
+   static _instance: ContextManager;
 
-  private static _instance: ContextManager;
-
-  // private readonly config : CollectorConfig; 
 
   constructor(private readonly _instanceEnv: any, private readonly _techConfig: any) {
   }
@@ -31,11 +33,6 @@ export class ContextManager {
       console.warn("[Inspect-ng-collector] Error while initializing ContextManager");
     }
     return ContextManager._instance;
-  }
-
-  static init(conf: CollectorConfig) { //TODO function
-    let id = crypto.randomUUID();
-    return ContextManager._instance = new ContextManager(createInstance(conf, id), validateAndGetConfig(conf, id));
   }
 
 }
@@ -105,10 +102,10 @@ export function createInstance(conf: CollectorConfig, instanceId: string): Insta
   return {
     id: instanceId,
     instant: dateNow(),
-    name: require(getStringOrCall(conf?.monitoring?.name), 'name'),
-    version: getStringOrCall(conf?.monitoring?.version),
+    name: require(getOrCall<string>(conf?.monitoring?.name), 'name'),
+    version: getOrCall<string>(conf?.monitoring?.version),
     address: getClientID(), //server side
-    env: require(getStringOrCall(conf?.monitoring?.env), 'env'),
+    env: require(getOrCall<string>(conf?.monitoring?.env), 'env'),
     os: detectOs(),
     re: detectBrowser(),
     user: undefined, // cannot get user
