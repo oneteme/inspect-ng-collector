@@ -18,7 +18,7 @@ export class SessionManager {
 
   currentSession?: MainSession;
   currentSessionCallBack?: MainSessionCallBack;
-  initialized: boolean = false;
+  initialized: boolean = false; //TODO never read
 
   static get instance(): SessionManager {
     if (!SessionManager._instance) {
