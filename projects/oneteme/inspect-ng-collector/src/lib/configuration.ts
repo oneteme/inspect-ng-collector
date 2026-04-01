@@ -2,7 +2,6 @@ import { TRACE_TYPE_COLLECTOR_CONFIGURATION } from "./trace.model";
 
 type Provider<T> = T | (() => T);
 
-const SLASH = '/';
 const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
 
 export interface CollectorConfig {
@@ -31,6 +30,7 @@ export interface CollectorConfig {
     storage?: {
       enabled: boolean // default: false
     }
+    //TODO move this
     name: Provider<string>;
     version?: Provider<string>;
     env?: Provider<string>;
@@ -38,7 +38,7 @@ export interface CollectorConfig {
     additionalProperties: ()=> {[key:string]: any};
   };
   tracing?: {
-    queueCapacity?: number; // default: 10000
+    queueCapacity?: number; // default: 1000
     remote?: {
       '@type'?: string;
       mode?: string; // default: null
@@ -67,10 +67,6 @@ export function getOrCall<T>(o?: Provider<T>): T | undefined {
   return typeof o === "function" ? (o as () => T)() : o;
 }
 
-function toURL(host:string, path:string ){
-   return host.endsWith(SLASH) || path.startsWith(SLASH) ? host + path : [host,path].join(SLASH);
-}
-
 export function matchRegex(v: string | undefined,  name: string, pattern: RegExp, defaultValue?: string) {
   if(v && pattern.exec(v)){
      return v;
@@ -96,7 +92,7 @@ export function requirePostitiveValue(v: number | undefined, name: string, defau
 }
 
 export function require(v: string | undefined, name: string){
-  if(v!= undefined){
+  if(v != undefined){
     return v;
   }
   throw new Error(`${name} property is required`);
@@ -112,14 +108,14 @@ export function adaptedConfig(conf: CollectorConfig) {
     monitoring: {
   ...conf.monitoring,
       additionalProperties :String(conf.monitoring?.additionalProperties),
-      name: String(conf.monitoring?.name),
-      version: String(conf.monitoring?.version),
-      env: String(conf.monitoring?.env),
-      user: String(conf.monitoring?.user),
+      name: String(conf.monitoring?.name), //TODO getOrCall !?
+      version: String(conf.monitoring?.version), //TODO getOrCall !?
+      env: String(conf.monitoring?.env), //TODO getOrCall !?
+      user: String(conf.monitoring?.user), //TODO getOrCall !?
       httpRoute: {
     ...conf.monitoring?.httpRoute,
         excludes: {
-        path: (conf?.monitoring?.httpRoute?.excludes?.path as RegExp[]).map(r => r.source)
+        path: (conf?.monitoring?.httpRoute?.excludes?.path as RegExp[]).map(r => r.source) //TODO getOrCall !?
       }
     }
   },
@@ -134,20 +130,20 @@ export function adaptedConfig(conf: CollectorConfig) {
   }
 }
 
-export function validateAndGetConfig(conf: CollectorConfig, instanceId: string): TechnicalConf {
+export function validateAndGetConfig(conf: CollectorConfig, instanceId: string) : TechnicalConf {
   const host = matchRegex(getOrCall<string>(conf?.tracing?.remote?.host), "host", HOST_PATERN);
   return {
     user: conf?.monitoring?.user,
     queueCapacity: requirePostitiveValue(getOrCall<number>(conf?.tracing?.queueCapacity), "queueCapacity", 1000),
     interval: requirePostitiveValue(getOrCall<number>(conf?.scheduling?.interval), "interval", 60000),
-    instanceApi: toURL(host, 'v4/trace/instance'),
-    sessionApi: toURL(host, `v4/trace/instance/${instanceId}/session`),
+    instanceApi: new URL('v4/trace/instance', host).href,
+    sessionApi : new URL(`v4/trace/instance/${instanceId}/session`, host).href,
     exclude: getOrCall<RegExp[]>(conf?.monitoring?.httpRoute?.excludes?.path) || [],
     hostExcludes: conf?.monitoring?.httpRequest?.excludes?.host || [],
-    debugMode: conf.debugMode ?? false,
-    analytics: conf?.monitoring?.analytics?.enabled ?? false,
-    resources: conf?.monitoring?.resources?.enabled ?? false,
-    storage: conf?.monitoring?.storage?.enabled ?? false,
-    enabled: conf.enabled ?? false
+    debugMode: !!conf.debugMode ?? false,
+    analytics: !!conf?.monitoring?.analytics?.enabled,
+    resources: !!conf?.monitoring?.resources?.enabled,
+    storage: !!conf?.monitoring?.storage?.enabled,
+    enabled: !!conf.enabled
   }
 }

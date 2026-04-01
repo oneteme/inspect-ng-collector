@@ -1,7 +1,7 @@
 import {dispatchLog} from './event-bus';
 import {SessionManager} from "./session-manager.service";
 
-export class LogService {
+export class InspectLogger {
   static info(message: string) {
     if (message) {
       dispatchLog("INFO", message, SessionManager.instance?.currentSessionID());

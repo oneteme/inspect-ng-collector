@@ -34,7 +34,7 @@ export class RestRequestMonitor {
       id: this.id,
       method: restRequest.method,
       protocol: url.protocol.slice(0, -1),
-      host: exctractHost(url.host),
+      host: exctractHost(url.host), //use hostname
       port: url.port? Number(url.port) : 0, //TODO +undefined => 0 || -1 => -1  - DONE
       path: url.pathname,
       query: url.search.slice(1, url.search.length),

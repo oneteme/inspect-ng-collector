@@ -88,7 +88,7 @@ export class SessionManager {
   initRestRequest(mask: RequestMask){
     var req = this.getCurrentSessionCallBack(s=>{
       if ((s.requestMask & mask) !== mask) {
-        s.requestMask &= mask;
+        s.requestMask |= mask;
         dispatchTraces({
           "@type": TRACE_TYPE_SESSION_MASK_UPDATE,
           id: s.id,

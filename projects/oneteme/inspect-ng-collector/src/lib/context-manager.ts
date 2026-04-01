@@ -7,19 +7,11 @@ import {
 import { InstanceEnvironment, dateNow } from "./trace.model";
 import { dispatchReport } from "./event-bus";
 
-export const SLASH = '/';
-
-export function ContextManger(conf: CollectorConfig){
-  let id = crypto.randomUUID();
-  return ContextManager._instance = new ContextManager(createInstance(conf, id), validateAndGetConfig(conf, id));
-}
-
 export class ContextManager {
-   static _instance: ContextManager;
+   
+  static _instance: ContextManager;
 
-
-  constructor(private readonly _instanceEnv: any, private readonly _techConfig: any) {
-  }
+  constructor(private readonly _instanceEnv: any, private readonly _techConfig: any) {}
 
   get techConfig(): any {
     return this._techConfig;
@@ -36,6 +28,26 @@ export class ContextManager {
   }
 
 }
+
+function createInstance(conf: CollectorConfig, instanceId: string): InstanceEnvironment {
+  return {
+    id: instanceId,
+    instant: dateNow(),
+    name: require(getOrCall<string>(conf?.monitoring?.name), 'configuration.name'),
+    version: getOrCall<string>(conf?.monitoring?.version),
+    address: getClientID(), //server side
+    env: require(getOrCall<string>(conf?.monitoring?.env), 'env'),
+    os: detectOs(),
+    re: detectBrowser(),
+    user: undefined, // cannot get user
+    type: "CLIENT",
+    collector: "inspect-ng-collector-0.0.1",
+    resource: { maxHeap: (('memory' in performance) && (performance as any).memory.jsHeapSizeLimit / (1024 * 1024)) || undefined },
+    additionalProperties: conf?.monitoring?.additionalProperties(),
+    configuration: adaptedConfig(conf)
+  } 
+}
+
 function getClientID() {
   let cid = localStorage.getItem("jarvis.inspect.cid");
   if (!cid) {
@@ -44,11 +56,32 @@ function getClientID() {
   return cid;
 }
 
-function toURL(host: string, path: string) {
-  return host.endsWith(SLASH) || path.startsWith(SLASH) ? host + path : [host, path].join(SLASH);
+function detectOs() {
+  try {
+    let versionMatch, version;
+    const agent = window.navigator.userAgent.toLowerCase() //TODO see also  https://developer.mozilla.org/en-US/docs/Web/API/Navigator/userAgentData 
+    switch (true) {
+      case (/windows/.test(agent)):
+        versionMatch = /windows nt (\d+\.\d+)/.exec(agent);
+        version = versionMatch ? versionMatch[1] : '?';
+        return `Windows ${version}`;
+      case (/linux/.test(agent)):
+        return 'Linux';
+
+      case (/macintosh/.test(agent)):
+        versionMatch = /mac os x (\d+[._]\d+[._]\d+)/.exec(agent);
+        version = versionMatch ? versionMatch[1] : '?';
+        return `MacOs ${version}`
+    }
+  }
+  catch (e) {
+    console.error(e); //TODO report
+    dispatchReport("ContextManager.detectBrowser", JSON.stringify(e))  // TODO cannot report here the event dispatcher is not initialized yet, maybe store it and dispatch it at initialization ?
+  }
+  return undefined;
 }
 
-export function detectBrowser() {
+function detectBrowser() {
   try {
     const agent = window.navigator.userAgent.toLowerCase()
     switch (true) {
@@ -73,46 +106,7 @@ export function detectBrowser() {
   return undefined;
 }
 
-export function detectOs() {
-  try {
-    let versionMatch, version;
-    const agent = window.navigator.userAgent.toLowerCase()
-    switch (true) {
-      case (/windows/.test(agent)):
-        versionMatch = /windows nt (\d+\.\d+)/.exec(agent);
-        version = versionMatch ? versionMatch[1] : '?';
-        return `Windows ${version}`;
-      case (/linux/.test(agent)):
-        return 'Linux';
-
-      case (/macintosh/.test(agent)):
-        versionMatch = /mac os x (\d+[._]\d+[._]\d+)/.exec(agent);
-        version = versionMatch ? versionMatch[1] : '?';
-        return `MacOs ${version}`
-    }
-  }
-  catch (e) {
-    console.error(e); //TODO report
-    dispatchReport("ContextManager.detectBrowser", JSON.stringify(e))  // TODO cannot report here the event dispatcher is not initialized yet, maybe store it and dispatch it at initialization ?
-  }
-  return undefined;
-}
-
-export function createInstance(conf: CollectorConfig, instanceId: string): InstanceEnvironment {
-  return {
-    id: instanceId,
-    instant: dateNow(),
-    name: require(getOrCall<string>(conf?.monitoring?.name), 'name'),
-    version: getOrCall<string>(conf?.monitoring?.version),
-    address: getClientID(), //server side
-    env: require(getOrCall<string>(conf?.monitoring?.env), 'env'),
-    os: detectOs(),
-    re: detectBrowser(),
-    user: undefined, // cannot get user
-    type: "CLIENT",
-    collector: "inspect-ng-collector-0.0.1",
-    resource: { maxHeap: (('memory' in performance) && (performance as any).memory.jsHeapSizeLimit / (1024 * 1024)) || undefined },
-    additionalProperties: conf?.monitoring?.additionalProperties(),
-    configuration: adaptedConfig(conf)
-  }
+export function ContextManger(conf: CollectorConfig){
+  let id = crypto.randomUUID();
+  return ContextManager._instance = new ContextManager(createInstance(conf, id), validateAndGetConfig(conf, id));
 }
