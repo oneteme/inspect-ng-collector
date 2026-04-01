@@ -29,7 +29,7 @@ export class RestRequestMonitor {
   preProcess(restRequest: HttpRequest<any>) {
     const url = new URL(restRequest.urlWithParams, window.location.origin); //TDO check & remove toHref(restRequest.urlWithParams)
     const auth_user = extractAuthSchemeAnduser(restRequest.headers);
-    /*dispatchTraces({...SessionManager.instance.initRestRequest(RequestMask.REST),
+    dispatchTraces({...SessionManager.instance.initRestRequest(RequestMask.REST),
       "@type": TRACE_TYPE_REST_REQUEST,
       id: this.id,
       method: restRequest.method,
@@ -43,7 +43,7 @@ export class RestRequestMonitor {
       user: auth_user.user,
       dataSize: sizeOf(restRequest.body),
       start: this.start,
-    } as RestRequest);*/
+    } as RestRequest);
   }
 
   postProcess(response: HttpResponseBase | null, error: HttpErrorResponse | null) { //TODO see HttpResponseBase - DONE
@@ -61,7 +61,7 @@ export class RestRequestMonitor {
     if (response) {
       status = response.status;
       callback.dataSize = response instanceof HttpResponse ? sizeOf(response.body) : -1;
-      callback.contentType = response.headers?.get('Content-Type') || undefined;
+      callback.contentType = extractContentType(response.headers);
       callback.linked = assertSessionID(this.id, response.headers);
     }
 
@@ -74,12 +74,12 @@ export class RestRequestMonitor {
       }
       callback.bodyContent = JSON.stringify(error.error);
       callback.dataSize = sizeOf(error.error);
-      callback.contentType = error.headers?.get('Content-Type') || undefined;
+      callback.contentType = extractContentType(error.headers);
       callback.linked = assertSessionID(this.id, error.headers);
     }
 
     callback.status = status;
-    /*dispatchTraces(callback, {
+    dispatchTraces(callback, {
       "@type": TRACE_TYPE_HTTP_REQUEST_STAGE,
       name: "PROCESS",
       start: this.start, //  use request
@@ -87,7 +87,7 @@ export class RestRequestMonitor {
       order: 0,
       exception: exception,
       requestId: this.id
-    } as HttpRequestStage);*/
+    } as HttpRequestStage);
   }
 }
 
@@ -138,6 +138,11 @@ function extractContentType(headers: any): string | undefined {
     dispatchReport('extractContentType', err);
   }
   return undefined;
+}
+
+function exctractHost(path: string) {
+  const portregex = /:\d+/;
+  return path.replace(portregex, '')
 }
 
 function sizeOf(body: any): number {

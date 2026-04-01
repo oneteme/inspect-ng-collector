@@ -8,7 +8,7 @@ import {
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
 import { HttpInterceptorService } from './http-interceptor.service';
 import { GlobalErrorHandler } from "./global-error-handler.service";
-import { ContextManager } from "./context-manager";
+import {ContextManager, ContextManger} from "./context-manager";
 import { CollectorConfig } from "./configuration";
 import {
   eventTraceScheduledDispatcher,
@@ -25,12 +25,12 @@ const COLLECTOR_CONFIG = new InjectionToken<CollectorConfig>('COLLECTOR_CONFIG')
 
 @NgModule()
 export class NgCollectorModule {
-  
+
   static forRoot(configuration: CollectorConfig): ModuleWithProviders<NgCollectorModule> {
     const providers = [];
     if (configuration?.enabled) {
       try {
-        providers.push(            
+        providers.push(
           { provide: COLLECTOR_CONFIG, useValue: configuration },
           { provide: APP_INITIALIZER, useFactory: initializeEventsFactory, deps: [COLLECTOR_CONFIG, Router], multi: true },
           { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
@@ -45,7 +45,7 @@ export class NgCollectorModule {
 
 export function initializeEventsFactory(config: CollectorConfig, router: Router) {
   return () => {
-    ContextManager.init(config);
+    ContextManger(config);
     eventTraceScheduledDispatcher();
     eventTraceDebugger();
     if (ContextManager.instance.techConfig.analytics) {
@@ -57,7 +57,7 @@ export function initializeEventsFactory(config: CollectorConfig, router: Router)
     initNavigationMonitor(router);
     //storageEventListener();
     addReloadListener(e=>{
-      ContextManager.init(config);
+      ContextManger(config);
       eventTraceScheduledDispatcher();
     });
   }
