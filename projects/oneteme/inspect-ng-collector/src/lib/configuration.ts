@@ -67,7 +67,6 @@ export function getOrCall<T>(o?: Provider<T>): T | undefined {
   return typeof o === "function" ? (o as () => T)() : o;
 }
 
-
 function toURL(host:string, path:string ){
    return host.endsWith(SLASH) || path.startsWith(SLASH) ? host + path : [host,path].join(SLASH);
 }
@@ -136,15 +135,13 @@ export function adaptedConfig(conf: CollectorConfig) {
 }
 
 export function validateAndGetConfig(conf: CollectorConfig, instanceId: string): TechnicalConf {
-  let host = matchRegex(getOrCall<string>(conf?.tracing?.remote?.host), "host", HOST_PATERN)
-  let sessionApi = "v4/trace/instance/:id/session"
-  let instanceApi = "v4/trace/instance"
+  const host = matchRegex(getOrCall<string>(conf?.tracing?.remote?.host), "host", HOST_PATERN);
   return {
     user: conf?.monitoring?.user,
     queueCapacity: requirePostitiveValue(getOrCall<number>(conf?.tracing?.queueCapacity), "queueCapacity", 1000),
     interval: requirePostitiveValue(getOrCall<number>(conf?.scheduling?.interval), "interval", 60000),
-    instanceApi: toURL(host, instanceApi),
-    sessionApi: toURL(host, sessionApi).replace(':id', instanceId),
+    instanceApi: toURL(host, 'v4/trace/instance'),
+    sessionApi: toURL(host, `v4/trace/instance/${instanceId}/session`),
     exclude: getOrCall<RegExp[]>(conf?.monitoring?.httpRoute?.excludes?.path) || [],
     hostExcludes: conf?.monitoring?.httpRequest?.excludes?.host || [],
     debugMode: conf.debugMode ?? false,

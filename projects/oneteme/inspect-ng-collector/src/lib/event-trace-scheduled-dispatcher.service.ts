@@ -79,7 +79,7 @@ class EventTraceScheduledDispatcherService {
         }
         console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`);
         if (res.status >= 400 && res.status < 500) {
-          return traces;
+          return traces; //bad request !?
         }
         return res.json()
           .then(body => body?.retry ? traces : EMPTY_ARRAY)

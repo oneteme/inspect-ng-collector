@@ -8,7 +8,7 @@ import {
 } from "./trace.model";
 import {dispatchTraces, WIN} from "./event-bus";
 
-export class LocalRequestMonitor{
+export class LocalRequestMonitor {
 
   readonly id: UUID;
   readonly start: number;
