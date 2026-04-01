@@ -1,7 +1,8 @@
-import { dispatchTraces, dispatchReport, WIN } from './event-bus';
+import { dispatchTraces, dispatchReport, WIN, dispatchLog } from './event-bus';
 import { ContextManager } from "./context-manager";
 import {
   dateNow,
+  LogLevel,
   MainSession,
   MainSessionCallBack,
   RequestMask,
@@ -108,5 +109,23 @@ export class SessionManager {
 
   addException(exception: any) {
     this.getCurrentSessionCallBack(s => s.exception = exception)
+  }
+
+  info(message: string) {
+    this.log("INFO", message);
+  }
+
+  warn(message: string) {
+    this.log("WARN", message);
+  }
+  
+  error(message: string) {
+    this.log("ERROR", message);
+  }
+
+  private log(level: LogLevel, message: string){
+    if (message) {
+      this.getCurrentSessionCallBack(s=> dispatchLog(level, message, s.id));
+    }
   }
 }
