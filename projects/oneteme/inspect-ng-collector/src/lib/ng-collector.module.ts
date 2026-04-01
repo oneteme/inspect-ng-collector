@@ -21,7 +21,7 @@ import { initNavigationMonitor } from './navigation.monitor';
 import { initResourceUsageMonitor } from './resource-usage.monitor';
 import { addReloadListener } from './event-bus';
 
-export const COLLECTOR_CONFIG = new InjectionToken<CollectorConfig>('COLLECTOR_CONFIG');
+const COLLECTOR_CONFIG = new InjectionToken<CollectorConfig>('COLLECTOR_CONFIG');
 
 @NgModule()
 export class NgCollectorModule {

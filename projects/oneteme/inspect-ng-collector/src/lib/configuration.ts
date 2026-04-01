@@ -39,7 +39,6 @@ export interface CollectorConfig {
   };
   tracing?: {
     queueCapacity?: number; // default: 10000
-    delayIfPending?: number; // default: 30
     remote?: {
       '@type'?: string;
       mode?: string; // default: null
