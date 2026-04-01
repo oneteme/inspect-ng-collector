@@ -144,7 +144,7 @@ export function adaptedConfig(conf: CollectorConfig) {
 export const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
 
 
-function validateAndGetConfig(conf: CollectorConfig, instanceId: string): TechnicalConf {
+export function validateAndGetConfig(conf: CollectorConfig, instanceId: string): TechnicalConf {
   let host = matchRegex(getStringOrCall(conf?.tracing?.remote?.host), "host", HOST_PATERN)
   let sessionApi = "v4/trace/instance/:id/session"
   let instanceApi = "v4/trace/instance"
