@@ -1,6 +1,9 @@
 import { TRACE_TYPE_COLLECTOR_CONFIGURATION } from "./trace.model";
 
+type Provider<T> = T | (()=>T);
+
 const SLASH = '/';
+const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
 
 export interface CollectorConfig {
   enabled?: boolean; // default: false
@@ -11,7 +14,7 @@ export interface CollectorConfig {
   monitoring?: {
     httpRoute?: {
       excludes?: {
-        path?: RegExp[] | (() => RegExp[]); // replace this with string[]
+        path?: Provider<RegExp[]>; // replace this with string[]
       };
     };
     httpRequest?: {
@@ -28,10 +31,10 @@ export interface CollectorConfig {
     storage?: {
       enabled: boolean // default: false
     }
-    name: string | (() => string);
-    version?: string | (() => string);
-    env?: string | (() => string);
-    user?: string | (() => string);
+    name: Provider<string>;
+    version?: Provider<string>;
+    env?: Provider<string>;
+    user?: Provider<string>;
     additionalProperties: ()=> {[key:string]: any};
   };
   tracing?: {
@@ -47,7 +50,7 @@ export interface CollectorConfig {
 }
 
 export interface TechnicalConf {
-  user?: string | (() => string);
+  user?: Provider<string>;
   queueCapacity: number;
   interval: number;
   instanceApi: string;
@@ -61,16 +64,15 @@ export interface TechnicalConf {
   enabled: boolean;
 }
 
-
-export function getNumberOrCall(o?: number | (() => number)): number | undefined {
+export function getNumberOrCall(o?: Provider<number>): number | undefined {
   return typeof o === "function" ? o() : o;
 }
 
-export function getStringOrCall(o?: string | (() => string)): string | undefined {
+export function getStringOrCall(o?: Provider<string>): string | undefined {
   return typeof o === "function" ? o() : o;
 }
 
-export function getRegArrOrCall(o?: RegExp[] | (() => RegExp[])): RegExp[] | undefined {
+export function getRegArrOrCall(o?: Provider<RegExp[]>): RegExp[] | undefined {
   return typeof o === "function" ? o() : o;
 }
 
@@ -140,9 +142,6 @@ export function adaptedConfig(conf: CollectorConfig) {
     }
   }
 }
-
-export const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
-
 
 export function validateAndGetConfig(conf: CollectorConfig, instanceId: string): TechnicalConf {
   let host = matchRegex(getStringOrCall(conf?.tracing?.remote?.host), "host", HOST_PATERN)

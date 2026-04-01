@@ -101,7 +101,6 @@ export function detectOs() {
   return undefined;
 }
 
-
 export function createInstance(conf: CollectorConfig, instanceId: string): InstanceEnvironment {
   return {
     id: instanceId,
