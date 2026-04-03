@@ -34,7 +34,7 @@ export class RestRequestMonitor {
       id: this.id,
       method: restRequest.method,
       protocol: url.protocol.slice(0, -1),
-      host: exctractHost(url.host), //try hostname instead
+      host: url.hostname,
       port: url.port? Number(url.port) : 0, //TODO +undefined => 0 || -1 => -1  - DONE
       path: url.pathname,
       query: url.search.slice(1, url.search.length),
@@ -138,11 +138,6 @@ function extractContentType(headers: any): string | undefined {
     dispatchReport('extractContentType', err);
   }
   return undefined;
-}
-
-function exctractHost(path: string) {
-  const portregex = /:\d+/;
-  return path.replace(portregex, '')
 }
 
 function sizeOf(body: any): number {

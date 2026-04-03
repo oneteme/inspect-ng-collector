@@ -7,11 +7,11 @@ import {
   UserAction
 } from "./trace.model";
 import {dispatchReport, WIN, addTraceListener} from "./event-bus";
-import {ContextManager} from "./context-manager";
 import {SessionManager} from "./session-manager.service";
+import {TechnicalConf} from "./configuration";
 
-export function eventTraceDebugger(){
-  EventTraceDebugger._instance = new EventTraceDebugger();
+export function eventTraceDebugger(tech: TechnicalConf){
+  EventTraceDebugger._instance = new EventTraceDebugger(tech);
 }
 
 export class EventTraceDebugger{
@@ -22,18 +22,17 @@ export class EventTraceDebugger{
   localRequests: LocalRequest[] = [];
   userActions: UserAction[] = [];
   logEntries: LogEntry[] = [];
-  constructor() {
+  constructor(private readonly _techConfig: TechnicalConf) {
     try {
-      if (ContextManager.instance.techConfig.debugMode || WIN['inspect']) {
+      if (this._techConfig.debugMode || WIN['inspect']) {
         addTraceListener(this.handleTraces)
       }
       WIN["inspect-setup"] =  {
         init:() => {
           WIN['inspect'] = true;
-          EventTraceDebugger.init();
-        },
-        printConfig: () => console.log(ContextManager.instance.techConfig),
-        printInstance: () => console.log(ContextManager.instance)
+          EventTraceDebugger.init(_techConfig);
+    },
+        printConfig: () => console.log(this._techConfig),
       }
     } catch (e) {
       dispatchReport("EventTraceDebugger.constructor", e);
@@ -46,7 +45,7 @@ export class EventTraceDebugger{
       switch (trace['@type']){
         case 'main-ses':
           if(trace.end){
-           //  console.log(this.prettySessionFormat(SessionManager.instance.currentSession)); //TODO currentSession can be null
+           // console.log(this.prettySessionFormat(SessionManager.instance.currentSession)); //TODO currentSession can be null
           }
           break;
         case 'http-req':
@@ -71,8 +70,8 @@ export class EventTraceDebugger{
     }
   }
 
-  static init(){
-    return EventTraceDebugger._instance = new EventTraceDebugger();
+  static init(tech: TechnicalConf){
+    return EventTraceDebugger._instance = new EventTraceDebugger(tech);
   }
 
   prettySessionFormat(session: MainSession){

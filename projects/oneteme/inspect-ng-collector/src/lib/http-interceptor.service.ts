@@ -1,20 +1,23 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject, InjectionToken, Optional } from '@angular/core';
 import { HttpInterceptor, HttpEvent, HttpHandler, HttpRequest, HttpResponse, HttpErrorResponse, HttpResponseBase } from '@angular/common/http';
 import { finalize, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators'
 import { RestRequestMonitor, TRACE_HEADER } from "./rest-request.monitor";
-import { ContextManager } from "./context-manager";
+import { TechnicalConf } from "./configuration";
+
+export const COLLECTOR_CONFIG = new InjectionToken<TechnicalConf>('COLLECTOR_CONFIG');
 
 @Injectable({ providedIn: 'root' })
 export class HttpInterceptorService implements HttpInterceptor {
 
-  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+  constructor(@Inject(COLLECTOR_CONFIG) private readonly techConfig: TechnicalConf) {}
 
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const monitor = new RestRequestMonitor();
     monitor.preProcess(req);
 
     const host = new URL(req.url, window.location.origin).host;
-    if (!ContextManager.instance.techConfig.hostExcludes?.some((e: any) => e == host)) { //TODO some comment why excludes URL
+    if (!this.techConfig.hostExcludes?.some((e: any) => e == host)) { //TODO some comment why excludes URL
       req = req.clone({ headers: req.headers.set(TRACE_HEADER, monitor.id) });
     }
 

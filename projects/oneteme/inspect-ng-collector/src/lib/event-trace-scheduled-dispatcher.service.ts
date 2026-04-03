@@ -1,7 +1,7 @@
 import { interval, startWith, tap, Subscription } from "rxjs";
-import { EventTrace } from "./trace.model";
-import { dispatchExport, addTraceListener, addShutdownListener } from "./event-bus";
-import { ContextManager } from "./context-manager";
+import {EventTrace, InstanceEnvironment} from "./trace.model";
+import { dispatchExport, addTraceListener, addShutdownListener, dispatchReport } from "./event-bus";
+import {TechnicalConf} from "./configuration";
 
 const EMPTY_ARRAY : EventTrace[] = <[]>Object.freeze([]);
 
@@ -15,18 +15,21 @@ class EventTraceScheduledDispatcherService {
   dispatchAttempts: number = 0
   dispatching: boolean = false;
   instanceDispatched: boolean = false;
-  wasDestroyed : boolean = false
+  wasDestroyed : boolean = false;
 
-  constructor() {
-    this.subscription = interval(ContextManager.instance.techConfig.interval)
+  instance?: InstanceEnvironment ;
+  constructor(private readonly _techConfig: TechnicalConf) {
+    console.log('test scheduled dispatcher')
+    this.subscription = interval(_techConfig.interval)
       .pipe(startWith(0))
       .pipe(tap(() => {
-        if (!this.dispatching && !this.wasDestroyed) {
+        console.log(this.instance)
+        if (!this.dispatching && !this.wasDestroyed && this.instance) {
           this.dispatching = true;
           dispatchExport();
           this.dispatch()
             .then(arr => this.revertQueueSize(arr))
-            .catch(err => console.log('TODO'))
+            .catch(err => dispatchReport('EventTraceScheduledDispatcher.dispatch', err))
             .finally(() => { this.dispatching = false })
         }
       }))
@@ -39,6 +42,11 @@ class EventTraceScheduledDispatcherService {
     if(!this.wasDestroyed){
       events?.forEach(event => this.traceQueue.push(event));
     }
+  }
+
+  trace(instance: InstanceEnvironment) {
+    console.log(instance)
+    this.instance = instance;
   }
 
   dispatch(): Promise<any> {
@@ -59,7 +67,7 @@ class EventTraceScheduledDispatcherService {
     if (this.traceQueue.length === 0) {
       return Promise.resolve(EMPTY_ARRAY);
     }
-    let uri = ContextManager.instance.techConfig.sessionApi + "?attempts=" + ++this.dispatchAttempts;
+    let uri = this._techConfig.sessionApi + "?attempts=" + ++this.dispatchAttempts;
     if (destroy) {
       uri += "&end=" + new Date().toISOString();
     }
@@ -93,12 +101,12 @@ class EventTraceScheduledDispatcherService {
 
   dispatchInstance(): Promise<boolean> {
     this.dispatchAttempts++;
-    return fetch(ContextManager.instance.techConfig.instanceApi, {
+    return fetch(this._techConfig.instanceApi, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       mode: 'cors',
       keepalive: true,
-      body: JSON.stringify(ContextManager.instance.instanceEnv)
+      body: JSON.stringify(this.instance)
     })
       .then(res => res.ok ? res.text().then(id => {
         this.dispatchAttempts = 0;
@@ -110,8 +118,8 @@ class EventTraceScheduledDispatcherService {
   revertQueueSize(traces: EventTrace[]) {
     if(!this.wasDestroyed){
       this.traceQueue.unshift(...traces);
-      if (this.traceQueue.length > ContextManager.instance.techConfig.queueCapacity) {
-        this.traceQueue.splice(ContextManager.instance.techConfig.queueCapacity);
+      if (this.traceQueue.length > this._techConfig.queueCapacity) {
+        this.traceQueue.splice(this._techConfig.queueCapacity);
       }
     }
   }
@@ -124,6 +132,6 @@ class EventTraceScheduledDispatcherService {
   }
 }
 
-export function eventTraceScheduledDispatcher() {
-  return EventTraceScheduledDispatcherService._instance = new EventTraceScheduledDispatcherService();
+export function eventTraceScheduledDispatcher(tech: TechnicalConf): EventTraceScheduledDispatcherService {
+  return EventTraceScheduledDispatcherService._instance = new EventTraceScheduledDispatcherService(tech);
 }

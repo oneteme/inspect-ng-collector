@@ -1,9 +1,10 @@
-import { ContextManager } from "./context-manager";
-import { dispatchReport } from "./event-bus";
 
-export function storageEventListener() {
+import { dispatchReport } from "./event-bus";
+import {TechnicalConf} from "./configuration";
+
+export function storageEventListener(tech: TechnicalConf) {
   try {
-    if (ContextManager.instance.techConfig.storage) {
+    if (tech.storage) {
       addEventListener("storage", (event) => {
         let storageType = event.storageArea == window.localStorage ? 'localStorage'
           : event.storageArea == window.sessionStorage ? 'sessionStorage'

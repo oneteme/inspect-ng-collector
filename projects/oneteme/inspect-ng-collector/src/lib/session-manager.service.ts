@@ -1,5 +1,4 @@
 import { dispatchTraces, dispatchReport, WIN, dispatchLog } from './event-bus';
-import { ContextManager } from "./context-manager";
 import {
   dateNow,
   LogLevel,
@@ -11,21 +10,18 @@ import {
   TRACE_TYPE_MAIN_SESSION_CALLBACK,
   TRACE_TYPE_SESSION_MASK_UPDATE
 } from "./trace.model";
-import {getOrCall} from "./configuration";
+import {getOrCall, TechnicalConf} from "./configuration";
 
 export class SessionManager {
 
-  private static _instance: SessionManager;
+   static _instance: SessionManager;
+   constructor(private readonly _techConfig: TechnicalConf) {
+   }
 
   currentSession?: MainSession;
   currentSessionCallBack?: MainSessionCallBack;
-  initialized: boolean = false; //TODO never read
 
   static get instance(): SessionManager {
-    if (!SessionManager._instance) {
-      SessionManager._instance = new SessionManager();
-      WIN["inspect-session-manager"] = SessionManager._instance;
-    }
     return SessionManager._instance;
   }
 
@@ -33,13 +29,12 @@ export class SessionManager {
     const now = dateNow();
     this.endSession(now);
     if (url) {
-      this.initialized = true;
       const id = crypto.randomUUID();
       this.currentSession = {
         '@type': TRACE_TYPE_MAIN_SESSION,
         id: id,
         type: "VIEW",
-        user: getOrCall<string>(ContextManager.instance.techConfig.user),
+        user: getOrCall<string>(this._techConfig.user),
         start: now,
         location: url,
         requestMask: 0,
@@ -64,7 +59,7 @@ export class SessionManager {
     if (this.currentSession) {
       this.currentSession.name = document.title;
       this.currentSession.location = document.URL;
-      if (!ContextManager.instance.techConfig.exclude?.some((e: any) => e.test(this.currentSession?.location))) {
+      if (!this._techConfig.exclude?.some((e: any) => e.test(this.currentSession?.location))) {
         dispatchTraces(this.currentSession)
       }
       this.currentSession = undefined;
@@ -87,7 +82,7 @@ export class SessionManager {
   }
 
   initRestRequest(mask: RequestMask){
-    var req = this.getCurrentSessionCallBack(s=>{
+    const req = this.getCurrentSessionCallBack(s=>{
       if ((s.requestMask & mask) !== mask) {
         s.requestMask |= mask;
         dispatchTraces({
@@ -103,7 +98,7 @@ export class SessionManager {
   }
 
   initUserAction(){
-    var req = this.getCurrentSessionCallBack(s=> ({sessionId:s.id}));
+    const req = this.getCurrentSessionCallBack(s=> ({sessionId:s.id}));
     return req || {};
   }
 
@@ -118,7 +113,7 @@ export class SessionManager {
   warn(message: string) {
     this.log("WARN", message);
   }
-  
+
   error(message: string) {
     this.log("ERROR", message);
   }
@@ -128,4 +123,13 @@ export class SessionManager {
       this.getCurrentSessionCallBack(s=> dispatchLog(level, message, s.id));
     }
   }
+}
+
+export function sessionlogger(): SessionManager {
+  return SessionManager.instance;
+}
+
+export function sessionManager(tech: TechnicalConf){
+  SessionManager._instance = new SessionManager(tech);
+  WIN["inspect-session-manager"] = SessionManager._instance;
 }
