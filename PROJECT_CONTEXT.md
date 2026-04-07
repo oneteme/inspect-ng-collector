@@ -17,15 +17,17 @@ La librairie permet de suivre :
 Le fichier `projects/oneteme/inspect-ng-collector/src/public-api.ts` exporte :
 - `NgCollectorModule`
 - `TraceableStage`
+- `SessionManager`
+- `COLLECTOR_CONFIG` (InjectionToken)
 - `LogService`
 
-## Point d’entrée principal
+## Point d'entrée principal
 Le bootstrap se fait via `NgCollectorModule.forRoot(configuration)` dans `projects/oneteme/inspect-ng-collector/src/lib/ng-collector.module.ts`.
 
 Quand `configuration.enabled` est vrai, la librairie :
-- initialise `ContextManager`,
+- initialise le contexte via `initializeCollector()`,
 - enregistre un `APP_INITIALIZER`,
-- installe `HttpInterceptorService`,
+- installe `HttpInterceptorService` avec injection du `COLLECTOR_CONFIG`,
 - remplace `ErrorHandler` par `GlobalErrorHandler`.
 
 Au démarrage, elle active ensuite :
@@ -37,38 +39,66 @@ Au démarrage, elle active ensuite :
 
 ## Architecture générale
 Flux principal :
-1. La configuration utilisateur est validée dans `context-manager.ts`.
-2. Un objet d’instance (`InstanceEnvironment`) est construit.
+1. La configuration utilisateur est validée dans `validateAndGetConfig()`.
+2. Un objet d'instance (`InstanceEnvironment`) est construit via `createInstance()`.
 3. Les monitors produisent des `EventTrace`.
 4. Toutes les traces transitent via `event-bus.ts`.
 5. `EventTraceScheduledDispatcherService` stocke les traces dans une file mémoire (`Set<EventTrace>`).
-6. Un export périodique envoie d’abord l’instance, puis les traces/sessions au backend via `fetch`.
+6. Un export périodique envoie d'abord l'instance, puis les traces/sessions au backend via `fetch`.
 
 ## Fichiers clés et responsabilités
+
+### `projects/oneteme/inspect-ng-collector/src/lib/ng-collector.module.ts`
+Module Angular principal qui :
+- définit le `InjectionToken COLLECTOR_CONFIG` pour l'injection de dépendances,
+- implémente `forRoot(configuration)` pour la configuration au bootstrap,
+- expose `initializeCollector(config)` qui crée et initialise le contexte (returns `{tech, instance}`),
+- expose `reloadCollector(config)` qui regénère la session avec un nouvel UUID,
+- expose `initializeEventsFactory(config, router)` qui active les monitors au démarrage,
+- installe `HTTP_INTERCEPTORS` et `ErrorHandler`.
+
+**Modifications récentes** :
+- `HttpInterceptorService` est maintenant injecté avec `COLLECTOR_CONFIG` pour accéder à `techConfig`.
+- `initializeCollector()` retourne un objet `{tech, instance}` pour plus de flexibilité.
+- `reloadCollector()` met à jour l'ID d'instance et relance la tracing.
+
 ### `projects/oneteme/inspect-ng-collector/src/lib/configuration.ts`
-Définit `CollectorConfig`, `TechnicalConf` et les utilitaires de validation/transformation (`require`, `matchRegex`, `adaptedConfig`, etc.).
+Définit les interfaces et utilitaires :
+
+**Interfaces principales** :
+- `CollectorConfig` : configuration utilisateur avec propriétés **déplacées à la racine** (name, version, env, user, additionalProperties). Les propriétés monitoring restent optionnelles.
+- `TechnicalConf` : configuration technique interne avec endpoints calculés.
+
+**Fonctions clés** :
+- `validateAndGetConfig(conf, instanceId)` : valide et transforme la config en `TechnicalConf`
+- `createInstance(conf, instanceId)` : crée l'objet `InstanceEnvironment` avec gestion sûre de `additionalProperties?.() || {}`
+- `adaptedConfig(conf)` : adapte la config pour le backend
+- `refreshConfig(tech)` : regénère l'UUID de session via simple remplacement d'UUID dans l'URL sessionApi
+- `getOrCall<T>(o)` : utilitaire pour appeler une fonction ou retourner la valeur directe
+- `require(v, name)` : valide qu'une propriété est définie
+- `matchRegex(v, name, pattern, defaultValue)` : valide contre un regex
+- `requirePostitiveValue(v, name, defaultValue)` : valide qu'une valeur est positive
+- Détection : `detectOs()`, `detectBrowser()` avec sérialisation correcte des erreurs via `serializeError()`
+
+**Modifications récentes** :
+- Propriétés `name`, `version`, `env`, `user`, `additionalProperties` **déplacées à la racine** de `CollectorConfig`
+- `additionalProperties` est maintenant **optionnel** avec gestion d'undefined : `conf?.additionalProperties?.() || {}`
+- `refreshConfig()` simplifié pour faire un simple remplacement d'UUID dans l'URL
+- `detectOs()` et `detectBrowser()` utilisent `serializeError()` pour gérer tous les types d'erreur
 
 ### `projects/oneteme/inspect-ng-collector/src/lib/context-manager.ts`
-Pièce centrale qui :
+Singleton central qui :
 - valide la config,
 - calcule les endpoints,
-- expose `techConfig`,
-- construit `instanceEnv`.
+- expose `techConfig` avec **getter et setter**,
+- expose `instanceEnv` avec **getter et setter**,
+- maintient les états.
 
-L’instance comprend notamment :
-- `id`,
-- `name`, `version`, `env`,
-- navigateur/OS,
-- identifiant client local,
-- mémoire max,
-- propriétés additionnelles,
-- configuration adaptée.
+**Modifications récentes** :
+- **Ajout du setter pour `instanceEnv`** pour permettre de modifier l'environnement après initialisation.
 
 ### `projects/oneteme/inspect-ng-collector/src/lib/event-bus.ts`
-Bus interne basé sur `EventTarget` avec trois canaux :
-- `trace`,
-- `export`,
-- `shutdow`.
+Bus interne basé sur `EventTarget` avec trois canaux : `trace`, `export`, `shutdown`.
 
 ### `projects/oneteme/inspect-ng-collector/src/lib/event-trace-scheduled-dispatcher.service.ts`
 Gère :
