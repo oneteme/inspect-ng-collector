@@ -19,11 +19,9 @@ class EventTraceScheduledDispatcherService {
 
   instance?: InstanceEnvironment ;
   constructor(private readonly _techConfig: TechnicalConf) {
-    console.log('test scheduled dispatcher')
     this.subscription = interval(_techConfig.interval)
       .pipe(startWith(0))
       .pipe(tap(() => {
-        console.log(this.instance)
         if (!this.dispatching && !this.wasDestroyed && this.instance) {
           this.dispatching = true;
           dispatchExport();
@@ -45,7 +43,6 @@ class EventTraceScheduledDispatcherService {
   }
 
   trace(instance: InstanceEnvironment) {
-    console.log(instance)
     this.instance = instance;
   }
 

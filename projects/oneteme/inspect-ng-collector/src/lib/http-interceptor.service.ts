@@ -17,7 +17,7 @@ export class HttpInterceptorService implements HttpInterceptor {
     monitor.preProcess(req);
 
     const host = new URL(req.url, window.location.origin).host;
-    if (!this.techConfig.hostExcludes?.some((e: any) => e == host)) { //TODO some comment why excludes URL
+    if (!this.techConfig.hostExcludes?.some((e: any) => e == host)) { // exclude les hôtes qui ne permet pas la modification des headers
       req = req.clone({ headers: req.headers.set(TRACE_HEADER, monitor.id) });
     }
 

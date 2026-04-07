@@ -8,7 +8,12 @@ import {
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
 import { HttpInterceptorService } from './http-interceptor.service';
 import { GlobalErrorHandler } from "./global-error-handler.service";
-import {CollectorConfig, createInstance, TechnicalConf, validateAndGetConfig} from "./configuration";
+import {
+  CollectorConfig,
+  createInstance, refreshConfig, refreshInstance,
+  TechnicalConf,
+  validateAndGetConfig
+} from "./configuration";
 import {
   eventTraceScheduledDispatcher,
 } from "./event-trace-scheduled-dispatcher.service";
@@ -20,6 +25,7 @@ import { initResourceUsageMonitor } from './resource-usage.monitor';
 import { addReloadListener } from './event-bus';
 import {sessionManager} from "./session-manager.service";
 import {eventTraceDebugger} from "./event-trace-debugger";
+import {InstanceEnvironment} from "./trace.model";
 
 const COLLECTOR_CONFIG = new InjectionToken<CollectorConfig>('COLLECTOR_CONFIG');
 
@@ -30,9 +36,9 @@ export class NgCollectorModule {
     const providers = [];
     if (configuration?.enabled) {
       try {
-        let tech  = InitializeContextManagerAndDispatcher(configuration);
+        let config  = initializeCollector(configuration);
         providers.push(
-          { provide: COLLECTOR_CONFIG, useValue: tech },
+          { provide: COLLECTOR_CONFIG, useValue: config },
           { provide: APP_INITIALIZER, useFactory: initializeEventsFactory, deps: [COLLECTOR_CONFIG, Router], multi: true },
           { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, deps:[COLLECTOR_CONFIG], multi: true },
           { provide: ErrorHandler, useClass: GlobalErrorHandler }
@@ -45,31 +51,39 @@ export class NgCollectorModule {
   }
 }
 
-export function initializeEventsFactory(tech: TechnicalConf, router: Router) {
+export function initializeEventsFactory(config: {tech: TechnicalConf, instance: InstanceEnvironment }, router: Router) {
   return () => {
-   if (tech.analytics) {
+   if (config.tech.analytics) {
       initUserActionMonitor();
     }
-    if (tech.resources) {
+    if (config.tech.resources) {
       initResourceUsageMonitor();
     }
     initNavigationMonitor(router);
     //storageEventListener();
     //eventTraceDebugger
     addReloadListener(e=>{
-      //InitializeContextManagerAndDispatcher(tech)
+        reloadCollector(config)
     });
   }
 }
 
-export function InitializeContextManagerAndDispatcher(config: CollectorConfig) {
-  console.log('Initializing Context Manager and Dispatcher with config', config)
+export function initializeCollector(config: CollectorConfig) {
   const id = crypto.randomUUID();
   const tech = validateAndGetConfig(config, id);
   const dispatch = eventTraceScheduledDispatcher(tech);
-  dispatch.trace(createInstance(config, id));
+  const instance = createInstance(config, id)
+  dispatch.trace(instance);
   sessionManager(tech)
-  return tech;
+  return {tech: tech, instance: instance};
+}
+
+export function reloadCollector(config: {tech: TechnicalConf, instance: InstanceEnvironment }) {
+  const id = refreshConfig(config.tech);
+  const dispatch = eventTraceScheduledDispatcher(config.tech);
+  config.instance.id= id;
+  dispatch.trace(refreshInstance(config.instance));
+  sessionManager(config.tech)
 }
 
 

@@ -1,15 +1,15 @@
-import { dateNow, UserAction, TRACE_TYPE_USER_ACTION } from "./trace.model"; //TODO extractName in Model !!??? - DONE
+import { dateNow, UserAction, TRACE_TYPE_USER_ACTION } from "./trace.model";
 import { SessionManager } from "./session-manager.service";
 import { dispatchReport, dispatchTraces } from "./event-bus";
 
-const eventHandlers: { [key: string]: (target: HTMLElement) => boolean } = { //TODO let ?? - Done
+const eventHandlers: { [key: string]: (target: HTMLElement) => boolean } = {
   'click': (target: HTMLElement) => lookUpChild(target, 1),
 }
 export function initUserActionMonitor() {
   try {
     const body = window.document.body;
     body.addEventListener('click', globalHandler, true);
-    body.addEventListener('change', globalHandler, true); //TODO choose one : globalHandler or event => globalHandler(event) - DONE
+    body.addEventListener('change', globalHandler, true);
     body.addEventListener('scrollend', globalHandler, true);
     body.addEventListener('dragend', globalHandler, true);
     window.document.addEventListener('DOMContentLoaded', globalHandler, true);
@@ -28,8 +28,7 @@ function globalHandler(event: Event | MouseEvent) {
     }
     addActionUser(eventType, target);
   } catch (err) {
-    console.warn(err); //TODO report - Done
-    dispatchReport("UserACTION.globalHandler", JSON.stringify(err))
+    dispatchReport("UserACTION.globalHandler", err)
   }
 }
 

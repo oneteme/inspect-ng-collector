@@ -2,6 +2,7 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "resolveJsonModule": true,
     "paths": {
       "@oneteme/inspect-ng-collector": [
         "./dist/oneteme/inspect-ng-collector"

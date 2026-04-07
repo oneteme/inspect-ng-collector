@@ -8,6 +8,11 @@ const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
 export interface CollectorConfig {
   enabled?: boolean; // default: false
   debugMode?: boolean;
+  name: Provider<string>;
+  version?: Provider<string>;
+  env?: Provider<string>;
+  user?: Provider<string>;
+  additionalProperties: ()=> {[key:string]: any};
   scheduling?: {
     interval?: number; // default: '60s'
   };
@@ -31,12 +36,6 @@ export interface CollectorConfig {
     storage?: {
       enabled: boolean // default: false
     }
-    //TODO move this
-    name: Provider<string>;
-    version?: Provider<string>;
-    env?: Provider<string>;
-    user?: Provider<string>;
-    additionalProperties: ()=> {[key:string]: any};
   };
   tracing?: {
     queueCapacity?: number; // default: 1000
@@ -109,15 +108,15 @@ export function adaptedConfig(conf: CollectorConfig) {
     },
     monitoring: {
   ...conf.monitoring,
-      additionalProperties :String(conf.monitoring?.additionalProperties),
-      name: String(conf.monitoring?.name), //TODO getOrCall !?
-      version: String(conf.monitoring?.version), //TODO getOrCall !?
-      env: String(conf.monitoring?.env), //TODO getOrCall !?
-      user: String(conf.monitoring?.user), //TODO getOrCall !?
+      additionalProperties: String(conf.additionalProperties),
+      name: String(conf.name),
+      version: String(conf.version),
+      env: String(conf.env),
+      user: String(conf.user),
       httpRoute: {
     ...conf.monitoring?.httpRoute,
         excludes: {
-        path: (conf?.monitoring?.httpRoute?.excludes?.path as RegExp[]).map(r => r.source) //TODO getOrCall !?
+        path: (conf?.monitoring?.httpRoute?.excludes?.path as RegExp[]).map(r => r.source)
       }
     }
   },
@@ -135,7 +134,7 @@ export function adaptedConfig(conf: CollectorConfig) {
 export function validateAndGetConfig(conf: CollectorConfig, instanceId: string) : TechnicalConf {
   const host = matchRegex(getOrCall<string>(conf?.tracing?.remote?.host), "host", HOST_PATERN);
   return {
-    user: conf?.monitoring?.user,
+    user: conf?.user,
     queueCapacity: requirePostitiveValue(getOrCall<number>(conf?.tracing?.queueCapacity), "queueCapacity", 1000),
     interval: requirePostitiveValue(getOrCall<number>(conf?.scheduling?.interval), "interval", 60000),
     instanceApi: new URL('v4/trace/instance', host).href,
@@ -154,17 +153,17 @@ export function createInstance(conf: CollectorConfig, instanceId: string): Insta
   return {
     id: instanceId,
     instant: dateNow(),
-    name: require(getOrCall<string>(conf?.monitoring?.name), 'configuration.name'),
-    version: getOrCall<string>(conf?.monitoring?.version),
+    name: require(getOrCall<string>(conf?.name), 'configuration.name'),
+    version: getOrCall<string>(conf?.version),
     address: getClientID(), //server side
-    env: require(getOrCall<string>(conf?.monitoring?.env), 'env'),
+    env: require(getOrCall<string>(conf?.env), 'env'),
     os: detectOs(),
     re: detectBrowser(),
     user: undefined, // cannot get user
     type: "CLIENT",
     collector: "inspect-ng-collector-0.0.1",
     resource: { maxHeap: (('memory' in performance) && (performance as any).memory.jsHeapSizeLimit / (1024 * 1024)) || undefined },
-    additionalProperties: conf?.monitoring?.additionalProperties(),
+    additionalProperties: conf?.additionalProperties(),
     configuration: adaptedConfig(conf)
   }
 }
@@ -178,7 +177,9 @@ function getClientID() {
 }
 
 function detectOs() {
+
   try {
+    throw new Error("fe")
     let versionMatch, version;
     const agent = window.navigator.userAgent.toLowerCase() //TODO see also  https://developer.mozilla.org/en-US/docs/Web/API/Navigator/userAgentData
     switch (true) {
@@ -196,8 +197,7 @@ function detectOs() {
     }
   }
   catch (e) {
-    console.error(e); //TODO report
-    dispatchReport("detectOs", JSON.stringify(e))  // TODO cannot report here the event dispatcher is not initialized yet, maybe store it and dispatch it at initialization ?
+    dispatchReport("detectOs", e) ;
   }
   return undefined;
 }
@@ -221,8 +221,20 @@ function detectBrowser() {
     }
   }
   catch (e) {
-    console.error(e); //TODO report
-    dispatchReport("detectBrowser", JSON.stringify(e)) // TODO cannot report here the event dispatcher is not initialized yet, maybe store it and dispatch it at initialization ?
+    dispatchReport("detectBrowser", e)
   }
   return undefined;
 }
+
+export function refreshConfig(tech: TechnicalConf) {
+  const newInstanceId = crypto.randomUUID();
+  const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+  tech.sessionApi = tech.sessionApi.replace(uuidRegex, newInstanceId);
+  return newInstanceId;
+}
+
+export function refreshInstance(instance: InstanceEnvironment) {
+  const newInstanceId = crypto.randomUUID();
+  return instance;
+}
+

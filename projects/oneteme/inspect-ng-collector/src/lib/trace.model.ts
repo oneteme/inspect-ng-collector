@@ -120,7 +120,7 @@ export interface LocalRequestCallBack extends EventTrace {
   '@type': typeof TRACE_TYPE_LOCAL_REQUEST_CALLBACK;
   id: UUID;
   end: number;
-  exception?: ExceptionInfo;//TODO add id & exception .. - DONE
+  exception?: ExceptionInfo;
 }
 
 export interface ExceptionInfo {
@@ -131,7 +131,7 @@ export interface ExceptionInfo {
 export interface UserAction extends EventTrace {
   '@type': typeof TRACE_TYPE_USER_ACTION;
   type: string;
-  instant: number; //todo  rename  instant - DONE
+  instant: number;
   name: string | null;
   nodeName: string;
   sessionId: string;

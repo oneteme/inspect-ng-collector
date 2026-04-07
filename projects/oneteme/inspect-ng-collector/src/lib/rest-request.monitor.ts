@@ -35,7 +35,7 @@ export class RestRequestMonitor {
       method: restRequest.method,
       protocol: url.protocol.slice(0, -1),
       host: url.hostname,
-      port: url.port? Number(url.port) : 0, //TODO +undefined => 0 || -1 => -1  - DONE
+      port: url.port? Number(url.port) : 0,
       path: url.pathname,
       query: url.search.slice(1, url.search.length),
       contentType: restRequest.responseType,
@@ -46,7 +46,7 @@ export class RestRequestMonitor {
     } as RestRequest);
   }
 
-  postProcess(response: HttpResponseBase | null, error: HttpErrorResponse | null) { //TODO see HttpResponseBase - DONE
+  postProcess(response: HttpResponseBase | null, error: HttpErrorResponse | null) {
     const end = dateNow();
     const callback: RestRequestCallBack = {
       "@type": TRACE_TYPE_REST_REQUEST_CALLBACK,
@@ -112,18 +112,15 @@ function extractUser(scheme: 'Basic' | 'Bearer', authorization: string) {
         if (parts.length == 3) {
           return JSON.parse(atob(parts[1]).toString()).sub; //TODO regex .match(/^\w+\.\w+\.(\w+) /)?.at(1)
         }
-        //TODO report - DONE
         dispatchReport('extractUser', `Invalid Bearer token format: expected 3 parts, got ${parts.length}`);
         return undefined;
       }
       default: {
-        //TODO report - DONE
         dispatchReport('extractUser', `Unknown auth scheme: ${scheme}`);
       }
     }
   }
   catch (e) {
-    //TODO report - DONE
     dispatchReport('extractUser', e);
   }
   return undefined;
@@ -146,7 +143,6 @@ function sizeOf(body: any): number {
       return new Blob([JSON.stringify(body)]).size;
     }
     catch (e) {
-      //TODO report - DONE
       dispatchReport('sizeOf', e);
     }
   }
