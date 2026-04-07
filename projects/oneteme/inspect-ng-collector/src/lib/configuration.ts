@@ -12,7 +12,7 @@ export interface CollectorConfig {
   version?: Provider<string>;
   env?: Provider<string>;
   user?: Provider<string>;
-  additionalProperties: ()=> {[key:string]: any};
+  additionalProperties?: ()=> {[key:string]: any};
   scheduling?: {
     interval?: number; // default: '60s'
   };
@@ -161,9 +161,9 @@ export function createInstance(conf: CollectorConfig, instanceId: string): Insta
     re: detectBrowser(),
     user: undefined, // cannot get user
     type: "CLIENT",
-    collector: "inspect-ng-collector-0.0.1",
+    collector: "inspect-ng-collector-1.3.2-beta.1",
     resource: { maxHeap: (('memory' in performance) && (performance as any).memory.jsHeapSizeLimit / (1024 * 1024)) || undefined },
-    additionalProperties: conf?.additionalProperties(),
+    additionalProperties: conf?.additionalProperties?.(),
     configuration: adaptedConfig(conf)
   }
 }
@@ -177,11 +177,9 @@ function getClientID() {
 }
 
 function detectOs() {
-
   try {
-    throw new Error("fe")
     let versionMatch, version;
-    const agent = window.navigator.userAgent.toLowerCase() //TODO see also  https://developer.mozilla.org/en-US/docs/Web/API/Navigator/userAgentData
+    const agent = globalThis.navigator.userAgent.toLowerCase() //TODO see also  https://developer.mozilla.org/en-US/docs/Web/API/Navigator/userAgentData
     switch (true) {
       case (/windows/.test(agent)):
         versionMatch = /windows nt (\d+\.\d+)/.exec(agent);
@@ -204,19 +202,19 @@ function detectOs() {
 
 function detectBrowser() {
   try {
-    const agent = window.navigator.userAgent.toLowerCase()
+    const agent = globalThis.navigator.userAgent.toLowerCase()
     switch (true) {
-      case agent.indexOf('edg') > -1:
+      case agent.includes('edg'):
         return 'Edge';
-      case agent.indexOf('opr') > -1:
+      case agent.includes('opr'):
         return 'Opera';
-      case agent.indexOf('chrome') > -1:
+      case agent.includes('chrome'):
         return 'Chrome';
-      case agent.indexOf('firefox') > -1:
+      case agent.includes('firefox'):
         return 'Firefox';
-      case agent.indexOf('safari') > -1:
+      case agent.includes('safari'):
         return 'Safari';
-      case agent.indexOf('msie') > -1:
+      case agent.includes('msie'):
         return 'IE';
     }
   }
@@ -232,9 +230,3 @@ export function refreshConfig(tech: TechnicalConf) {
   tech.sessionApi = tech.sessionApi.replace(uuidRegex, newInstanceId);
   return newInstanceId;
 }
-
-export function refreshInstance(instance: InstanceEnvironment) {
-  const newInstanceId = crypto.randomUUID();
-  return instance;
-}
-

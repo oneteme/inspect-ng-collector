@@ -10,7 +10,7 @@ import { HttpInterceptorService } from './http-interceptor.service';
 import { GlobalErrorHandler } from "./global-error-handler.service";
 import {
   CollectorConfig,
-  createInstance, refreshConfig, refreshInstance,
+  createInstance, refreshConfig,
   TechnicalConf,
   validateAndGetConfig
 } from "./configuration";
@@ -82,7 +82,7 @@ export function reloadCollector(config: {tech: TechnicalConf, instance: Instance
   const id = refreshConfig(config.tech);
   const dispatch = eventTraceScheduledDispatcher(config.tech);
   config.instance.id= id;
-  dispatch.trace(refreshInstance(config.instance));
+  dispatch.trace(config.instance);
   sessionManager(config.tech)
 }
 
