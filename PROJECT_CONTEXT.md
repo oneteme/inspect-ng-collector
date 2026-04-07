@@ -101,20 +101,17 @@ Singleton central qui :
 Bus interne basé sur `EventTarget` avec trois canaux : `trace`, `export`, `shutdown`.
 
 ### `projects/oneteme/inspect-ng-collector/src/lib/event-trace-scheduled-dispatcher.service.ts`
-Gère :
-- la queue mémoire,
-- le timer RxJS,
-- l’envoi de l’instance,
-- l’envoi des traces.
+Gère la queue mémoire, le timer RxJS, et l'envoi des traces.
 
 ### `projects/oneteme/inspect-ng-collector/src/lib/session-manager.service.ts`
 Gère la session courante liée à la navigation :
 - ouverture/fermeture de session,
 - association des traces à la session active,
-- rattachement d’exceptions à la session.
-
 ### `projects/oneteme/inspect-ng-collector/src/lib/http-interceptor.service.ts`
-Intercepte les requêtes HTTP Angular, crée un `RestRequestMonitor`, injecte le header `x-tracert` et finalise la trace sur réponse/erreur.
+Service Angular injecté avec `COLLECTOR_CONFIG` qui intercepte les requêtes HTTP.
+
+**Modifications récentes** :
+- **Injecte maintenant `COLLECTOR_CONFIG`** pour accéder à `TechnicalConf`
 
 ### `projects/oneteme/inspect-ng-collector/src/lib/rest-request.monitor.ts`
 Construit les traces détaillées de requêtes HTTP :
@@ -160,34 +157,51 @@ Outil de debug console interne. Semble partiellement désaligné avec les `@type
 Code incomplet / non branché réellement pour le suivi des événements `localStorage` / `sessionStorage`.
 
 ## Modèle de configuration actuellement attendu
-La configuration réelle dans le code est **imbriquée** et non plus plate.
 
-Structure actuelle :
-- `enabled?: boolean`
-- `debugMode?: boolean`
-- `scheduling?.interval?: number`
-- `monitoring?.httpRoute?.excludes?.path?: RegExp[] | (() => RegExp[])`
-- `monitoring?.httpRequest?.excludes?.host?: string[]`
-- `monitoring?.resources?.enabled?: boolean`
-- `monitoring?.analytics?.enabled?: boolean`
-- `monitoring?.storage?.enabled?: boolean`
-- `monitoring?.name: string | (() => string)`
-- `monitoring?.version?: string | (() => string)`
-- `monitoring?.env?: string | (() => string)`
-- `monitoring?.user?: string | (() => string)`
-- `monitoring?.additionalProperties: () => { [key: string]: any }`
-- `tracing?.queueCapacity?: number`
-- `tracing?.delayIfPending?: number`
-- `tracing?.remote?.host?: string`
-- `tracing?.remote?.mode?: string`
-- `tracing?.remote?.retentionMaxAge?: number`
+**Structure plate nouvelle (après refactorisation)** :
+```typescript
+{
+  enabled?: boolean,
+  debugMode?: boolean,
+  name: string | (() => string),  // RACINE
+  version?: string | (() => string),  // RACINE
+  env?: string | (() => string),  // RACINE
+  user?: string | (() => string),  // RACINE
+  additionalProperties?: () => { [key: string]: any },  // RACINE
+  scheduling?: {
+    interval?: number
+  },
+  monitoring?: {
+    httpRoute?: { excludes?: { path?: RegExp[] } },
+    httpRequest?: { excludes?: { host?: string[] } },
+    resources?: { enabled?: boolean },
+    analytics?: { enabled?: boolean },
+    storage?: { enabled: boolean }
+  },
+  tracing?: {
+    queueCapacity?: number,
+    remote?: {
+      host?: string,
+      mode?: string,
+      retentionMaxAge?: number
+    }
+  }
+}
+```
 
-## Endpoints backend observés dans le code
-Dans `ContextManager.validateAndGetConfig(...)`, les endpoints sont actuellement fixés en dur :
-- `v4/trace/instance`
-- `v4/trace/instance/:id/session`
+## Endpoints backend
+Les endpoints sont construits dynamiquement à partir de `tracing.remote.host` :
+- `v4/trace/instance` - pour créer une instance
+- `v4/trace/instance/{instanceId}/session` - pour envoyer les sessions
 
-Ils sont construits à partir de `tracing.remote.host`.
+## Vulnérabilités de sécurité corrigées (dernière mise à jour)
+### Angular (CVE-2025-66412, CVE-2026-22610, CVE-2026-27970, CVE-2025-66035)
+- **Sévérité** : HIGH
+- **Corrigé** : Mis à jour Angular >= 21.2.0
+
+### karma (CVE-2022-0437, CVE-2021-23495)
+- **Sévérité** : MEDIUM
+- **Corrigé** : Mis à jour karma >= 6.3.16
 
 ## Types de données / traces observés
 Le modèle principal est dans `projects/oneteme/inspect-ng-collector/src/lib/trace.model.ts`.
