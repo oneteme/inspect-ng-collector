@@ -1,137 +1,134 @@
-  import {interval, startWith, tap, catchError} from "rxjs";
-import {EventTrace} from "./trace.model";
-import {createReport, DISPATCH, PRE_DISPATCH} from "./util";
-import {ContextManager} from "./context-manager";
+import { interval, startWith, tap, Subscription } from "rxjs";
+import {EventTrace, InstanceEnvironment} from "./trace.model";
+import { dispatchExport, addTraceListener, addShutdownListener, dispatchReport } from "./event-bus";
+import {TechnicalConf} from "./configuration";
 
+const EMPTY_ARRAY : EventTrace[] = <[]>Object.freeze([]);
 
-export function eventTraceScheduledDispatcher() {
-  return EventTraceScheduledDispatcherService._instance = new EventTraceScheduledDispatcherService();
-}
+class EventTraceScheduledDispatcherService {
 
-export class  EventTraceScheduledDispatcherService {
-  traceQueue: Set<EventTrace> = new Set();
-  sessionSendAttempts: number = 0
-  sendSessionfinished: boolean = true;
-  instanceSaved: boolean = false;
-  interval: any
   static _instance: EventTraceScheduledDispatcherService;
-  constructor() {
-    this.interval = interval(ContextManager.instance.techConfig.interval)
+
+  readonly subscription: Subscription
+  readonly traceQueue: EventTrace[] = [];
+
+  dispatchAttempts: number = 0
+  dispatching: boolean = false;
+  instanceDispatched: boolean = false;
+  wasDestroyed : boolean = false;
+
+  instance?: InstanceEnvironment ;
+  constructor(private readonly _techConfig: TechnicalConf) {
+    this.subscription = interval(_techConfig.interval)
       .pipe(startWith(0))
       .pipe(tap(() => {
-        if (this.sendSessionfinished) {
-          this.sendSessionfinished = false;
-          window.dispatchEvent(new CustomEvent(PRE_DISPATCH));
-          this.Dispatch()
-            .then(arr=> this.revertQueueSize(arr))
-            .catch(err=> {})
-            .finally(() => { this.sendSessionfinished = true })
+        if (!this.dispatching && !this.wasDestroyed && this.instance) {
+          this.dispatching = true;
+          dispatchExport();
+          this.dispatch()
+            .then(arr => this.revertQueueSize(arr))
+            .catch(err => dispatchReport('EventTraceScheduledDispatcher.dispatch', err))
+            .finally(() => { this.dispatching = false })
         }
       }))
       .subscribe();
-    window.addEventListener( DISPATCH, (e: Event) => {
-      (e as CustomEvent).detail.traces &&  this.addtoQueue((e as CustomEvent).detail.traces);
-      if((e as CustomEvent).detail.force){
-        this.sendSessions(true)
-      }
-    });
+    addTraceListener(e => this.appendTrace((e as CustomEvent).detail.traces));
+    addShutdownListener(e => this.destroy());
   }
 
-  Dispatch(): Promise<any> {
-    if(this.instanceSaved){
-      return this.sendSessions();
+  appendTrace(events: EventTrace[]) {
+    if(!this.wasDestroyed){
+      events?.forEach(event => this.traceQueue.push(event));
     }
-    return this.postInstanceEnv().then((ok: boolean) => {
+  }
+
+  trace(instance: InstanceEnvironment) {
+    this.instance = instance;
+  }
+
+  dispatch(): Promise<any> {
+    if (this.instanceDispatched) {
+      return this.dispatchTraces();
+    }
+    return this.dispatchInstance().then(ok => {
       if (ok) {
-        return this.sendSessions();
+        this.instanceDispatched = true;
+        return this.dispatchTraces();
       }
-      this.sessionSendAttempts % 5 == 0 && console.warn(`Error while attempting to send Environement instance, attempts ${this.sessionSendAttempts}`);
+      console.warn(`Error while attempting to send Environement instance, attempts ${this.dispatchAttempts}`);
       return Promise.reject(new Error('No instance id'));
     });
   }
 
-  sendSessions(instanceComplete?: boolean): Promise<Set<EventTrace>> {
-    if (this.traceQueue.size === 0) {
-      return Promise.resolve(new Set<EventTrace>());
+  dispatchTraces(destroy?: boolean): Promise<EventTrace[]> {
+    if (this.traceQueue.length === 0) {
+      return Promise.resolve(EMPTY_ARRAY);
     }
-
-    let uri = ContextManager.instance.techConfig.sessionApi + "?attempts=" + ++this.sessionSendAttempts;
-    if (instanceComplete) {
+    let uri = this._techConfig.sessionApi + "?attempts=" + ++this.dispatchAttempts;
+    if (destroy) {
       uri += "&end=" + new Date().toISOString();
     }
-
-    const sessions = this.traceQueue;
-    this.traceQueue = new Set();
-
-    return fetch(uri, this.getRequestInit(sessions))
-      .then(res => {
+    const traces = [...this.traceQueue];
+    this.traceQueue.length = 0;
+    return fetch(uri, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        mode: 'cors',
+        keepalive: true,
+        body: JSON.stringify(traces)
+      })
+      .then(res=> {
         if (res.ok) {
-          this.sessionSendAttempts = 0;
-          return new Set<EventTrace>();
-
+          this.dispatchAttempts = 0;
+          return EMPTY_ARRAY;
         }
-        if(res.status >= 400 && res.status < 500 ){
-         return this.handleEventTraceSavingError(sessions)
+        console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`);
+        if (res.status >= 400 && res.status < 500) {
+          return traces; //retry on bad request !?
         }
         return res.json()
-          .then(body => body?.retry ? this.handleEventTraceSavingError(sessions) : new Set<EventTrace>())
-          .catch(()=>new Set<EventTrace>());
+          .then(body => body?.retry ? traces : EMPTY_ARRAY)
+          .catch(() => EMPTY_ARRAY);
       })
-      .catch(() => this.handleEventTraceSavingError(sessions));
+      .catch(() => {
+        console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`); //no cnx !
+        return traces;
+      });
   }
 
-  handleEventTraceSavingError(sessions: Set<EventTrace>){
-    this.sessionSendAttempts % 5 == 0 && console.warn(`Error while attempting to send sessions, attempts: ${this.sessionSendAttempts}`)
-    return sessions;
-  }
-
-  getRequestInit(sessionList: Set<EventTrace>): RequestInit  {
-    return {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      mode: 'cors',
-      keepalive: true,
-      body: JSON.stringify(Array.from(sessionList))
-    }
-  }
-
-  postInstanceEnv(): Promise<boolean> {
-    this.sessionSendAttempts++;
-    return fetch(ContextManager.instance.techConfig.instanceApi, {
+  dispatchInstance(): Promise<boolean> {
+    this.dispatchAttempts++;
+    return fetch(this._techConfig.instanceApi, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       mode: 'cors',
       keepalive: true,
-      body: JSON.stringify(ContextManager.instance.instanceEnv)
+      body: JSON.stringify(this.instance)
     })
       .then(res => res.ok ? res.text().then(id => {
-        this.sessionSendAttempts = 0;
-        return this.instanceSaved = true;
+        this.dispatchAttempts = 0;
+        return true;
       }) : false)
       .catch(err => false);
   }
 
-  revertQueueSize(sessions: Set<EventTrace> ){
-    sessions.forEach(session => this.traceQueue.add(session));
-    if (this.traceQueue.size > ContextManager.instance.techConfig.queueCapacity) {
-      const items = Array.from(this.traceQueue).slice(0, ContextManager.instance.techConfig.queueCapacity);
-      this.traceQueue = new Set(items);
-    }
-  }
-
-  async addtoQueue(event: EventTrace | null) {
-    try{
-      if(event){
-        this.traceQueue.add(event);
+  revertQueueSize(traces: EventTrace[]) {
+    if(!this.wasDestroyed){
+      this.traceQueue.unshift(...traces);
+      if (this.traceQueue.length > this._techConfig.queueCapacity) {
+        this.traceQueue.splice(this._techConfig.queueCapacity);
       }
-    }catch(e){
-      this.addtoQueue(createReport(String(e)))
-    }
-   }
-
-  onDestroy() {
-    if(this.interval) {
-      this.interval.unsubscribe();
     }
   }
+
+  destroy() {
+    this.subscription?.unsubscribe();
+    this.wasDestroyed = true;
+    dispatchExport(); //last metric ??
+    this.dispatchTraces(true);
+  }
+}
+
+export function eventTraceScheduledDispatcher(tech: TechnicalConf): EventTraceScheduledDispatcherService {
+  return EventTraceScheduledDispatcherService._instance = new EventTraceScheduledDispatcherService(tech);
 }

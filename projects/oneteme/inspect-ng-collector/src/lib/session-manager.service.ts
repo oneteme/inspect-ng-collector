@@ -1,97 +1,138 @@
-
-import {createReport, dateNow, DISPATCH, WIN} from './util';
-import {ContextManager} from "./context-manager";
-import {MainSession, MainSessionCallBack} from "./trace.model";
-import {getStringOrCall} from "./configuration";
+import { dispatchTraces, dispatchReport, WIN, dispatchLog } from './event-bus';
+import {
+  dateNow,
+  LogLevel,
+  MainSession,
+  MainSessionCallBack,
+  RequestMask,
+  SessionMaskUpdate,
+  TRACE_TYPE_MAIN_SESSION,
+  TRACE_TYPE_MAIN_SESSION_CALLBACK,
+  TRACE_TYPE_SESSION_MASK_UPDATE
+} from "./trace.model";
+import {getOrCall, TechnicalConf} from "./configuration";
 
 export class SessionManager {
 
-    currentSession!: any
-    currentSessionCallBack!: MainSessionCallBack;
-    private static _instance: SessionManager;
-    initialized: boolean = false;
+   static _instance: SessionManager;
+   constructor(private readonly _techConfig: TechnicalConf) {
+   }
 
-    static get instance(): SessionManager{
-        if(!SessionManager._instance) {
-            SessionManager._instance = new SessionManager();
-            WIN["inspect-session-manager"] = SessionManager._instance;
-        }
-        return SessionManager._instance;
-    }
+  currentSession?: MainSession;
+  currentSessionCallBack?: MainSessionCallBack;
 
-    navigate(url?: string) {
-        this.getCurrentSession(s => {
-          if(s){
-            this.getCurrentSessionCallBack(cb => cb.end =dateNow())
-            window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { force: !url, traces :  this.currentSessionCallBack } }));
-          }
-          this.currentSession = null
-        })
-        if (url) {
-            let id = crypto.randomUUID()
-            this.currentSession = {
-                '@type': "10",
-                id: id,
-                user: getStringOrCall(ContextManager.instance.techConfig.user),
-                start: dateNow(),
-                type: "VIEW",
-                location: url,
-                loading: true,
-                requestMask: 0,
-            }
-            this.initialized = true;
-            this.currentSessionCallBack = {
-              '@type': "11",
-               id: id,
-               requestMask: 0,
-            }
-        }
-    }
+  static get instance(): SessionManager {
+    return SessionManager._instance;
+  }
 
-    updateSession(){
-      this.getCurrentSession(s => {
-            s.name = document.title;
-            s.location = document.URL;
-            if(!ContextManager.instance.techConfig.exclude?.some((e:any) => e.test(s.location))){
-              window.dispatchEvent(new CustomEvent( DISPATCH, { detail : { traces :  s } }));
-            }
-        });
-    }
-
-    getCurrentSession( fn:(s:MainSession)=> any ) {
-      if(this.currentSession){
-        return fn(this.currentSession);
+  navigate(url?: string) {
+    const now = dateNow();
+    this.endSession(now);
+    if (url) {
+      const id = crypto.randomUUID();
+      this.currentSession = {
+        '@type': TRACE_TYPE_MAIN_SESSION,
+        id: id,
+        type: "VIEW",
+        user: getOrCall<string>(this._techConfig.user),
+        start: now,
+        location: url,
+        requestMask: 0,
+      };
+      this.currentSessionCallBack = {
+        '@type': TRACE_TYPE_MAIN_SESSION_CALLBACK,
+        id: id,
+        requestMask: 0,
       }
-      this.initialized && window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
-      return undefined
     }
+  }
 
-    getCurrentSessionCallBack( fn:(s:MainSessionCallBack)=> any ) {
-      if(this.currentSessionCallBack){
-        return fn(this.currentSessionCallBack);
+  private endSession(end : number){
+    this.getCurrentSessionCallBack(call =>{
+      call.end = end;
+      dispatchTraces(call);
+    });
+    this.currentSessionCallBack = undefined;
+  }
+
+  updateSession() {
+    if (this.currentSession) {
+      setTimeout(() => {
+        this.currentSession!.name = document.title;
+        this.currentSession!.location = document.URL;
+        },0);
+
+      if (!this._techConfig.exclude?.some((e: any) => e.test(this.currentSession?.location))) {
+        dispatchTraces(this.currentSession)
       }
-      window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  { traces : createReport("no active session found ") } }));
-      return undefined;
+      this.currentSession = undefined;
     }
-
-    currentSessionID(): string | undefined { // (s) => {}
-       return this.getCurrentSession(s=> s.id );
+    else{
+      dispatchReport('updateSession', 'no active session');
     }
+  }
 
-
-
-    updateMask(requestMask: number) {
-       return  this.getCurrentSessionCallBack(s => {
-         let before = s.requestMask;
-         s.requestMask |= requestMask
-         return s.requestMask !== before;
-       })
+  getCurrentSessionCallBack(fn: (s: MainSessionCallBack) => any) {
+    if (this.currentSessionCallBack) {
+      return fn(this.currentSessionCallBack);
     }
+    dispatchReport('getCurrentSessionCallBack', 'no active session');
+    return undefined;
+  }
 
-    addException(exception: any) {
-        this.getCurrentSessionCallBack(s => s.exception = exception)
+  currentSessionID(): string | undefined {
+    return this.getCurrentSessionCallBack(s=> s.id);
+  }
+
+  initRestRequest(mask: RequestMask){
+    const req = this.getCurrentSessionCallBack(s=>{
+      if ((s.requestMask & mask) !== mask) {
+        s.requestMask |= mask;
+        dispatchTraces({
+          "@type": TRACE_TYPE_SESSION_MASK_UPDATE,
+          id: s.id,
+          main: true,
+          mask: s.requestMask
+        } as SessionMaskUpdate);
+      }
+      return {sessionId:s.id};
+    });
+    return req || {};
+  }
+
+  initUserAction(){
+    const req = this.getCurrentSessionCallBack(s=> ({sessionId:s.id}));
+    return req || {};
+  }
+
+  addException(exception: any) {
+    this.getCurrentSessionCallBack(s => s.exception = exception)
+  }
+
+  info(message: string) {
+    this.log("INFO", message);
+  }
+
+  warn(message: string) {
+    this.log("WARN", message);
+  }
+
+  error(message: string) {
+    this.log("ERROR", message);
+  }
+
+  private log(level: LogLevel, message: string){
+    if (message) {
+      this.getCurrentSessionCallBack(s=> dispatchLog(level, message, s.id));
     }
+  }
 }
 
+export function sessionlogger(): SessionManager {
+  return SessionManager.instance;
+}
 
-
+export function sessionManager(tech: TechnicalConf){
+  SessionManager._instance = new SessionManager(tech);
+  WIN["inspect-session-manager"] = SessionManager._instance;
+}

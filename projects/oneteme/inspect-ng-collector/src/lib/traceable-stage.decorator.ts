@@ -1,79 +1,41 @@
+import {LocalRequestMonitor} from "./local-request.monitor";
 
-import {DISPATCH, RequestMask, WIN} from "./util";
-import {MainSessionCallBack} from "./trace.model";
-  export function TraceableStage(){
-    return function (
-      target: any,
-      propertyKey: string,
-      descriptor: PropertyDescriptor
-    ) {
-        const originalMethod = descriptor.value;
-        descriptor.value = function (...args: any[]){
-            let exception;
-            let start,end;
+export function TraceableStage() {
 
-          start = Date.now();
-          try{
-            return originalMethod.apply(this,args);
-          }catch(e:any){
-              let type=null,message=null;
-              if(e){
-                if(typeof e === "string"){
-                  message = e;
-                }else if(e instanceof Error){
-                  type = e.name;
-                  message = e.message;
-                }else{
-                  message = JSON.stringify(e)
-                }
-              }
-              exception = {
-                type : type,
-                message : message
-              }
-            throw e;
-          }finally{
-            end = Date.now();
-            let id = crypto.randomUUID();
-            if(WIN["inspect-session-manager"]?.currentSessionID() != null){
-              let doUpdateMask = WIN["inspect-session-manager"]?.updateMask(RequestMask.LOCAL);
-              doUpdateMask &&  window.dispatchEvent(new CustomEvent( DISPATCH, { detail :  {
-                  traces : {
-                    "@type":"03",
-                    id : WIN["inspect-session-manager"]?.currentSessionID(),
-                    main: true,
-                    mask: WIN["inspect-session-manager"]?.getCurrentSessionCallBack((s:MainSessionCallBack) =>  s.requestMask)
-                  } }
-              }));
-            }
-            window.dispatchEvent(new CustomEvent(
-              DISPATCH,
-              { detail :
-                  { traces : {
-                    "@type":"110",
-                    id: id,
-                    name: propertyKey,
-                    location: target.constructor.name,
-                    user: WIN["inspect-session-manager"]?.currentSession?.user,
-                    start: start,
-                    sessionId : WIN["inspect-session-manager"]?.currentSession?.id
-                    }
-                  }
-              }));
-            window.dispatchEvent(new CustomEvent(
-              DISPATCH,
-              { detail :
-                  { traces : {
-                      "@type":"111",
-                      id: id,
-                      exception: exception,
-                      end : end
-                    }
-                  }
-              }));
-          }
-
-        }
-        return descriptor;
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
+    const originalMethod = descriptor.value;
+    descriptor.value = function (...args: any[]) {
+      const monitor = new LocalRequestMonitor();
+      let exception;
+      try {
+        monitor.preProcess(propertyKey,target);
+        return originalMethod.apply(this, args);
+      } catch (e: any) {
+        exception = resolveException(e);
+        throw e;
+      } finally {
+        monitor.postProcess(exception)
+      }
+    }
+    return descriptor;
+  }
+}
+export function resolveException(e: any): { type: string | null; message: string | null } {
+  let type = null, message = null;
+  if (e) {
+    if (typeof e === "string") {
+      message = e;
+    } else if (e instanceof Error) {
+      type = e.name;
+      message = e.message;
+    } else {
+      message = JSON.stringify(e)
     }
   }
+  return { type, message };
+}
+
