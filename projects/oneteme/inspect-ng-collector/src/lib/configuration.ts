@@ -224,9 +224,8 @@ function detectBrowser() {
   return undefined;
 }
 
-export function refreshConfig(tech: TechnicalConf) {
-  const newInstanceId = crypto.randomUUID();
+export function refreshConfig(id: string, tech: TechnicalConf) {
   const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-  tech.sessionApi = tech.sessionApi.replace(uuidRegex, newInstanceId);
-  return newInstanceId;
+  tech.sessionApi = tech.sessionApi.replace(uuidRegex, id);
+  return id;
 }

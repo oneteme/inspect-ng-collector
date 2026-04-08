@@ -57,11 +57,8 @@ export class SessionManager {
 
   updateSession() {
     if (this.currentSession) {
-      setTimeout(() => {
-        this.currentSession!.name = document.title;
-        this.currentSession!.location = document.URL;
-        },0);
-
+      this.currentSession.name = document.title; // add settimeout
+      this.currentSession.location = document.URL;
       if (!this._techConfig.exclude?.some((e: any) => e.test(this.currentSession?.location))) {
         dispatchTraces(this.currentSession)
       }

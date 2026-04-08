@@ -18,7 +18,7 @@ function routeHandler(event: any) {
     SessionManager.instance.navigate(event.url);
   }
   if (event instanceof NavigationEnd || event instanceof NavigationCancel) {
-  SessionManager.instance.updateSession()
+    setTimeout(()=>SessionManager.instance.updateSession(),0)
   }
 }
 

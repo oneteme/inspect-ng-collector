@@ -79,7 +79,8 @@ export function initializeCollector(config: CollectorConfig) {
 }
 
 export function reloadCollector(config: {tech: TechnicalConf, instance: InstanceEnvironment }) {
-  const id = refreshConfig(config.tech);
+  const id = crypto.randomUUID();
+  refreshConfig(id, config.tech);
   const dispatch = eventTraceScheduledDispatcher(config.tech);
   config.instance.id= id;
   dispatch.trace(config.instance);
