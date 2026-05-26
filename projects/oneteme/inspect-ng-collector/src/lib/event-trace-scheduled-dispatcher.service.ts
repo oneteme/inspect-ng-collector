@@ -1,7 +1,8 @@
-import { interval, startWith, tap, Subscription } from "rxjs";
+import { interval, Subscription } from "rxjs";
 import {EventTrace, InstanceEnvironment} from "./trace.model";
 import { dispatchExport, addTraceListener, addShutdownListener, dispatchReport } from "./event-bus";
 import {TechnicalConf} from "./configuration";
+import {startWith, tap} from "rxjs/operators";
 
 const EMPTY_ARRAY : EventTrace[] = <[]>Object.freeze([]);
 
@@ -19,12 +20,15 @@ class EventTraceScheduledDispatcherService {
 
   instance?: InstanceEnvironment ;
   constructor(private readonly _techConfig: TechnicalConf) {
+    console.log("inspect", "constructor.interval")
     this.subscription = interval(_techConfig.interval)
       .pipe(startWith(0))
       .pipe(tap(() => {
+        console.log("inspect", "interval.tap")
         if (!this.dispatching && !this.wasDestroyed && this.instance) {
           this.dispatching = true;
           dispatchExport();
+          console.log("inspect", "interval.dispatch")
           this.dispatch()
             .then(arr => this.revertQueueSize(arr))
             .catch(err => dispatchReport('EventTraceScheduledDispatcher.dispatch', err))
@@ -37,6 +41,7 @@ class EventTraceScheduledDispatcherService {
   }
 
   appendTrace(events: EventTrace[]) {
+    console.log("inspect", "interval.appendTrace", events)
     if(!this.wasDestroyed){
       events?.forEach(event => this.traceQueue.push(event));
     }
@@ -61,6 +66,7 @@ class EventTraceScheduledDispatcherService {
   }
 
   dispatchTraces(destroy?: boolean): Promise<EventTrace[]> {
+    console.log("inspect", "dispatch.trace", this.traceQueue)
     if (this.traceQueue.length === 0) {
       return Promise.resolve(EMPTY_ARRAY);
     }

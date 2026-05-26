@@ -15,7 +15,7 @@ export class LocalRequestMonitor {
 
   constructor() {
     this.start = dateNow();
-    this.id = crypto.randomUUID();
+    this.id = (crypto as any).randomUUID() as UUID;
   }
 
   preProcess(propertyKey: string, target: any){

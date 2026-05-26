@@ -1,4 +1,4 @@
-import {dateNow, InstanceEnvironment, TRACE_TYPE_COLLECTOR_CONFIGURATION} from "./trace.model";
+import {dateNow, InstanceEnvironment, TRACE_TYPE_COLLECTOR_CONFIGURATION, UUID} from "./trace.model";
 import {dispatchReport} from "./event-bus";
 
 type Provider<T> = T | (() => T);
@@ -171,7 +171,7 @@ export function createInstance(conf: CollectorConfig, instanceId: string): Insta
 function getClientID() {
   let cid = localStorage.getItem("jarvis.inspect.cid");
   if (!cid) {
-    localStorage.setItem("jarvis.inspect.cid", cid = crypto.randomUUID());
+    localStorage.setItem("jarvis.inspect.cid", cid = (crypto as any).randomUUID() as UUID);
   }
   return cid;
 }

@@ -8,7 +8,8 @@ import {
   SessionMaskUpdate,
   TRACE_TYPE_MAIN_SESSION,
   TRACE_TYPE_MAIN_SESSION_CALLBACK,
-  TRACE_TYPE_SESSION_MASK_UPDATE
+  TRACE_TYPE_SESSION_MASK_UPDATE,
+  UUID
 } from "./trace.model";
 import {getOrCall, TechnicalConf} from "./configuration";
 
@@ -29,7 +30,7 @@ export class SessionManager {
     const now = dateNow();
     this.endSession(now);
     if (url) {
-      const id = crypto.randomUUID();
+      const id = (crypto as any).randomUUID() as UUID;
       this.currentSession = {
         '@type': TRACE_TYPE_MAIN_SESSION,
         id: id,

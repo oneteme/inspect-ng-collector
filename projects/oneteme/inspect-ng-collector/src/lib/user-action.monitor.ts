@@ -37,7 +37,7 @@ function lookUpChild(t: HTMLElement, depth: number): boolean {
     if (++depth > 5) {
       return false;
     }
-    return Array.from(t.childNodes).reduce((acc, c) =>
+    return Array.from(t.childNodes).reduce<boolean>((acc, c) =>
       acc && lookUpChild(c as HTMLElement, depth), true);
   }
   return true;

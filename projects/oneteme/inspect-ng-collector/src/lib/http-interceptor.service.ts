@@ -1,7 +1,7 @@
 import { Injectable, Inject, InjectionToken, Optional } from '@angular/core';
 import { HttpInterceptor, HttpEvent, HttpHandler, HttpRequest, HttpResponse, HttpErrorResponse, HttpResponseBase } from '@angular/common/http';
-import { finalize, Observable } from 'rxjs';
-import { tap } from 'rxjs/operators'
+import { Observable } from 'rxjs';
+import {finalize, tap} from 'rxjs/operators'
 import { RestRequestMonitor, TRACE_HEADER } from "./rest-request.monitor";
 import { TechnicalConf } from "./configuration";
 
@@ -10,9 +10,12 @@ export const COLLECTOR_CONFIG = new InjectionToken<TechnicalConf>('COLLECTOR_CON
 @Injectable({ providedIn: 'root' })
 export class HttpInterceptorService implements HttpInterceptor {
 
-  constructor(@Inject(COLLECTOR_CONFIG) private readonly techConfig: TechnicalConf) {}
+  constructor(@Inject(COLLECTOR_CONFIG) private readonly techConfig: TechnicalConf) {
+    console.log('inspect', 'interceptorService.constructor');
+  }
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    console.log('inspect', 'interceptorService.intercept');
     const monitor = new RestRequestMonitor();
     monitor.preProcess(req);
 
