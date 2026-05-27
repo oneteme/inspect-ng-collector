@@ -47,34 +47,25 @@ export class NgCollectorModule {
         console.warn(`invalid Configuration, Ng-collector is disabled because of this ${e.message}`);
       }
     }
-    console.log("INSPECT", providers);
     return {ngModule: NgCollectorModule, providers : providers}
   }
 }
 
 
 export function initializeEventsFactory(config: {tech: TechnicalConf, instance: InstanceEnvironment }, router: Router) {
-
-  console.log(`initializeEventsFactory1`);
   return () => {
-    console.log(`initializeEventsFactory2`);
-    return new Promise(resolve => {
-      console.log(`initializeEventsFactory3`);
-
-      if (config.tech.analytics) {
-        initUserActionMonitor();
-      }
-      if (config.tech.resources) {
-        initResourceUsageMonitor();
-      }
-      initNavigationMonitor(router);
-      //storageEventListener();
-      //eventTraceDebugger
-      addReloadListener(e=>{
-        reloadCollector(config)
-      });
-      return '';
-    })
+    if (config.tech.analytics) {
+      initUserActionMonitor();
+    }
+    if (config.tech.resources) {
+      initResourceUsageMonitor();
+    }
+    initNavigationMonitor(router);
+    //storageEventListener();
+    //eventTraceDebugger
+    addReloadListener(e=>{
+      reloadCollector(config)
+    });
   }
 }
 
@@ -85,7 +76,6 @@ export function initializeCollector(config: CollectorConfig) {
   const instance = createInstance(config, id)
   dispatch.trace(instance);
   sessionManager(tech);
-  dispatchReport('collector_initialized');
   return {tech: tech, instance: instance};
 }
 

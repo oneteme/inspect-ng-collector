@@ -20,7 +20,6 @@ export function dispatchLog(level: LogLevel, message: string, sessionId?: string
 }
 
 export function dispatchTraces(...traces: EventTrace[]): void {
-  console.log('inspect', 'dispatchTraces');
   eventTarget.dispatchEvent(new CustomEvent(TRACE, { detail: { traces } }));
 }
 

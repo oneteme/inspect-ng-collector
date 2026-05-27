@@ -5,7 +5,6 @@ import { dispatchReload, dispatchReport, dispatchShutown } from "./event-bus";
 export function initNavigationMonitor(router: Router){
   try{
     router.events.subscribe(routeHandler);
-    console.log("INSPECT", "NavigationMonitor initialized", router.events);
     window.addEventListener('pageshow', bfCacheHandler);
     window.addEventListener("beforeunload", windowUnloadHandler);
   }

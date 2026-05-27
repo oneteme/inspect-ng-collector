@@ -10,12 +10,9 @@ export const COLLECTOR_CONFIG = new InjectionToken<TechnicalConf>('COLLECTOR_CON
 @Injectable({ providedIn: 'root' })
 export class HttpInterceptorService implements HttpInterceptor {
 
-  constructor(@Inject(COLLECTOR_CONFIG) private readonly techConfig: TechnicalConf) {
-    console.log('inspect', 'interceptorService.constructor');
-  }
+  constructor(@Inject(COLLECTOR_CONFIG) private readonly techConfig: TechnicalConf) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    console.log('inspect', 'interceptorService.intercept');
     const monitor = new RestRequestMonitor();
     monitor.preProcess(req);
 
