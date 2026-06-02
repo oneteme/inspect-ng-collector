@@ -23,11 +23,11 @@ export class RestRequestMonitor {
 
   constructor() {
     this.start = dateNow();
-    this.id = (crypto as any).randomUUID() as UUID;
+    this.id = crypto.randomUUID();
   }
 
   preProcess(restRequest: HttpRequest<any>) {
-    const url = new URL(restRequest.urlWithParams, window.location.origin); //TDO check & remove toHref(restRequest.urlWithParams)
+    const url = new URL(restRequest.urlWithParams, globalThis.location.origin);
     const auth_user = extractAuthSchemeAnduser(restRequest.headers);
     dispatchTraces({...SessionManager.instance.initRestRequest(RequestMask.REST),
       "@type": TRACE_TYPE_REST_REQUEST,
@@ -95,32 +95,41 @@ function assertSessionID(id: string, headers: HttpHeaders) { //browser cache !?
   return headers?.get(TRACE_HEADER) == id;
 }
 
-function extractAuthSchemeAnduser(headers: any): { user: string | undefined, authScheme: string | undefined } {
-  const scheme = headers.has('authorization') && headers.get('authorization').match(/^(\w+) /)?.at(1);
+function extractAuthSchemeAnduser(headers: any): { user: string | null, authScheme: string | null } {
+  const authHeader = headers?.get('authorization');
+  if (!authHeader) {
+    return { authScheme: null, user: null };
+  }
+
+  const [scheme, credentials] = authHeader.split(' ');
+
+  if (!scheme || !credentials || !['Basic', 'Bearer'].includes(scheme)) {
+    return { authScheme: null, user: null };
+  }
+
   return {
     authScheme: scheme,
-    user : scheme ?? extractUser(scheme, headers.get('authorization').split(" ")[1])
-  }
+    user: extractUser(scheme as 'Basic' | 'Bearer', credentials) ?? null
+  };
 }
 
 function extractUser(scheme: 'Basic' | 'Bearer', authorization: string) {
   try {
     switch (scheme) {
-      case "Basic": return atob(authorization).toString().split(':')[0];
+      case "Basic":
+        return atob(authorization).split(':')[0] || undefined;
       case "Bearer": {
-        const parts = authorization.split('.');
-        if (parts.length == 3) {
-          return JSON.parse(atob(parts[1]).toString()).sub; //TODO regex .match(/^\w+\.\w+\.(\w+) /)?.at(1)
+        const payloadMatch = authorization.match(/^[^.]+\.([^.]+)\.[^.]+$/);
+        if (payloadMatch?.[1]) {
+          return JSON.parse(atob(payloadMatch[1])).sub;
         }
-        dispatchReport('extractUser', `Invalid Bearer token format: expected 3 parts, got ${parts.length}`);
+        dispatchReport('extractUser', 'Invalid Bearer token format');
         return undefined;
       }
-      default: {
+      default:
         dispatchReport('extractUser', `Unknown auth scheme: ${scheme}`);
-      }
     }
-  }
-  catch (e) {
+  } catch (e) {
     dispatchReport('extractUser', e);
   }
   return undefined;
