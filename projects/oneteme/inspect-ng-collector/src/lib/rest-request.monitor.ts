@@ -23,7 +23,7 @@ export class RestRequestMonitor {
 
   constructor() {
     this.start = dateNow();
-    this.id = crypto.randomUUID();
+    this.id = (crypto as any).randomUUID() as UUID;
   }
 
   preProcess(restRequest: HttpRequest<any>) {
