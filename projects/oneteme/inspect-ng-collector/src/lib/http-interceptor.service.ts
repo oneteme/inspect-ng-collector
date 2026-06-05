@@ -3,21 +3,22 @@ import { HttpInterceptor, HttpEvent, HttpHandler, HttpRequest, HttpResponse, Htt
 import { finalize, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators'
 import { RestRequestMonitor, TRACE_HEADER } from "./rest-request.monitor";
-import { TechnicalConf } from "./configuration";
+import { TechnicalConf} from "./configuration";
+import { InstanceEnvironment } from "./trace.model";
 
 export const COLLECTOR_CONFIG = new InjectionToken<TechnicalConf>('COLLECTOR_CONFIG');
 
 @Injectable({ providedIn: 'root' })
 export class HttpInterceptorService implements HttpInterceptor {
 
-  constructor(@Inject(COLLECTOR_CONFIG) private readonly techConfig: TechnicalConf) {}
+  constructor(@Inject(COLLECTOR_CONFIG) private readonly techConfig: {tech: TechnicalConf, instance: InstanceEnvironment}) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const monitor = new RestRequestMonitor();
     monitor.preProcess(req);
 
     const host = new URL(req.url, window.location.origin).host;
-    if (!this.techConfig.hostExcludes?.some((e: any) => e == host)) { // exclude les hôtes qui ne permet pas la modification des headers
+    if (!this.techConfig.tech.hostExcludes?.some((e: any) => e == host)) { // exclude les hôtes qui ne permet pas la modification des headers
       req = req.clone({ headers: req.headers.set(TRACE_HEADER, monitor.id) });
     }
 

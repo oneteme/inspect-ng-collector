@@ -1,6 +1,6 @@
 {
   "name": "@oneteme/inspect-ng-collector",
-  "version": "1.3.2-beta.2",
+  "version": "1.3.2",
   "description": "inspect ng collector",
   "homepage": "https://github.com/oneteme/inspect-ng-collector",
   "bugs": "https://github.com/oneteme/inspect-ng-collector/issues",
