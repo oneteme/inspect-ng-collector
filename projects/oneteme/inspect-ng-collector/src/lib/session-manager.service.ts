@@ -27,7 +27,9 @@ export class SessionManager {
 
   navigate(url?: string) {
     const now = dateNow();
-    this.endSession(now);
+    if(this.currentSessionCallBack){
+      this.endSession(now);
+    }
     if (url) {
       const id = crypto.randomUUID();
       this.currentSession = {
@@ -55,10 +57,12 @@ export class SessionManager {
     this.currentSessionCallBack = undefined;
   }
 
-  updateSession() {
+  updateSession(update: boolean = true) {
     if (this.currentSession) {
-      this.currentSession.name = document.title; // add settimeout
-      this.currentSession.location = document.URL;
+      if(update){
+        this.currentSession.name = document.title; // add settimeout
+        this.currentSession.location = document.URL;
+      }
       if (!this._techConfig.exclude?.some((e: any) => e.test(this.currentSession?.location))) {
         dispatchTraces(this.currentSession)
       }

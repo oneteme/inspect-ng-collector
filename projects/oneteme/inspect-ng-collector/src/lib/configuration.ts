@@ -161,7 +161,7 @@ export function createInstance(conf: CollectorConfig, instanceId: string): Insta
     re: detectBrowser(),
     user: undefined, // cannot get user
     type: "CLIENT",
-    collector: "inspect-ng-collector-1.3.2-beta.1",
+    collector: "inspect-ng-collector-1.3.3",
     resource: { maxHeap: (('memory' in performance) && (performance as any).memory.jsHeapSizeLimit / (1024 * 1024)) || undefined },
     additionalProperties: conf?.additionalProperties?.(),
     configuration: adaptedConfig(conf)

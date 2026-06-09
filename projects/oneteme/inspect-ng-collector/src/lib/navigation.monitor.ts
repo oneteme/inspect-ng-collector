@@ -4,6 +4,7 @@ import { dispatchReload, dispatchReport, dispatchShutown } from "./event-bus";
 
 export function initNavigationMonitor(router: Router){
   try{
+    initStartupSession();
     router.events.subscribe(routeHandler);
     window.addEventListener('pageshow', bfCacheHandler);
     window.addEventListener("beforeunload", windowUnloadHandler);
@@ -25,6 +26,11 @@ function routeHandler(event: any) {
 function windowUnloadHandler(event: any) {
   SessionManager.instance.navigate();
   dispatchShutown();
+}
+
+function initStartupSession() {
+  SessionManager.instance.navigate(new URL(document.URL).host);
+  SessionManager.instance.updateSession(false);
 }
 
 function bfCacheHandler(event: any) {
