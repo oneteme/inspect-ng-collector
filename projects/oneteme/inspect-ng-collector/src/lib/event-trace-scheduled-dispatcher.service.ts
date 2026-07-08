@@ -15,6 +15,7 @@ class EventTraceScheduledDispatcherService {
   dispatchAttempts: number = 0
   dispatching: boolean = false;
   instanceDispatched: boolean = false;
+  instanceDispatching: boolean = false; // guard contre les appels concurrents
   wasDestroyed : boolean = false;
 
   instance?: InstanceEnvironment ;
@@ -27,7 +28,7 @@ class EventTraceScheduledDispatcherService {
           dispatchExport();
           this.dispatch()
             .then(arr => this.revertQueueSize(arr))
-            .catch(err => dispatchReport('EventTraceScheduledDispatcher.dispatch', err))
+            .catch(err => {})
             .finally(() => { this.dispatching = false })
         }
       }))
@@ -44,19 +45,33 @@ class EventTraceScheduledDispatcherService {
 
   trace(instance: InstanceEnvironment) {
     this.instance = instance;
+    this.updateInstance(); // Dispatch immédiatement au lieu d'attendre l'intervalle
+  }
+
+  private updateInstance(): Promise<void> {
+    if (this.instanceDispatched || this.instanceDispatching || this.wasDestroyed || !this.instance) {
+      return Promise.resolve(); // Déjà dispatché, en cours, ou pas prêt
+    }
+    this.instanceDispatching = true;
+    return this.dispatchInstance()
+      .then(success => {
+        if (success) {
+          this.instanceDispatched = true;
+        }else {
+          console.warn(`Error while attempting to send Environement instance, attempts ${this.dispatchAttempts}`);
+        }
+      })
+      .finally(() => { this.instanceDispatching = false; });
   }
 
   dispatch(): Promise<any> {
     if (this.instanceDispatched) {
       return this.dispatchTraces();
     }
-    return this.dispatchInstance().then(ok => {
-      if (ok) {
-        this.instanceDispatched = true;
-        return this.dispatchTraces();
-      }
-      console.warn(`Error while attempting to send Environement instance, attempts ${this.dispatchAttempts}`);
-      return Promise.reject(new Error('No instance id'));
+    if (this.instanceDispatching) return Promise.resolve(EMPTY_ARRAY); // attendre
+    return this.updateInstance().then(() => {
+      if (this.instanceDispatched) return this.dispatchTraces(); // seulement si confirmé
+      return Promise.reject(new Error('Instance not dispatched yet'));// instance pas encore dispatchée, traces non envoyées
     });
   }
 
@@ -86,6 +101,10 @@ class EventTraceScheduledDispatcherService {
         if (res.status >= 400 && res.status < 500) {
           return traces; //retry on bad request !?
         }
+        if (res.status >= 500) {
+          dispatchReport('EventTraceScheduledDispatcher.dispatchTraces', res);
+          return traces;
+        }
         return res.json()
           .then(body => body?.retry ? traces : EMPTY_ARRAY)
           .catch(() => EMPTY_ARRAY);
@@ -105,11 +124,17 @@ class EventTraceScheduledDispatcherService {
       keepalive: true,
       body: JSON.stringify(this.instance)
     })
-      .then(res => res.ok ? res.text().then(id => {
-        this.dispatchAttempts = 0;
-        return true;
-      }) : false)
-      .catch(err => false);
+      .then(res => {
+        if (res.ok) {
+          this.dispatchAttempts = 0;
+          return true;
+        }
+        if (res.status >= 500) {
+          dispatchReport('EventTraceScheduledDispatcher.dispatchInstance', res);
+        }
+        return false;
+      })
+      .catch(() => false);
   }
 
   revertQueueSize(traces: EventTrace[]) {
