@@ -25,7 +25,7 @@ export class SessionManager {
     return SessionManager._instance;
   }
 
-  navigate(url?: string) {
+  navigate(url?: string): MainSession | undefined  {
     const now = dateNow();
     if(this.currentSessionCallBack){
       this.endSession(now);
@@ -47,6 +47,7 @@ export class SessionManager {
         requestMask: 0,
       }
     }
+    return this.currentSession
   }
 
   private endSession(end : number){
@@ -57,16 +58,29 @@ export class SessionManager {
     this.currentSessionCallBack = undefined;
   }
 
-  updateSession(update: boolean = true) {
-    if (this.currentSession) {
+  validateSession(update: boolean = true, timeout: number = Number.NaN) {
+    const s = this.currentSession;
+    if (Number.isNaN(timeout)) {
+      this.updateSession(s, false);
+    } else {
+      setTimeout(() => this.updateSession(s, true), 0);
+    }
+  }
+
+    private updateSession(session: MainSession | undefined, update: boolean = true) {
+    if (session) {
       if(update){
-        this.currentSession.name = document.title; // add settimeout
-        this.currentSession.location = document.URL;
+        session.name = document.title;
+        session.location = document.URL;
+      }else {
+        session.name = '<startup>';
       }
-      if (!this._techConfig.exclude?.some((e: any) => e.test(this.currentSession?.location))) {
-        dispatchTraces(this.currentSession)
+      if (!this._techConfig.exclude?.some((e: any) => e.test(session?.location))) {
+        dispatchTraces(session)
       }
-      this.currentSession = undefined;
+      if(session === this.currentSession){
+        this.currentSession = undefined;
+      }
     }
     else{
       dispatchReport('updateSession', 'no active session');

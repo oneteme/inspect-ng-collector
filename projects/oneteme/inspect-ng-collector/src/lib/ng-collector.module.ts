@@ -74,7 +74,7 @@ export function initializeCollector(config: CollectorConfig) {
   const dispatch = eventTraceScheduledDispatcher(tech);
   const instance = createInstance(config, id)
   dispatch.trace(instance);
-  sessionManager(tech)
+  sessionManager(tech);
   return {tech: tech, instance: instance};
 }
 
@@ -84,7 +84,7 @@ export function reloadCollector(config: {tech: TechnicalConf, instance: Instance
   const dispatch = eventTraceScheduledDispatcher(config.tech);
   config.instance.id= id;
   dispatch.trace(config.instance);
-  sessionManager(config.tech)
+  sessionManager(config.tech);
 }
 
 
