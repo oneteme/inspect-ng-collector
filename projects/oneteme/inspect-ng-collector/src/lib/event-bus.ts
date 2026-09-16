@@ -1,22 +1,38 @@
-import { dateNow, EventTrace, LogLevel, LogEntry, TRACE_TYPE_LOG } from "./trace.model";
+import {
+  dateNow,
+  EventTrace,
+  LogEntry,
+  TRACE_TYPE_LOG,
+  SessionEvent,
+  TRACE_TYPE_SESSION_EVENT
+} from "./trace.model";
+import {parseStackTrace} from "./configuration";
 
 const eventTarget = new EventTarget();
 const TRACE = 'trace', EXPORT = 'export', SHUTDOWN = 'shutdown', RELOAD = 'reload';
 
-export const WIN: any = window;
+export const WIN: any = globalThis;
+WIN["event-bus"] = eventTarget;
 
 export function dispatchReport(message: string, error?: any) : void {
-  dispatchLog("REPORT", `${message} ${error && JSON.stringify(error)}`)
-}
-
-export function dispatchLog(level: LogLevel, message: string, sessionId?: string) {
   dispatchTraces({
     "@type": TRACE_TYPE_LOG,
-    level: level,
-    message: message,
     instant: dateNow(),
-    sessionId: sessionId
+    message : `${message} ${error && JSON.stringify(error)}`,
+    stackTraceRows: parseStackTrace(error.stack? error.stack : undefined),
   } as LogEntry);
+}
+
+
+export function dispatchLog(type: string, value: string, sessionId?: string) {
+  dispatchTraces({
+    "@type": TRACE_TYPE_SESSION_EVENT,
+    type: type,
+    value: value,
+    instant: dateNow(),
+    //location: null,
+    sessionId: sessionId
+  } as SessionEvent);
 }
 
 export function dispatchTraces(...traces: EventTrace[]): void {

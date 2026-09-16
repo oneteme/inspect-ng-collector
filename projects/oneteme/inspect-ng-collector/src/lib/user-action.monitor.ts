@@ -1,36 +1,104 @@
-import { dateNow, UserAction, TRACE_TYPE_USER_ACTION } from "./trace.model";
-import { SessionManager } from "./session-manager.service";
-import { dispatchReport, dispatchTraces } from "./event-bus";
+import {
+  BrowserConfig,
+  dateNow,
+  Mask,
+  SessionEvent,
+  TRACE_TYPE_ADDITIONAL_VALUES,
+  TRACE_TYPE_SESSION_EVENT
+} from "./trace.model";
+import {SessionManager} from "./session-manager.service";
+import {dispatchReport, dispatchTraces} from "./event-bus";
 
 const eventHandlers: { [key: string]: (target: HTMLElement) => boolean } = {
   'click': (target: HTMLElement) => lookUpChild(target, 1),
 }
+
+const RESIZE_IDLE_DELAY = 250;
+const SCROLL_IDLE_DELAY = 250;
+let globalBrowserValues: any = { o : globalThis.devicePixelRatio , c :`${innerWidth}x${innerHeight}` }
+let Timer: ReturnType<typeof setTimeout> | undefined;
+
 export function initUserActionMonitor() {
   try {
-    const body = window.document.body;
-    body.addEventListener('click', globalHandler, true);
-    body.addEventListener('change', globalHandler, true);
-    body.addEventListener('scrollend', globalHandler, true);
-    body.addEventListener('dragend', globalHandler, true);
-    window.document.addEventListener('DOMContentLoaded', globalHandler, true);
+    globalThis.addEventListener('scroll', scrollHandler, true); // do costum handler with timeout
+    globalThis.addEventListener('resize', resizeHandler, true );
+    document.addEventListener('visibilitychange', visibilityHandler);
+    document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', globalHandler, { once: true }) : addActionUser('DOMContentLoaded',  null, null);
+    //todo move by move to detect changeecran
+    traceBrowserConfig();
   }
   catch (e) {
     dispatchReport("initUserActionMonitor", e);
   }
 }
 
-function globalHandler(event: Event | MouseEvent) {
+function globalHandler(event: Event) {
   const target = event.target as HTMLElement;
   const eventType = event.type;
   try {
     if (eventHandlers.hasOwnProperty(eventType) && !eventHandlers[eventType](target)) {
       return;
     }
-    addActionUser(eventType, target);
+    addActionUser(eventType, extractName(target), target.tagName?.toLowerCase() );
   } catch (err) {
     dispatchReport("UserACTION.globalHandler", err)
   }
 }
+
+
+
+function traceBrowserConfig() {
+  dispatchTraces({
+    '@type':  TRACE_TYPE_ADDITIONAL_VALUES,
+    deviceDisplayResolution:`${screen?.width}x${screen?.height}`,
+    deviceOrientation:screen.orientation?.type ?? (innerWidth >= innerHeight ? 'landscape' : 'portrait'),
+    deviceConnectivity:(navigator as any).connection?.effectiveType ?? 'unknown',
+    windowViewportBounds:`${innerWidth}x${innerHeight}`,
+    windowZoomLevel:String(visualViewport?.scale ?? devicePixelRatio),
+    userLanguage:navigator.language,
+    userTheme:matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+   // navigationReferrer:document.referrer || 'direct';
+  } as BrowserConfig)
+}
+
+
+
+
+
+
+function resizeHandler() {
+  if (Timer) {
+    clearTimeout(Timer);
+  }
+
+  Timer = setTimeout(() => {
+    Timer = undefined;
+    globalBrowserValues.o = `${innerWidth}x${innerHeight}`
+    if (globalBrowserValues.c  != globalThis.devicePixelRatio) {
+      addActionUser('zoom', `${Number((globalThis.devicePixelRatio - (globalBrowserValues.c )).toFixed(2)) * 100}%`, null); // todo : new - old
+    }else {
+      addActionUser('resize',`${innerWidth}x${innerHeight}`, null);
+    }
+    globalBrowserValues.c = globalThis.devicePixelRatio
+  }, RESIZE_IDLE_DELAY);
+}
+
+function scrollHandler() {
+  if (Timer) {
+    clearTimeout(Timer);
+  }
+
+  Timer = setTimeout(() => {
+    Timer = undefined;
+    addActionUser('scroll',null, null); // todo to enhance  ( vertical / horizontal )
+  }, SCROLL_IDLE_DELAY);
+}
+
+
+function visibilityHandler() {
+    addActionUser(document.hidden? 'DOC_HIDDEN' : 'DOC_VISIBLE', null, null )
+}
+
 
 function lookUpChild(t: HTMLElement, depth: number): boolean {
   if (t.hasChildNodes() && t.children.length <= 5) {
@@ -43,15 +111,18 @@ function lookUpChild(t: HTMLElement, depth: number): boolean {
   return true;
 }
 
-function addActionUser(eventType: string, target: HTMLElement) {
+
+
+function addActionUser(eventType: string, value: string | null, location: string | null) {
+  const at = dateNow();
   dispatchTraces({
-    ...SessionManager.instance.initUserAction(),
-    '@type': TRACE_TYPE_USER_ACTION,
+    ...SessionManager.instance.traceSessionMaskUpdate(Mask.EVENT),
+    '@type': TRACE_TYPE_SESSION_EVENT,
     type: eventType,
-    instant: dateNow(),
-    name: extractName(target),
-    nodeName: target.tagName?.toLowerCase()
-  } as UserAction);
+    instant: at,
+    value: value,
+    location: location
+  } as SessionEvent);
 }
 
 function getFirst(c: ((t: HTMLElement) => string | null)[], t: HTMLElement) {

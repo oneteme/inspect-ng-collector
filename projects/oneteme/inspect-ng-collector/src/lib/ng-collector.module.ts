@@ -24,7 +24,6 @@ import { initNavigationMonitor } from './navigation.monitor';
 import { initResourceUsageMonitor } from './resource-usage.monitor';
 import { addReloadListener } from './event-bus';
 import {sessionManager} from "./session-manager.service";
-import {eventTraceDebugger} from "./event-trace-debugger";
 import {InstanceEnvironment} from "./trace.model";
 
 const COLLECTOR_CONFIG = new InjectionToken<CollectorConfig>('COLLECTOR_CONFIG');
@@ -53,15 +52,15 @@ export class NgCollectorModule {
 
 export function initializeEventsFactory(config: {tech: TechnicalConf, instance: InstanceEnvironment }, router: Router) {
   return () => {
+    initNavigationMonitor(router);
    if (config.tech.analytics) {
       initUserActionMonitor();
     }
     if (config.tech.resources) {
       initResourceUsageMonitor();
     }
-    initNavigationMonitor(router);
     //storageEventListener();
-    //eventTraceDebugger
+    //eventTraceDebugger(config.tech)
     addReloadListener(e=>{
         reloadCollector(config)
     });

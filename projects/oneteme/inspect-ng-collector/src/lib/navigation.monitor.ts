@@ -23,7 +23,7 @@ function routeHandler(event: any) {
   }
 }
 
-function windowUnloadHandler(event: any) {
+function windowUnloadHandler() {
   SessionManager.instance.navigate();
   dispatchShutown();
 }

@@ -20,6 +20,7 @@ function ressourceUsageHandler() {
       instant: dateNow(),
       usedHeap: memory.usedJSHeapSize / (1024 * 1024),
       commitedHeap: memory.totalJSHeapSize / (1024 * 1024),
+      availableProcessors: navigator.hardwareConcurrency
     } as MachineRessourceUsage);
   } catch (e) {
     dispatchReport('ressourceUsageHandler', e);

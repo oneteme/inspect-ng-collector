@@ -1,18 +1,18 @@
 import {
   dateNow,
-  ExceptionInfo,
   HttpRequestStage,
   RestRequest,
   RestRequestCallBack,
-  RequestMask,
+  Mask,
   TRACE_TYPE_HTTP_REQUEST_STAGE,
   TRACE_TYPE_REST_REQUEST,
   TRACE_TYPE_REST_REQUEST_CALLBACK,
-  UUID
+  UUID, ExceptionTrace,
 } from "./trace.model";
 import { dispatchTraces, dispatchReport } from "./event-bus";
 import { HttpErrorResponse, HttpHeaders, HttpRequest, HttpResponse, HttpResponseBase } from "@angular/common/http";
 import { SessionManager } from "./session-manager.service";
+import {createException} from "./configuration";
 
 export const TRACE_HEADER = 'x-tracert';
 
@@ -29,7 +29,7 @@ export class RestRequestMonitor {
   preProcess(restRequest: HttpRequest<any>) {
     const url = new URL(restRequest.urlWithParams, globalThis.location.origin);
     const auth_user = extractAuthSchemeAnduser(restRequest.headers);
-    dispatchTraces({...SessionManager.instance.initRestRequest(RequestMask.REST),
+    dispatchTraces({...SessionManager.instance.traceSessionMaskUpdate(Mask.REST),
       "@type": TRACE_TYPE_REST_REQUEST,
       id: this.id,
       method: restRequest.method,
@@ -55,7 +55,7 @@ export class RestRequestMonitor {
       linked: false,
       end: end
     }
-    let status: number = 0, exception!: ExceptionInfo;
+    let status: number = 0, exception!: ExceptionTrace | undefined;
 
     // HttpResponseBase couvre à la fois HttpResponse (succès) et HttpErrorResponse (erreur HTTP)
     if (response) {
@@ -67,15 +67,15 @@ export class RestRequestMonitor {
 
     // Erreur réseau/annulation
     if (error) {
-      status = error.status || 0;
-      exception = {
-        type: error.name,
-        message: error.error && error.status ? JSON.stringify(error.error) : error.message
-      }
+      status = retrieveStatus(error);
+      exception = createException(error, this.id);
       callback.bodyContent = JSON.stringify(error.error);
       callback.dataSize = sizeOf(error.error);
       callback.contentType = extractContentType(error.headers);
       callback.linked = assertSessionID(this.id, error.headers);
+      if(exception){
+        dispatchTraces(exception)
+      }
     }
 
     callback.status = status;
@@ -89,6 +89,14 @@ export class RestRequestMonitor {
       requestId: this.id
     } as HttpRequestStage);
   }
+}
+
+function retrieveStatus(error: any): number {
+  if(!error.status){
+    if(error.name === 'TimeoutError')
+      return 3;
+  }
+  return error.status || 0 ;
 }
 
 function assertSessionID(id: string, headers: HttpHeaders) { //browser cache !?
@@ -119,7 +127,7 @@ function extractUser(scheme: 'Basic' | 'Bearer', authorization: string) {
       case "Basic":
         return atob(authorization).split(':')[0] || undefined;
       case "Bearer": {
-        const payloadMatch = authorization.match(/^[^.]+\.([^.]+)\.[^.]+$/);
+        const payloadMatch = new RegExp(/^[^.]+\.([^.]+)\.[^.]+$/).exec(authorization);
         if (payloadMatch?.[1]) {
           return JSON.parse(atob(payloadMatch[1])).sub;
         }

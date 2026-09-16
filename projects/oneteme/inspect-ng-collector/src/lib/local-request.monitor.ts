@@ -1,12 +1,12 @@
 import {
-  dateNow,
+  dateNow, ExceptionTrace,
   LocalRequest, LocalRequestCallBack,
-  RequestMask,
+  Mask,
   TRACE_TYPE_LOCAL_REQUEST,
   TRACE_TYPE_LOCAL_REQUEST_CALLBACK,
   UUID
 } from "./trace.model";
-import {dispatchTraces, WIN} from "./event-bus";
+import {WIN} from "./event-bus";
 
 export class LocalRequestMonitor {
 
@@ -18,24 +18,39 @@ export class LocalRequestMonitor {
     this.id = crypto.randomUUID();
   }
 
-  preProcess(propertyKey: string, target: any){
-    dispatchTraces({
-      ...WIN["inspect-session-manager"]?.initRestRequest(RequestMask.LOCAL),
+  preProcess(propertyKey: string, target: any) {
+    const sessionManager = WIN["inspect-session-manager"];
+
+    const trace: LocalRequest = {
+      ...sessionManager?.traceSessionMaskUpdate(Mask.LOCAL),
       "@type": TRACE_TYPE_LOCAL_REQUEST,
       id: this.id,
       name: propertyKey,
       location: target.constructor.name,
-      user: WIN["inspect-session-manager"]?.currentSession?.user, //bad access
+      user: sessionManager?.currentSession?.user,
       start: this.start
-    } as LocalRequest);
+    };
+
+    WIN["event-bus"].dispatchEvent(
+      new CustomEvent('trace', { detail: { traces: [trace] } })
+    );
   }
 
-  postProcess(exception?: any){
-    dispatchTraces({
+  postProcess(exception?: ExceptionTrace) {
+    const traces: (LocalRequestCallBack | ExceptionTrace)[] = [{
       "@type": TRACE_TYPE_LOCAL_REQUEST_CALLBACK,
       id: this.id,
-      exception: exception,
-      end: dateNow()
-    } as LocalRequestCallBack);
+      end: dateNow(),
+      status: exception ? 500 : 200
+    }];
+
+    if (exception) {
+      exception.traceId = this.id;
+      traces.push(exception);
+    }
+
+    WIN["event-bus"].dispatchEvent(
+      new CustomEvent('trace', { detail: { traces } })
+    );
   }
 }
