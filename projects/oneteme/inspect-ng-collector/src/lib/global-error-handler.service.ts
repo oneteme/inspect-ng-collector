@@ -1,19 +1,19 @@
 import { ErrorHandler, Injectable } from "@angular/core";
 import { SessionManager } from "./session-manager.service";
-import { dispatchReport } from "./event-bus";
+import {dispatchReport, dispatchTraces} from "./event-bus";
+import {createException} from "./configuration";
 
 @Injectable({ providedIn: 'root' })
 export class GlobalErrorHandler implements ErrorHandler {
 
   handleError(error: any) {
     try {
-      SessionManager.instance.addException({
-        type: error?.name,
-        message: error?.message
-      })
+      let ex = createException(error, SessionManager.instance.markSessionFailed(),true)
+      if(ex){
+        dispatchTraces(ex);
+      }
     } catch (e) {
       dispatchReport("GlobalErrorHandlerService.handleError", e);
     }
-    throw error;
   }
 }

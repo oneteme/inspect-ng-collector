@@ -19,24 +19,24 @@ function routeHandler(event: any) {
     SessionManager.instance.navigate(event.url);
   }
   if (event instanceof NavigationEnd || event instanceof NavigationCancel) {
-    setTimeout(()=>SessionManager.instance.updateSession(),0)
+    SessionManager.instance.validateSession( true, 0);
   }
 }
 
-function windowUnloadHandler(event: any) {
+function windowUnloadHandler() {
   SessionManager.instance.navigate();
   dispatchShutown();
 }
 
 function initStartupSession() {
-  SessionManager.instance.navigate(new URL(document.URL).host);
-  SessionManager.instance.updateSession(false);
+  SessionManager.instance.navigate(new URL(document.URL).origin);
+  SessionManager.instance.validateSession(false);
 }
 
 function bfCacheHandler(event: any) {
   if (event.persisted) { // if the page was restored from bfcache
     dispatchReload();
     SessionManager.instance.navigate(document.URL);
-    setTimeout(() => SessionManager.instance.updateSession(), 0);
+    SessionManager.instance.validateSession( true, 0);
   }
 }
