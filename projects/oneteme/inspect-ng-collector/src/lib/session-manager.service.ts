@@ -97,7 +97,7 @@ export class SessionManager {
   currentSessionID(): UUID | undefined {
     return this.getCurrentSessionCallBack(s=> s.id);
   }
-  rename(){
+  markSessionFailed(){
     return this.getCurrentSessionCallBack(s => {
       s.status = 500;
       return s.id

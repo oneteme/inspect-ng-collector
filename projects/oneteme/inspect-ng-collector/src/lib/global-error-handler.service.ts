@@ -8,7 +8,7 @@ export class GlobalErrorHandler implements ErrorHandler {
 
   handleError(error: any) {
     try {
-      let ex = createException(error, SessionManager.instance.rename(),true)
+      let ex = createException(error, SessionManager.instance.markSessionFailed(),true)
       if(ex){
         dispatchTraces(ex);
       }
