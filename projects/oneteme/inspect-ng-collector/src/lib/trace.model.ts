@@ -3,13 +3,13 @@ type MainSessionType = "VIEW" | "BATCH" | "STARTUP";
 
 export type LogLevel = "INFO" | "WARN" | "ERROR" | "REPORT";
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
-
+export enum TraceType { MAIN_SES = 1, HTTP_REQ = 10, LCL_RQT = 99}
 export enum Mask { LOCAL = 1, REST = 4, EVENT = 1024  }
 export const TRACE_TYPE_LOG = '00';
 export const TRACE_TYPE_RESOURCE_USAGE = '01';
 export const TRACE_TYPE_COLLECTOR_CONFIGURATION = '02';
 export const TRACE_TYPE_SESSION_MASK_UPDATE = '03';
-export const TRACE_TYPE_EXEPTION = '04';
+export const TRACE_TYPE_EXCEPTION = '05';
 export const TRACE_TYPE_MAIN_SESSION = '10';
 export const TRACE_TYPE_MAIN_SESSION_CALLBACK = '11';
 export const TRACE_TYPE_LOCAL_REQUEST = '110';
@@ -17,7 +17,7 @@ export const TRACE_TYPE_LOCAL_REQUEST_CALLBACK = '111';
 export const TRACE_TYPE_REST_REQUEST = '120';
 export const TRACE_TYPE_REST_REQUEST_CALLBACK = '121';
 export const TRACE_TYPE_HTTP_REQUEST_STAGE = '220';
-export const TRACE_TYPE_SESSION_EVENT = '300';
+export const TRACE_TYPE_SESSION_EVENT = '06';
 export const TRACE_TYPE_ADDITIONAL_VALUES = '400';
 
 
@@ -55,6 +55,7 @@ export interface BrowserConfig extends EventTrace  {
   userLanguage?:string;
   userTheme?:string;
   navigationReferrer?:string;
+  saveData?:boolean
 }
 
 export interface MainSession extends EventTrace {
@@ -137,10 +138,11 @@ export interface LocalRequestCallBack extends EventTrace {
 }
 
 export interface ExceptionTrace extends EventTrace {
-  '@type':  typeof TRACE_TYPE_EXEPTION;
+  '@type':  typeof TRACE_TYPE_EXCEPTION;
   type?:string;
   message?: string;
   stackTraceRows?: StackTraceRow[];
+  traceType: number;
   //cause?: ExceptionTrace;
   traceId?: UUID;
   offset: number;
@@ -158,6 +160,7 @@ export interface SessionEvent extends EventTrace {
   instant: number;
   value?: string;
   location?: string;
+  scope?: string;
   sessionId?: UUID;
 }
 

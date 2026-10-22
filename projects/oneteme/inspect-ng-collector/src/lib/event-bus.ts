@@ -10,11 +10,19 @@ import {parseStackTrace} from "./configuration";
 
 const eventTarget = new EventTarget();
 const TRACE = 'trace', EXPORT = 'export', SHUTDOWN = 'shutdown', RELOAD = 'reload';
+let reporterEnabled = false;
 
 export const WIN: any = globalThis;
 WIN["event-bus"] = eventTarget;
 
+export function configureReporter(enabled: boolean): void {
+  reporterEnabled = enabled;
+}
+
 export function dispatchReport(message: string, error?: any) : void {
+  if (!reporterEnabled) {
+    return;
+  }
   dispatchTraces({
     "@type": TRACE_TYPE_LOG,
     instant: dateNow(),

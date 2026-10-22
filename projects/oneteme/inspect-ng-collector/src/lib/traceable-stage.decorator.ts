@@ -1,5 +1,6 @@
 import {LocalRequestMonitor} from "./local-request.monitor";
 import {createException} from "./configuration";
+import {TraceType} from "./trace.model";
 
 export function TraceableStage() {
 
@@ -16,7 +17,7 @@ export function TraceableStage() {
         monitor.preProcess(propertyKey,target);
         return originalMethod.apply(this, args);
       } catch (e: any) {
-        exception = createException(e, undefined);
+        exception = createException(e, undefined,  TraceType.LCL_RQT,false);
         throw e;
       } finally {
         monitor.postProcess(exception)

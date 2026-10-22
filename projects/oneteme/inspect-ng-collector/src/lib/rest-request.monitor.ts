@@ -7,7 +7,7 @@ import {
   TRACE_TYPE_HTTP_REQUEST_STAGE,
   TRACE_TYPE_REST_REQUEST,
   TRACE_TYPE_REST_REQUEST_CALLBACK,
-  UUID, ExceptionTrace,
+  UUID, ExceptionTrace, TraceType,
 } from "./trace.model";
 import { dispatchTraces, dispatchReport } from "./event-bus";
 import { HttpErrorResponse, HttpHeaders, HttpRequest, HttpResponse, HttpResponseBase } from "@angular/common/http";
@@ -68,7 +68,7 @@ export class RestRequestMonitor {
     // Erreur réseau/annulation
     if (error) {
       status = retrieveStatus(error);
-      exception = createException(error, this.id);
+      exception = createException(error, this.id, TraceType.HTTP_REQ, false);
       callback.bodyContent = JSON.stringify(error.error);
       callback.dataSize = sizeOf(error.error);
       callback.contentType = extractContentType(error.headers);

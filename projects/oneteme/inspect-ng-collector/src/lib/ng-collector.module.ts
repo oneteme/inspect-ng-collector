@@ -22,9 +22,10 @@ import { Router } from "@angular/router";
 import { initUserActionMonitor } from "./user-action.monitor";
 import { initNavigationMonitor } from './navigation.monitor';
 import { initResourceUsageMonitor } from './resource-usage.monitor';
-import { addReloadListener } from './event-bus';
+import { addReloadListener, configureReporter } from './event-bus';
 import {sessionManager} from "./session-manager.service";
 import {InstanceEnvironment} from "./trace.model";
+import {installConsoleCapture} from "./log.monitor";
 
 const COLLECTOR_CONFIG = new InjectionToken<CollectorConfig>('COLLECTOR_CONFIG');
 
@@ -33,7 +34,7 @@ export class NgCollectorModule {
 
   static forRoot(configuration: CollectorConfig): ModuleWithProviders<NgCollectorModule> {
     const providers = [];
-    if (configuration?.enabled) {
+    if (configuration?.collector?.enabled) {
       try {
         let config  = initializeCollector(configuration);
         providers.push(
@@ -59,6 +60,10 @@ export function initializeEventsFactory(config: {tech: TechnicalConf, instance: 
     if (config.tech.resources) {
       initResourceUsageMonitor();
     }
+    if(config.tech.logger){
+      installConsoleCapture();
+    }
+    configureReporter(config.tech.reporter);
     //storageEventListener();
     //eventTraceDebugger(config.tech)
     addReloadListener(e=>{
@@ -70,6 +75,7 @@ export function initializeEventsFactory(config: {tech: TechnicalConf, instance: 
 export function initializeCollector(config: CollectorConfig) {
   const id = crypto.randomUUID();
   const tech = validateAndGetConfig(config, id);
+  configureReporter(tech.reporter);
   const dispatch = eventTraceScheduledDispatcher(tech);
   const instance = createInstance(config, id)
   dispatch.trace(instance);
@@ -85,5 +91,3 @@ export function reloadCollector(config: {tech: TechnicalConf, instance: Instance
   dispatch.trace(config.instance);
   sessionManager(config.tech);
 }
-
-

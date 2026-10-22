@@ -41,7 +41,7 @@ export class LocalRequestMonitor {
       "@type": TRACE_TYPE_LOCAL_REQUEST_CALLBACK,
       id: this.id,
       end: dateNow(),
-      status: exception ? 500 : 200
+      status: exception ? 400 : 200
     }];
 
     if (exception) {

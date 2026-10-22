@@ -96,28 +96,21 @@ class EventTraceScheduledDispatcherService {
         body: JSON.stringify(traces)
       })
       .then(res=> {
-        if (res.ok) {
+        if (res.ok || res.status === 409) {
           this.dispatchAttempts = 0;
           return EMPTY_ARRAY;
         }
         console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`);
-        if (res.status >= 400 && res.status < 500) {
-          return res.status === 429 ? traces : EMPTY_ARRAY;
-        }
-        if (res.status >= 500) {
-          dispatchReport('EventTraceScheduledDispatcher.dispatchTraces', res);
-          let retry = res.headers.get('Inspect-Trace-Retry');
-          if(retry && Number(retry) > 0){
-            return traces;
-          }
+        if(res.status === 429 || res.status >= 500){
+          console.warn('Dispatch failed with status', res.status, 'retrying...');
           this.lastPacket = [...traces];
-          return EMPTY_ARRAY
         }
         return EMPTY_ARRAY // retry on 3XX
       })
       .catch(() => {
         console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`); //no cnx !
-        return traces;
+        this.lastPacket = [...traces];
+        return EMPTY_ARRAY;
       });
   }
 
@@ -130,28 +123,33 @@ class EventTraceScheduledDispatcherService {
       keepalive: true,
       body: JSON.stringify(this.lastPacket)
     }).then(res => {
-      if(res.ok) {
+      if(res.ok || res.status === 409) {
         this.lastPacket = null;
         this.dispatchAttempts = 0;
       }
       console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`);
       if (res.status >= 500) {
         dispatchReport('EventTraceScheduledDispatcher.dispatchPrevious', res);
-         if(this.dispatchAttempts>= 10){
-           console.warn(`Error while attempting to send ${this.lastPacket?.length} traces, giving up`);
-           this.lastPacket = null;
-           this.dispatchAttempts = 0;
-         }
       }
 
     }).catch(() => {
       console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`);
+      this.discardLastPacketIfQueueCapacityExceeded();
     })
   }
 
+  private discardLastPacketIfQueueCapacityExceeded() {
+    if ((this.lastPacket?.length ?? 0) + this.traceQueue.length > this._techConfig.queueCapacity) {
+      console.warn(`Error while attempting to send ${this.lastPacket?.length} traces, giving up`);
+      this.lastPacket = null;
+      this.dispatchAttempts = 0;
+    }
+  }
+
+
   dispatchInstance(): Promise<boolean> {
-    this.dispatchAttempts++;
-    return fetch(this._techConfig.instanceApi, {
+    const uri = this._techConfig.instanceApi + "?atm=" + ++this.dispatchAttempts;
+    return fetch(uri, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': this._techConfig.namespaceHeader },
       mode: 'cors',
@@ -159,7 +157,7 @@ class EventTraceScheduledDispatcherService {
       body: JSON.stringify(this.instance)
     })
       .then(res => {
-        if (res.ok) {
+        if (res.ok || res.status === 409) {
           this.dispatchAttempts = 0;
           return true;
         }

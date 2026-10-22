@@ -99,7 +99,7 @@ export class SessionManager {
   }
   markSessionFailed(){
     return this.getCurrentSessionCallBack(s => {
-      s.status = 500;
+      s.status = 400;
       return s.id
     })
   }
@@ -136,7 +136,7 @@ export class SessionManager {
   private log(type: string, message: string){
     if (message) {
 
-      this.getCurrentSessionCallBack(s=> dispatchLog(type, message, this.traceSessionMaskUpdate(Mask.EVENT).id)); // update mask
+      this.getCurrentSessionCallBack(s=> dispatchLog(type, message, this.traceSessionMaskUpdate(Mask.EVENT).sessionId)); // update mask
     }
   }
 }

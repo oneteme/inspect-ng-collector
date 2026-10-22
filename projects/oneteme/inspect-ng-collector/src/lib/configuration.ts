@@ -3,61 +3,75 @@ import {
   ExceptionTrace,
   InstanceEnvironment,
   StackTraceRow,
-  TRACE_TYPE_COLLECTOR_CONFIGURATION, TRACE_TYPE_EXEPTION,
+  TRACE_TYPE_COLLECTOR_CONFIGURATION, TRACE_TYPE_EXCEPTION, TraceType,
   UUID
 } from "./trace.model";
 import {dispatchReport} from "./event-bus";
+import {VERSION} from "@angular/core";
 type Provider<T> = T | (() => T);
 
 const HOST_PATERN = /https?:\/\/[\w\-.]+(:\d{2,5})?\/?/;
+const DEFAULT_QUEUE_CAPACITY = 1000;
+const DEFAULT_INTERVAL = 60_000;
+
 
 export interface CollectorConfig {
-  enabled?: boolean; // default: false
-  debugMode?: boolean;
-  name: Provider<string>;
-  version?: Provider<string>;
-  env?: Provider<string>;
-  user?: Provider<string>;
-  namespace?: Provider<string>;
-  token?: Provider<string>;
-  additionalProperties?: ()=> {[key:string]: any};
-  scheduling?: {
-    interval?: number; // default: '60s'
-  };
-  monitoring?: {
-    httpRoute?: {
-      excludes?: {
-        path?: Provider<RegExp[]>; // replace this with string[]
+  collector: {
+    enabled?: boolean; // default: false
+    debugMode?: boolean;
+    additionalProperties?: () => { [key: string]: any };
+    application: {
+      name: Provider<string>;
+      namespace: Provider<string>;
+      version?: Provider<string>;
+      env: Provider<string>;
+      user?: Provider<string>;
+      branche?: Provider<string>;
+      hash?: Provider<string>;
+    };
+    scheduling?: {
+      queueCapacity?: number; // default: 1000
+      interval?: number; // default: 60s, in milliseconds
+    };
+    monitoring?: {
+      httpRoute?: {
+        excludes?: {
+          path?: Provider<RegExp[]>;
+        };
       };
-    };
-    httpRequest?: {
-      excludes?: {
-        host?: string[];
+      httpRequest?: {
+        excludes?: {
+          host?: string[];
+        };
       };
-    };
-    resources?: {
-      enabled?: boolean; // default: false
-    };
-    analytics?: {
-      enabled?: boolean; // default: false
-    };
-    storage?: {
-      enabled: boolean // default: false
-    }
-  };
-  tracing?: {
-    queueCapacity?: number; // default: 1000
-    remote?: {
-      '@type'?: string;
-      mode?: string; // default: null
-      host?: string; // default: 'localhost'
-      retentionMaxAge?: {
-        audit?:   number;
-        diagnostics?: number;
+      resources?: {
+        enabled?: boolean; // default: false
+      };
+      analytics?: {
+        enabled?: boolean; // default: false
+      };
+      logger?: {
+        enabled?: boolean; // default: false
+      };
+      reporter?: {
+        enabled?: boolean; // default: false
       }
+      storage?: {
+        enabled: boolean; // default: false
+      };
+    };
+    tracing: {
+      remote: {
+        '@type'?: string;
+        host: string; // default: 'localhost'
+        token?: Provider<string>;
+        retentionMaxAge?: {
+          audit?: number;
+          diagnostics?: number;
+        };
+      };
     };
   };
-
 }
 
 export interface TechnicalConf {
@@ -72,6 +86,8 @@ export interface TechnicalConf {
   analytics: boolean;
   resources: boolean;
   storage: boolean;
+  logger: boolean;
+  reporter: boolean;
   namespaceHeader: string;
   enabled: boolean;
 }
@@ -112,67 +128,95 @@ export function require(v: string | undefined, name: string){
 }
 
 export function adaptedConfig(conf: CollectorConfig) {
+  const collector = conf.collector ?? {};
+  const application = collector.application;
+  const remote = collector.tracing?.remote;
+  const pathExcludes = getOrCall<RegExp[]>(collector.monitoring?.httpRoute?.excludes?.path);
+  const { token: _token, ...publicRemote } = remote ?? {};
+
   return {
-  ...conf,
-    scheduling: {
-    ...conf.scheduling,
-        interval: conf.scheduling?.interval && conf.scheduling.interval / 1000
-    },
-    monitoring: {
-  ...conf.monitoring,
-      additionalProperties: String(conf.additionalProperties),
-      name: String(conf.name),
-      version: String(conf.version),
-      env: String(conf.env),
-      user: String(conf.user),
-      httpRoute: {
-    ...conf.monitoring?.httpRoute,
-        excludes: {
-        path: (conf?.monitoring?.httpRoute?.excludes?.path as RegExp[]).map(r => r.source)
-      }
-    }
-  },
-    tracing: {
-    ...conf.tracing,
+    collector: {
+      ...collector,
+      additionalProperties: collector.additionalProperties?.(),
+      application: application ? {
+        ...application,
+        name: getOrCall<string>(application.name),
+        namespace: getOrCall<string>(application.namespace),
+        version: getOrCall<string>(application.version),
+        env: getOrCall<string>(application.env),
+        user: getOrCall<string>(application.user),
+        branche: getOrCall<string>(application.branche),
+        hash: getOrCall<string>(application.hash)
+      } : undefined,
+      scheduling: {
+        ...collector.scheduling,
+        interval: (collector.scheduling?.interval ?? DEFAULT_INTERVAL) / 1000,
+        queueCapacity: collector.scheduling?.queueCapacity ?? DEFAULT_QUEUE_CAPACITY
+      },
+      monitoring: {
+        ...collector.monitoring,
+        ...(collector.monitoring?.httpRoute ? {
+          httpRoute: {
+            ...collector.monitoring.httpRoute,
+            excludes: {
+              ...collector.monitoring.httpRoute.excludes,
+              ...(pathExcludes ? { path: pathExcludes.map(regex => regex.source) } : {})
+            }
+          }
+        } : {})
+      },
+      tracing: {
+        ...collector.tracing,
         remote: {
-      ...conf.tracing?.remote,
+          ...publicRemote,
           '@type': TRACE_TYPE_COLLECTOR_CONFIGURATION,
-          retentionMaxAge :  {
-              audit: (conf.tracing?.remote?.retentionMaxAge?.audit ?? 7)  * 60 * 60 * 24,
-              diagnostics: (conf.tracing?.remote?.retentionMaxAge?.diagnostics ?? 10)  * 60 * 60 * 24,
-          },
+          retentionMaxAge: {
+            audit: (remote?.retentionMaxAge?.audit ?? 7) * 60 * 60 * 24,
+            diagnostics: (remote?.retentionMaxAge?.diagnostics ?? 10) * 60 * 60 * 24
+          }
+        }
       }
     }
   }
 }
 
 export function validateAndGetConfig(conf: CollectorConfig, instanceId: string) : TechnicalConf {
-  const host = matchRegex(getOrCall<string>(conf?.tracing?.remote?.host), "host", HOST_PATERN);
+  const collector = conf.collector;
+  const application = collector?.application;
+  const remote = collector?.tracing?.remote;
+  const host = matchRegex(getOrCall<string>(remote?.host), "host", HOST_PATERN, "http://localhost");
   return {
-    user: conf?.user,
-    queueCapacity: requirePostitiveValue(getOrCall<number>(conf?.tracing?.queueCapacity), "queueCapacity", 1000),
-    interval: requirePostitiveValue(getOrCall<number>(conf?.scheduling?.interval), "interval", 60000),
+    user: getOrCall<string>(application?.user),
+    queueCapacity: requirePostitiveValue(getOrCall<number>(collector?.scheduling?.queueCapacity), "queueCapacity", DEFAULT_QUEUE_CAPACITY),
+    interval: requirePostitiveValue(getOrCall<number>(collector?.scheduling?.interval), "interval", DEFAULT_INTERVAL),
     instanceApi: new URL('v5/trace/instance', host).href,
     sessionApi : new URL(`v5/trace/instance/${instanceId}/session`, host).href,
-    exclude: getOrCall<RegExp[]>(conf?.monitoring?.httpRoute?.excludes?.path) || [],
-    hostExcludes: conf?.monitoring?.httpRequest?.excludes?.host || [],
-    debugMode: !!conf.debugMode,
-    analytics: !!conf?.monitoring?.analytics?.enabled,
-    resources: !!conf?.monitoring?.resources?.enabled,
-    storage: !!conf?.monitoring?.storage?.enabled,
-    namespaceHeader: "basic " + btoa(`${require(getOrCall<string>(conf?.namespace), 'configuration.namespace')}:${require(getOrCall<string>(conf?.token), 'configuration.token')}`),
-    enabled: !!conf.enabled
+    exclude: getOrCall<RegExp[]>(collector?.monitoring?.httpRoute?.excludes?.path) || [],
+    hostExcludes: collector?.monitoring?.httpRequest?.excludes?.host || [],
+    debugMode: !!collector?.debugMode,
+    analytics: !!collector?.monitoring?.analytics?.enabled,
+    resources: !!collector?.monitoring?.resources?.enabled,
+    storage: !!collector?.monitoring?.storage?.enabled,
+    logger: !!collector?.monitoring?.logger?.enabled,
+    reporter: !!collector?.monitoring?.reporter?.enabled,
+    namespaceHeader: "basic " + btoa(`${require(getOrCall<string>(application?.namespace), 'configuration.collector.application.namespace')}:${getOrCall<string>(remote?.token) ?? ""}`),
+    enabled: !!collector?.enabled
   }
 }
 
 export function createInstance(conf: CollectorConfig, instanceId: string): InstanceEnvironment {
-  return {
+
+  const collector = conf.collector;
+  const application = collector?.application;
+  const branche = getOrCall<string>(application?.branche);
+  const hash = getOrCall<string>(application?.hash);
+  return   {
     id: instanceId,
     instant: dateNow(),
-    name: require(getOrCall<string>(conf?.name), 'configuration.name'),
-    version: getOrCall<string>(conf?.version),
+    name: require(getOrCall<string>(application?.name), 'configuration.collector.application.name'),
+    version: getOrCall<string>(application?.version),
     address: getClientID(), //server side
-    env: require(getOrCall<string>(conf?.env), 'env'),
+    env: require(getOrCall<string>(application?.env), 'configuration.collector.application.env'),
     os: detectOs(),
     re: detectBrowser(),
     user: undefined, // cannot get user
@@ -180,9 +224,15 @@ export function createInstance(conf: CollectorConfig, instanceId: string): Insta
     collector: "inspect-ng-collector-1.3.4",
     resource: { maxHeap: (('memory' in performance) && (performance as any).memory.jsHeapSizeLimit / (1024 * 1024)) || undefined,
                availableProcessors: navigator.hardwareConcurrency},
-    additionalProperties: conf?.additionalProperties?.(),
+    additionalProperties: {
+      ...collector?.additionalProperties?.(),
+      ...(branche !== undefined ? { branche } : {}),
+      ...(hash !== undefined ? { hash } : {}),
+       'user.locale': navigator.language + '~' + Intl.DateTimeFormat().resolvedOptions().timeZone,
+      'angular.version': VERSION.full
+    },
     configuration: adaptedConfig(conf),
-    namespace: require(getOrCall<string>(conf?.namespace), 'configuration.namespace'),
+    namespace: require(getOrCall<string>(application?.namespace), 'configuration.collector.application.namespace'),
   }
 }
 
@@ -248,22 +298,38 @@ export function refreshConfig(id: string, tech: TechnicalConf) {
   return id;
 }
 
-export function createException( error: Error | string | object, traceId: UUID | undefined, parseStack:boolean=false): ExceptionTrace | undefined {
+export function createException( error: Error | string | object, traceId: UUID | undefined, traceType: TraceType, parseStack:boolean=false,): ExceptionTrace | undefined {
   try{
     const isError = error instanceof Error;
-    const message = typeof error === "string"
-      ? error
-      : isError
-        ? error.message
-        : JSON.stringify(error);
+    let message: string | undefined;
+    if (typeof error === "string") {
+      message = error;
+    } else if (isError) {
+      message = error.message;
+    } else {
+      message = JSON.stringify(error);
+    }
 
-    return {
-      '@type': TRACE_TYPE_EXEPTION,
-      type: isError ? error.name : undefined,
-      message,
-      stackTraceRows: parseStack ? parseStackTrace(isError ? error.stack : undefined) : undefined,
-      traceId,
-      offset: dateNow()
+    if (isError) {
+      return {
+        '@type': TRACE_TYPE_EXCEPTION,
+        type: isError ? error.name : undefined,
+        message,
+        stackTraceRows: parseStack ? parseStackTrace(error.stack) : undefined,
+        traceId,
+        traceType,
+        offset: dateNow()
+      }
+    } else {
+      return {
+        '@type': TRACE_TYPE_EXCEPTION,
+        type: isError ? error.name : undefined,
+        message,
+        stackTraceRows: parseStack ? parseStackTrace(undefined) : undefined,
+        traceId,
+        traceType,
+        offset: dateNow()
+      }
     }
   }catch(e){
     dispatchReport("createException", e)

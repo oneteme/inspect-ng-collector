@@ -15,19 +15,25 @@ const eventHandlers: { [key: string]: (target: HTMLElement) => boolean } = {
 
 const RESIZE_IDLE_DELAY = 250;
 const SCROLL_IDLE_DELAY = 250;
-let globalBrowserValues: any = { o : globalThis.devicePixelRatio , c :`${innerWidth}x${innerHeight}` }
+const SELECTION_IDLE_DELAY = 400;
+const CLICK_DELAY = 300;
+const ELEMENT_EVENTS = [
+  'click', 'dblclick', 'change',
+];
+let globalBrowserValues: any = {c: globalThis.devicePixelRatio, o: `${innerWidth}x${innerHeight}`}
 let Timer: ReturnType<typeof setTimeout> | undefined;
+let selectionTimer: ReturnType<typeof setTimeout> | undefined;
+const clickTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
 
 export function initUserActionMonitor() {
   try {
+    ELEMENT_EVENTS.forEach(type => document.addEventListener(type, globalHandler, true));
     globalThis.addEventListener('scroll', scrollHandler, true); // do costum handler with timeout
-    globalThis.addEventListener('resize', resizeHandler, true );
+    globalThis.addEventListener('resize', resizeHandler, true);
     document.addEventListener('visibilitychange', visibilityHandler);
-    document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', globalHandler, { once: true }) : addActionUser('DOMContentLoaded',  null, null);
-    //todo move by move to detect changeecran
+    document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', ()=>{addActionUser('DOMContentLoaded', null, null)}, {once: true}) : addActionUser('DOMContentLoaded', null, null);
     traceBrowserConfig();
-  }
-  catch (e) {
+  } catch (e) {
     dispatchReport("initUserActionMonitor", e);
   }
 }
@@ -36,34 +42,69 @@ function globalHandler(event: Event) {
   const target = event.target as HTMLElement;
   const eventType = event.type;
   try {
-    if (eventHandlers.hasOwnProperty(eventType) && !eventHandlers[eventType](target)) {
+    /*if (eventHandlers.hasOwnProperty(eventType) && !eventHandlers[eventType](target)) {
+      return;
+    } */
+    const value = target.attributes.getNamedItem("data-inspect-track")?.value;
+    const scope = target.attributes.getNamedItem("data-inspect-scope")?.value;
+    const location = target.attributes.getNamedItem("data-inspect-location")?.value;
+    if (!value || !scope) {
       return;
     }
-    addActionUser(eventType, extractName(target), target.tagName?.toLowerCase() );
+
+    if (eventType === 'click') {
+      const pendingClick = clickTimers.get(target);
+      if (pendingClick) {
+        clearTimeout(pendingClick);
+      }
+      const timer = setTimeout(() => {
+        clickTimers.delete(target);
+        addActionUser('click', value, scope, location);
+      }, CLICK_DELAY);
+      clickTimers.set(target, timer);
+      return;
+    }
+
+    const pendingClick = clickTimers.get(target);
+    if (eventType === 'dblclick' && pendingClick) {
+      clearTimeout(pendingClick);
+      clickTimers.delete(target);
+    }
+
+    addActionUser(eventType, value, scope, location);
   } catch (err) {
     dispatchReport("UserACTION.globalHandler", err)
   }
 }
 
-
-
-function traceBrowserConfig() {
+function addActionUser(eventType: string, value: string | null, scope: string | null, location?: string) {
+  const at = dateNow();
   dispatchTraces({
-    '@type':  TRACE_TYPE_ADDITIONAL_VALUES,
-    deviceDisplayResolution:`${screen?.width}x${screen?.height}`,
-    deviceOrientation:screen.orientation?.type ?? (innerWidth >= innerHeight ? 'landscape' : 'portrait'),
-    deviceConnectivity:(navigator as any).connection?.effectiveType ?? 'unknown',
-    windowViewportBounds:`${innerWidth}x${innerHeight}`,
-    windowZoomLevel:String(visualViewport?.scale ?? devicePixelRatio),
-    userLanguage:navigator.language,
-    userTheme:matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-   // navigationReferrer:document.referrer || 'direct';
-  } as BrowserConfig)
+    ...SessionManager.instance.traceSessionMaskUpdate(Mask.EVENT),
+    '@type': TRACE_TYPE_SESSION_EVENT,
+    type: eventType,
+    instant: at,
+    value: value,
+    scope: scope,
+    location: location
+  } as SessionEvent);
 }
 
 
-
-
+function traceBrowserConfig() {
+  const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+  dispatchTraces({
+    '@type': TRACE_TYPE_ADDITIONAL_VALUES,
+    deviceDisplayResolution: `${screen?.width}x${screen?.height}`,
+    deviceOrientation: screen.orientation?.type ?? (innerWidth >= innerHeight ? 'landscape' : 'portrait'),
+    deviceConnectivity: connection?.effectiveType ?? 'unknown',
+    windowViewportBounds: `${innerWidth}x${innerHeight}`,
+    windowZoomLevel: String(visualViewport?.scale ?? devicePixelRatio),
+    userLanguage: navigator.language,
+    userTheme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+    saveData: connection?.saveData ?? undefined
+  } as BrowserConfig)
+}
 
 
 function resizeHandler() {
@@ -73,13 +114,18 @@ function resizeHandler() {
 
   Timer = setTimeout(() => {
     Timer = undefined;
+    const previousRatio = globalBrowserValues.c;
+    const currentRatio = globalThis.devicePixelRatio;
     globalBrowserValues.o = `${innerWidth}x${innerHeight}`
-    if (globalBrowserValues.c  != globalThis.devicePixelRatio) {
-      addActionUser('zoom', `${Number((globalThis.devicePixelRatio - (globalBrowserValues.c )).toFixed(2)) * 100}%`, null); // todo : new - old
-    }else {
-      addActionUser('resize',`${innerWidth}x${innerHeight}`, null);
+    if (previousRatio !== currentRatio) {
+      // Signed delta: '+' when zooming in, '-' when zooming out.
+      const delta = Math.round((currentRatio - previousRatio) * 100);
+      const sign = delta > 0 ? '+' : '';
+      addActionUser('zoom', `${sign}${delta}%`, null);
+    } else {
+      addActionUser('resize', `${innerWidth}x${innerHeight}`, null);
     }
-    globalBrowserValues.c = globalThis.devicePixelRatio
+    globalBrowserValues.c = currentRatio
   }, RESIZE_IDLE_DELAY);
 }
 
@@ -90,14 +136,29 @@ function scrollHandler() {
 
   Timer = setTimeout(() => {
     Timer = undefined;
-    addActionUser('scroll',null, null); // todo to enhance  ( vertical / horizontal )
+    addActionUser('scroll', null, null); // todo to enhance  ( vertical / horizontal )
   }, SCROLL_IDLE_DELAY);
 }
 
 
 function visibilityHandler() {
-    addActionUser(document.hidden? 'DOC_HIDDEN' : 'DOC_VISIBLE', null, null )
+  addActionUser(document.hidden ? 'DOC_HIDDEN' : 'DOC_VISIBLE', null, null)
 }
+
+// Debounced; only the selection length is reported, never its content (privacy).
+function selectionHandler() {
+  if (selectionTimer) {
+    clearTimeout(selectionTimer);
+  }
+  selectionTimer = setTimeout(() => {
+    selectionTimer = undefined;
+    const length = document.getSelection ? String(document.getSelection()).length : 0;
+    if (length > 0) {
+      addActionUser('select', `length=${length}`, null);
+    }
+  }, SELECTION_IDLE_DELAY);
+}
+
 
 
 function lookUpChild(t: HTMLElement, depth: number): boolean {
@@ -113,17 +174,6 @@ function lookUpChild(t: HTMLElement, depth: number): boolean {
 
 
 
-function addActionUser(eventType: string, value: string | null, location: string | null) {
-  const at = dateNow();
-  dispatchTraces({
-    ...SessionManager.instance.traceSessionMaskUpdate(Mask.EVENT),
-    '@type': TRACE_TYPE_SESSION_EVENT,
-    type: eventType,
-    instant: at,
-    value: value,
-    location: location
-  } as SessionEvent);
-}
 
 function getFirst(c: ((t: HTMLElement) => string | null)[], t: HTMLElement) {
   for (const o of c) {
