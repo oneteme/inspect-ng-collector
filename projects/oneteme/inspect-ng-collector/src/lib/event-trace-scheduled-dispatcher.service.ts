@@ -1,5 +1,5 @@
 import { interval, startWith, tap, Subscription } from "rxjs";
-import {EventTrace, InstanceEnvironment} from "./trace.model";
+import { EventTrace, InstanceEnvironment } from "./trace.model";
 import { dispatchExport, addTraceListener, addShutdownListener, dispatchReport } from "./event-bus";
 import {TechnicalConf} from "./configuration";
 
@@ -10,13 +10,17 @@ class EventTraceScheduledDispatcherService {
   static _instance: EventTraceScheduledDispatcherService;
 
   readonly subscription: Subscription
+  private readonly removeTraceListener: () => void;
+  private readonly removeShutdownListener: () => void;
   readonly traceQueue: EventTrace[] = [];
-
+  lastPacket: { readonly body: string; readonly sequence: number; readonly size: number } | null = null;
   dispatchAttempts: number = 0
+  dispatchSequence: number = 0
   dispatching: boolean = false;
+  private inFlightDispatch?: Promise<EventTrace[]>;
   instanceDispatched: boolean = false;
+  instanceDispatching: boolean = false; // guard contre les appels concurrents
   wasDestroyed : boolean = false;
-
   instance?: InstanceEnvironment ;
   constructor(private readonly _techConfig: TechnicalConf) {
     this.subscription = interval(_techConfig.interval)
@@ -27,13 +31,13 @@ class EventTraceScheduledDispatcherService {
           dispatchExport();
           this.dispatch()
             .then(arr => this.revertQueueSize(arr))
-            .catch(err => dispatchReport('EventTraceScheduledDispatcher.dispatch', err))
+            .catch(() => {})
             .finally(() => { this.dispatching = false })
         }
       }))
       .subscribe();
-    addTraceListener(e => this.appendTrace((e as CustomEvent).detail.traces));
-    addShutdownListener(e => this.destroy());
+    this.removeTraceListener = addTraceListener(e => this.appendTrace((e as CustomEvent).detail.traces));
+    this.removeShutdownListener = addShutdownListener(() => this.destroy());
   }
 
   appendTrace(events: EventTrace[]) {
@@ -43,73 +47,153 @@ class EventTraceScheduledDispatcherService {
   }
 
   trace(instance: InstanceEnvironment) {
-    this.instance = instance;
+    this.instance = { ...instance };
+    this.updateInstance(); // Dispatch immédiatement au lieu d'attendre l'intervalle
+  }
+
+  private updateInstance(): Promise<void> {
+    if (this.instanceDispatched || this.instanceDispatching || this.wasDestroyed || !this.instance) {
+      return Promise.resolve(); // Déjà dispatché, en cours, ou pas prêt
+    }
+    this.instanceDispatching = true;
+    return this.dispatchInstance()
+      .then(success => {
+        if (success) {
+          this.instanceDispatched = true;
+        }else {
+          console.warn(`Error while attempting to send Environement instance, attempts ${this.dispatchAttempts}`);
+        }
+      })
+      .finally(() => { this.instanceDispatching = false; });
   }
 
   dispatch(): Promise<any> {
     if (this.instanceDispatched) {
       return this.dispatchTraces();
     }
-    return this.dispatchInstance().then(ok => {
-      if (ok) {
-        this.instanceDispatched = true;
-        return this.dispatchTraces();
-      }
-      console.warn(`Error while attempting to send Environement instance, attempts ${this.dispatchAttempts}`);
-      return Promise.reject(new Error('No instance id'));
+    if (this.instanceDispatching) return Promise.resolve(EMPTY_ARRAY); // attendre
+    return this.updateInstance().then(() => {
+      if (this.instanceDispatched) return this.dispatchTraces(); // seulement si confirmé
+      return Promise.reject(new Error('Instance not dispatched yet'));// instance pas encore dispatchée, traces non envoyées
     });
   }
 
-  dispatchTraces(destroy?: boolean): Promise<EventTrace[]> {
-    if (this.traceQueue.length === 0) {
+  dispatchTraces(destroy = false): Promise<EventTrace[]> {
+    if (this.wasDestroyed && !destroy) {
       return Promise.resolve(EMPTY_ARRAY);
     }
-    let uri = this._techConfig.sessionApi + "?attempts=" + ++this.dispatchAttempts;
+    if (!this.inFlightDispatch) {
+      const request = this.lastPacket !== null
+        ? this.dispatchPrevious(destroy && this.traceQueue.length === 0).then(() => EMPTY_ARRAY)
+        : this.dispatchQueuedTraces(destroy);
+      this.inFlightDispatch = request.finally(() => { this.inFlightDispatch = undefined; });
+    }
+    if (destroy && this.traceQueue.length > 0) {
+      // L'envoi keepalive en cours garde son paquet ; seules les nouvelles traces partent ici.
+      return Promise.all([this.inFlightDispatch, this.dispatchQueuedTraces(true)]).then(() => EMPTY_ARRAY);
+    }
+    return this.inFlightDispatch;
+  }
+
+  private async dispatchQueuedTraces(destroy: boolean): Promise<EventTrace[]> {
+    if (this.traceQueue.length === 0) {
+      return EMPTY_ARRAY;
+    }
+    const packet = {
+      body: JSON.stringify(this.traceQueue),
+      sequence: ++this.dispatchSequence,
+      size: this.traceQueue.length
+    };
+    let uri = this._techConfig.sessionApi + "?atm=" + ++this.dispatchAttempts+"&seq="+ packet.sequence;
     if (destroy) {
       uri += "&end=" + new Date().toISOString();
     }
-    const traces = [...this.traceQueue];
     this.traceQueue.length = 0;
     return fetch(uri, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': this._techConfig.namespaceHeader },
         mode: 'cors',
         keepalive: true,
-        body: JSON.stringify(traces)
+        body: packet.body
       })
       .then(res=> {
-        if (res.ok) {
+        if (res.ok || res.status === 409) {
           this.dispatchAttempts = 0;
           return EMPTY_ARRAY;
         }
         console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`);
-        if (res.status >= 400 && res.status < 500) {
-          return traces; //retry on bad request !?
+        if(res.status === 429 || res.status >= 500){
+          console.warn('Dispatch failed with status', res.status, 'retrying...');
+          this.lastPacket = packet;
         }
-        return res.json()
-          .then(body => body?.retry ? traces : EMPTY_ARRAY)
-          .catch(() => EMPTY_ARRAY);
+        return EMPTY_ARRAY // retry on 3XX
       })
       .catch(() => {
         console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`); //no cnx !
-        return traces;
+        this.lastPacket = packet;
+        return EMPTY_ARRAY;
       });
   }
 
+  private async dispatchPrevious(destroy = false): Promise<void> {
+    const packet = this.lastPacket;
+    if (!packet) return;
+    let uri = this._techConfig.sessionApi + "?atm=" + ++this.dispatchAttempts+"&seq="+ packet.sequence;
+    if (destroy) {
+      uri += "&end=" + new Date().toISOString();
+    }
+    return fetch(uri, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': this._techConfig.namespaceHeader },
+      mode: 'cors',
+      keepalive: true,
+      body: packet.body
+    }).then(res => {
+      if(res.ok || res.status === 409) {
+        if (this.lastPacket === packet) this.lastPacket = null;
+        this.dispatchAttempts = 0;
+        return;
+      }
+      console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`);
+      if (res.status >= 500) {
+        dispatchReport('EventTraceScheduledDispatcher.dispatchPrevious', res);
+      }
+
+    }).catch(() => {
+      console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`);
+      if (this.lastPacket === packet) this.discardLastPacketIfQueueCapacityExceeded();
+    })
+  }
+
+  private discardLastPacketIfQueueCapacityExceeded() {
+    if ((this.lastPacket?.size ?? 0) + this.traceQueue.length > this._techConfig.queueCapacity) {
+      console.warn(`Error while attempting to send ${this.lastPacket?.size} traces, giving up`);
+      this.lastPacket = null;
+      this.dispatchAttempts = 0;
+    }
+  }
+
+
   dispatchInstance(): Promise<boolean> {
-    this.dispatchAttempts++;
-    return fetch(this._techConfig.instanceApi, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const uri = this._techConfig.instanceApi + "?atm=" + ++this.dispatchAttempts;
+    return fetch(uri, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': this._techConfig.namespaceHeader },
       mode: 'cors',
       keepalive: true,
       body: JSON.stringify(this.instance)
     })
-      .then(res => res.ok ? res.text().then(id => {
-        this.dispatchAttempts = 0;
-        return true;
-      }) : false)
-      .catch(err => false);
+      .then(res => {
+        if (res.ok || res.status === 409) {
+          this.dispatchAttempts = 0;
+          return true;
+        }
+        if (res.status >= 500) {
+          dispatchReport('EventTraceScheduledDispatcher.dispatchInstance', res);
+        }
+        return false;
+      })
+      .catch(() => false);
   }
 
   revertQueueSize(traces: EventTrace[]) {
@@ -122,13 +206,19 @@ class EventTraceScheduledDispatcherService {
   }
 
   destroy() {
+    if (this.wasDestroyed) {
+      return;
+    }
     this.subscription?.unsubscribe();
+    dispatchExport(); // Collecter les dernières métriques avant de refuser les nouvelles traces.
     this.wasDestroyed = true;
-    dispatchExport(); //last metric ??
-    this.dispatchTraces(true);
+    this.removeTraceListener();
+    this.removeShutdownListener();
+    void this.dispatchTraces(true);
   }
 }
 
 export function eventTraceScheduledDispatcher(tech: TechnicalConf): EventTraceScheduledDispatcherService {
-  return EventTraceScheduledDispatcherService._instance = new EventTraceScheduledDispatcherService(tech);
+  EventTraceScheduledDispatcherService._instance?.destroy();
+  return EventTraceScheduledDispatcherService._instance = new EventTraceScheduledDispatcherService({ ...tech });
 }

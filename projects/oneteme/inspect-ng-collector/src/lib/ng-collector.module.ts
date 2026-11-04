@@ -22,19 +22,21 @@ import { Router } from "@angular/router";
 import { initUserActionMonitor } from "./user-action.monitor";
 import { initNavigationMonitor } from './navigation.monitor';
 import { initResourceUsageMonitor } from './resource-usage.monitor';
-import { addReloadListener } from './event-bus';
+import { addReloadListener, configureReporter } from './event-bus';
 import {sessionManager} from "./session-manager.service";
-import {eventTraceDebugger} from "./event-trace-debugger";
 import {InstanceEnvironment} from "./trace.model";
+import {installConsoleCapture} from "./log.monitor";
 
 const COLLECTOR_CONFIG = new InjectionToken<CollectorConfig>('COLLECTOR_CONFIG');
+const initializedConfigs = new WeakSet<TechnicalConf>();
+let removeReloadListener: (() => void) | undefined;
 
 @NgModule()
 export class NgCollectorModule {
 
   static forRoot(configuration: CollectorConfig): ModuleWithProviders<NgCollectorModule> {
     const providers = [];
-    if (configuration?.enabled) {
+    if (configuration?.collector?.enabled) {
       try {
         let config  = initializeCollector(configuration);
         providers.push(
@@ -53,28 +55,34 @@ export class NgCollectorModule {
 
 export function initializeEventsFactory(config: {tech: TechnicalConf, instance: InstanceEnvironment }, router: Router) {
   return () => {
+    configureReporter(config.tech.reporter);
+    removeReloadListener?.();
+    removeReloadListener = addReloadListener(() => reloadCollector(config));
+    if (initializedConfigs.has(config.tech)) return;
+    initializedConfigs.add(config.tech);
+    initNavigationMonitor(router);
    if (config.tech.analytics) {
       initUserActionMonitor();
     }
     if (config.tech.resources) {
       initResourceUsageMonitor();
     }
-    initNavigationMonitor(router);
+    if(config.tech.logger){
+      installConsoleCapture();
+    }
     //storageEventListener();
-    //eventTraceDebugger
-    addReloadListener(e=>{
-        reloadCollector(config)
-    });
+    //eventTraceDebugger(config.tech)
   }
 }
 
 export function initializeCollector(config: CollectorConfig) {
   const id = crypto.randomUUID();
   const tech = validateAndGetConfig(config, id);
+  configureReporter(tech.reporter);
   const dispatch = eventTraceScheduledDispatcher(tech);
   const instance = createInstance(config, id)
   dispatch.trace(instance);
-  sessionManager(tech)
+  sessionManager(tech);
   return {tech: tech, instance: instance};
 }
 
@@ -84,7 +92,5 @@ export function reloadCollector(config: {tech: TechnicalConf, instance: Instance
   const dispatch = eventTraceScheduledDispatcher(config.tech);
   config.instance.id= id;
   dispatch.trace(config.instance);
-  sessionManager(config.tech)
+  sessionManager(config.tech);
 }
-
-

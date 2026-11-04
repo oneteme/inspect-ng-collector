@@ -3,8 +3,7 @@ import {
   LocalRequest,
   LogEntry, MachineRessourceUsage,
   MainSession,
-  RestRequest,
-  UserAction
+  RestRequest, SessionEvent,
 } from "./trace.model";
 import {dispatchReport, WIN, addTraceListener} from "./event-bus";
 import {SessionManager} from "./session-manager.service";
@@ -20,7 +19,7 @@ export class EventTraceDebugger{
   restRequests: RestRequest[] = [];
   httpRequestStages: HttpRequestStage[] = [];
   localRequests: LocalRequest[] = [];
-  userActions: UserAction[] = [];
+  sessionsEvents: SessionEvent[] = [];
   logEntries: LogEntry[] = [];
   constructor(private readonly _techConfig: TechnicalConf) {
     try {
@@ -55,7 +54,7 @@ export class EventTraceDebugger{
           this.httpRequestStages.push(trace);
           break;
         case 'user-act':
-          this.userActions.push(trace);
+          this.sessionsEvents.push(trace);
           break;
         case 'locl-req':
           this.localRequests.push(trace);
@@ -85,7 +84,7 @@ export class EventTraceDebugger{
     //s+= this.prettyDurationFormat(session.start, session.end)+'\n';
     s+= this.getChildPrint(this.restRequests, this.prettyRestRequestFormat.bind(this));
     s+= this.getChildPrint(this.localRequests, this.prettyLocalRequestFormat.bind(this));
-    s+= this.getChildPrint(this.userActions, this.prettyActionUserFormat.bind(this));
+    s+= this.getChildPrint(this.sessionsEvents, this.prettyActionUserFormat.bind(this));
     s+= this.getChildPrint(this.logEntries, this.prettyLogEntryFormat.bind(this))
     this.resetList()
     return s;
@@ -122,12 +121,12 @@ export class EventTraceDebugger{
   prettyHttpRequestStageFormat(stage: HttpRequestStage){
     let s = `         -  [${stage.name}]`
     s+= " >> ";
-    if(stage.exception?.type){
+  /*  if(stage.exception?.type){
       s+= ` ${stage.exception?.type}:`;
     }
     if(stage.exception?.message){
       s+= ` ${stage.exception.message}`;
-    }
+    }*/
     s+= ` ${this.prettyDurationFormat(stage.start, stage.end)}`;
     return s;
   }
@@ -149,7 +148,8 @@ export class EventTraceDebugger{
   }
 
   prettyLogEntryFormat(log: LogEntry){
-    let s = `  -  [${log.level}]`;
+    //let s = `  -  [${log.level}]`;
+    let s = '';
     if(log.message){
       s+= ` ${log.message}`
     }
@@ -163,18 +163,18 @@ export class EventTraceDebugger{
 
 
 
-  prettyActionUserFormat(userAction:UserAction){
+  prettyActionUserFormat(userAction: SessionEvent){
     let s = `  -  `
     if(userAction.type){
       s+= `[${userAction.type}]`;
     }
 
-    if(userAction.nodeName){
-      s+= `<${userAction.nodeName}>`
+    if(userAction.location){
+      s+= `<${userAction.location}>`
     }
 
-    if(userAction.name){
-      s+= `(${userAction.name}) `
+    if(userAction.value){
+      s+= `(${userAction.value}) `
     }
 
     s+=  ` >> ${new Date(userAction.instant*1000).toISOString()}`
@@ -207,7 +207,7 @@ export class EventTraceDebugger{
     this.restRequests = [];
     this.httpRequestStages = [];
     this.localRequests = [];
-    this.userActions = [];
+    this.sessionsEvents = [];
   }
 
 

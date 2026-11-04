@@ -1,22 +1,46 @@
-import { dateNow, EventTrace, LogLevel, LogEntry, TRACE_TYPE_LOG } from "./trace.model";
+import {
+  dateNow,
+  EventTrace,
+  LogEntry,
+  TRACE_TYPE_LOG,
+  SessionEvent,
+  TRACE_TYPE_SESSION_EVENT
+} from "./trace.model";
+import {parseStackTrace} from "./configuration";
 
 const eventTarget = new EventTarget();
 const TRACE = 'trace', EXPORT = 'export', SHUTDOWN = 'shutdown', RELOAD = 'reload';
+let reporterEnabled = false;
 
-export const WIN: any = window;
+export const WIN: any = globalThis;
+WIN["event-bus"] = eventTarget;
 
-export function dispatchReport(message: string, error?: any) : void {
-  dispatchLog("REPORT", `${message} ${error && JSON.stringify(error)}`)
+export function configureReporter(enabled: boolean): void {
+  reporterEnabled = enabled;
 }
 
-export function dispatchLog(level: LogLevel, message: string, sessionId?: string) {
+export function dispatchReport(message: string, error?: any) : void {
+  if (!reporterEnabled) {
+    return;
+  }
   dispatchTraces({
     "@type": TRACE_TYPE_LOG,
-    level: level,
-    message: message,
     instant: dateNow(),
-    sessionId: sessionId
+    message : `${message} ${error && JSON.stringify(error)}`,
+    stackTraceRows: parseStackTrace(error.stack? error.stack : undefined),
   } as LogEntry);
+}
+
+
+export function dispatchLog(type: string, value: string, sessionId?: string) {
+  dispatchTraces({
+    "@type": TRACE_TYPE_SESSION_EVENT,
+    type: type,
+    value: value,
+    instant: dateNow(),
+    //location: null,
+    sessionId: sessionId
+  } as SessionEvent);
 }
 
 export function dispatchTraces(...traces: EventTrace[]): void {
@@ -35,18 +59,21 @@ export function dispatchShutown(): void {
   eventTarget.dispatchEvent(new CustomEvent(SHUTDOWN));
 }
 
-export function addTraceListener(fn : EventListener): void {
+export function addTraceListener(fn : EventListener): () => void {
   eventTarget.addEventListener(TRACE, fn);
+  return () => eventTarget.removeEventListener(TRACE, fn);
 }
 
 export function addExportListener(fn : EventListener): void {
   eventTarget.addEventListener(EXPORT, fn);
 }
 
-export function addReloadListener(fn : EventListener): void {
+export function addReloadListener(fn : EventListener): () => void {
   eventTarget.addEventListener(RELOAD, fn);
+  return () => eventTarget.removeEventListener(RELOAD, fn);
 }
 
-export function addShutdownListener(fn : EventListener): void {
+export function addShutdownListener(fn : EventListener): () => void {
   eventTarget.addEventListener(SHUTDOWN, fn);
+  return () => eventTarget.removeEventListener(SHUTDOWN, fn);
 }

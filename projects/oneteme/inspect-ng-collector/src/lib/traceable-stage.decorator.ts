@@ -1,4 +1,6 @@
 import {LocalRequestMonitor} from "./local-request.monitor";
+import {createException} from "./configuration";
+import {TraceType} from "./trace.model";
 
 export function TraceableStage() {
 
@@ -15,7 +17,7 @@ export function TraceableStage() {
         monitor.preProcess(propertyKey,target);
         return originalMethod.apply(this, args);
       } catch (e: any) {
-        exception = resolveException(e);
+        exception = createException(e, undefined,  TraceType.LCL_RQT,false);
         throw e;
       } finally {
         monitor.postProcess(exception)
@@ -23,19 +25,5 @@ export function TraceableStage() {
     }
     return descriptor;
   }
-}
-export function resolveException(e: any): { type: string | null; message: string | null } {
-  let type = null, message = null;
-  if (e) {
-    if (typeof e === "string") {
-      message = e;
-    } else if (e instanceof Error) {
-      type = e.name;
-      message = e.message;
-    } else {
-      message = JSON.stringify(e)
-    }
-  }
-  return { type, message };
 }
 

@@ -3,7 +3,6 @@
 [![npm version](https://img.shields.io/npm/v/@oneteme/inspect-ng-collector.svg)](https://www.npmjs.com/package/@oneteme/inspect-ng-collector)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Angular Version](https://img.shields.io/badge/Angular-%3E%3D16.2.8-red.svg)](https://angular.io)
-[![Tests](https://img.shields.io/badge/Tests-150%2B%20Cases-brightgreen.svg)](#testing)
 
 A comprehensive **front-end telemetry and monitoring library for Angular applications**. Automatically collect user interactions, HTTP requests, navigation events, performance metrics, and errors—then send them to your backend analytics service.
 
@@ -33,11 +32,6 @@ A comprehensive **front-end telemetry and monitoring library for Angular applica
   - User identification integration
   - Environment and version tracking
   - Debug mode for development
-
-- **🧪 Fully Tested**
-  - 150+ unit test cases
-  - 80%+ code coverage
-  - Comprehensive test documentation
 
 ## 📦 Installation
 
@@ -133,59 +127,48 @@ export class MyService {
 
 ```typescript
 NgCollectorModule.forRoot({
-  // Core Configuration
-  enabled: true,                          // Enable/disable collection
-  debugMode: false,                       // Enable debug console output
-  
-  // Application Identity (at root level)
-  name: 'my-app',
-  version: () => getAppVersion(),        // Can be a function
-  env: 'production',
-  user: 'john@example.com',              // Optional user identifier
-  
-  // Additional Properties
-  additionalProperties: () => ({
-    customProperty: 'value',
-    userId: getUserId()
-  }),
-  
-  // Scheduling
-  scheduling: {
-    interval: 30000                      // Export interval in ms (default: 30s)
-  },
-  
-  // Monitoring Configuration
-  monitoring: {
-    // HTTP Monitoring
-    httpRoute: {
-      excludes: {
-        path: [/\/health$/, /\/status$/]  // Exclude paths from tracking
+  collector: {
+    enabled: true,
+    debugMode: false,
+    application: {
+      name: 'my-app',
+      namespace: 'jarvis',
+      version: () => getAppVersion(),
+      env: 'production',
+      user: 'john@example.com'
+    },
+    additionalProperties: () => ({
+      customProperty: 'value',
+      userId: getUserId()
+    }),
+    scheduling: {
+      interval: 30000,                    // milliseconds; default: 60000
+      queueCapacity: 1000
+    },
+    monitoring: {
+      httpRoute: {
+        excludes: {
+          path: [/\/health$/, /\/status$/]
+        }
+      },
+      httpRequest: {
+        excludes: {
+          host: ['localhost:4200']
+        }
+      },
+      resources: { enabled: true },
+      analytics: { enabled: true },
+      logger: { enabled: true },          // Capture console.warn and console.error
+      reporter: { enabled: true },        // Send internal collector reports
+      storage: { enabled: false }
+    },
+    tracing: {
+      remote: {
+        host: 'https://analytics.example.com',
+        mode: 'cors',
+        token: () => getCollectorToken(),
+        retentionMaxAge: { audit: 7, diagnostics: 10 }
       }
-    },
-    httpRequest: {
-      excludes: {
-        host: ['localhost:4200']          // Exclude hosts
-      }
-    },
-    // Features
-    resources: {
-      enabled: true                       // Track memory usage
-    },
-    analytics: {
-      enabled: true                       // Track user actions
-    },
-    storage: {
-      enabled: false                      // Track storage events
-    }
-  },
-  
-  // Tracing Configuration
-  tracing: {
-    queueCapacity: 1000,                  // Max events in queue
-    remote: {
-      host: 'https://analytics.example.com',
-      mode: 'cors',
-      retentionMaxAge: 86400000           // 24 hours
     }
   }
 })
@@ -195,18 +178,22 @@ NgCollectorModule.forRoot({
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `enabled` | boolean | false | Enable/disable collection |
-| `debugMode` | boolean | false | Enable debug output |
-| `name` | string \| function | required | Application name |
-| `version` | string \| function | optional | Application version |
-| `env` | string \| function | optional | Environment (prod, dev, etc.) |
-| `user` | string \| function | optional | Current user identifier |
-| `additionalProperties` | function | optional | Custom app properties |
-| `scheduling.interval` | number | 30000 | Event export interval (ms) |
-| `monitoring.resources.enabled` | boolean | false | Track memory metrics |
-| `monitoring.analytics.enabled` | boolean | false | Track user interactions |
-| `tracing.queueCapacity` | number | 1000 | Max queued events |
-| `tracing.remote.host` | string | required | Backend analytics endpoint |
+| `collector.enabled` | boolean | false | Enable/disable collection |
+| `collector.debugMode` | boolean | false | Enable debug output |
+| `collector.application.name` | string \| function | required | Application name |
+| `collector.application.namespace` | string \| function | required | Application namespace |
+| `collector.application.env` | string \| function | required | Environment (prod, dev, etc.) |
+| `collector.application.user` | string \| function | optional | Current user identifier |
+| `collector.scheduling.interval` | number | 60000 | Event export interval (ms) |
+| `collector.scheduling.queueCapacity` | number | 1000 | Maximum queued traces |
+| `collector.monitoring.resources.enabled` | boolean | false | Track memory metrics |
+| `collector.monitoring.analytics.enabled` | boolean | false | Track user interactions |
+| `collector.monitoring.logger.enabled` | boolean | false | Capture `console.warn()` and `console.error()` calls |
+| `collector.monitoring.reporter.enabled` | boolean | false | Send internal collector reports |
+| `collector.tracing.remote.host` | string | `http://localhost` | Backend analytics endpoint |
+| `collector.tracing.remote.token` | string \| function | empty | Backend authentication token |
+
+Console capture covers `warn` and `error`, not `log` or `info`. Captured messages are sent to the configured backend, so avoid logging secrets or other sensitive values.
 
 ## 📊 Collected Data
 

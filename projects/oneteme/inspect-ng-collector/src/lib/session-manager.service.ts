@@ -1,14 +1,13 @@
 import { dispatchTraces, dispatchReport, WIN, dispatchLog } from './event-bus';
 import {
   dateNow,
-  LogLevel,
   MainSession,
   MainSessionCallBack,
-  RequestMask,
+  Mask,
   SessionMaskUpdate,
   TRACE_TYPE_MAIN_SESSION,
   TRACE_TYPE_MAIN_SESSION_CALLBACK,
-  TRACE_TYPE_SESSION_MASK_UPDATE
+  TRACE_TYPE_SESSION_MASK_UPDATE, UUID
 } from "./trace.model";
 import {getOrCall, TechnicalConf} from "./configuration";
 
@@ -20,12 +19,13 @@ export class SessionManager {
 
   currentSession?: MainSession;
   currentSessionCallBack?: MainSessionCallBack;
+  private readonly validatedSessions = new WeakSet<MainSession>();
 
   static get instance(): SessionManager {
     return SessionManager._instance;
   }
 
-  navigate(url?: string) {
+  navigate(url?: string): MainSession | undefined  {
     const now = dateNow();
     if(this.currentSessionCallBack){
       this.endSession(now);
@@ -44,9 +44,10 @@ export class SessionManager {
       this.currentSessionCallBack = {
         '@type': TRACE_TYPE_MAIN_SESSION_CALLBACK,
         id: id,
-        requestMask: 0,
+        requestMask: 0
       }
     }
+    return this.currentSession
   }
 
   private endSession(end : number){
@@ -57,16 +58,31 @@ export class SessionManager {
     this.currentSessionCallBack = undefined;
   }
 
-  updateSession(update: boolean = true) {
-    if (this.currentSession) {
+  validateSession(update: boolean = true, timeout: number = Number.NaN) {
+    const s = this.currentSession;
+    if (Number.isNaN(timeout)) {
+      this.updateSession(s, false);
+    } else {
+      setTimeout(() => this.updateSession(s, true), 0);
+    }
+  }
+
+    private updateSession(session: MainSession | undefined, update: boolean = true) {
+    if (session) {
+      if (this.validatedSessions.has(session)) return;
+      this.validatedSessions.add(session);
       if(update){
-        this.currentSession.name = document.title; // add settimeout
-        this.currentSession.location = document.URL;
+        session.name = document.title;
+        session.location = document.URL;
+      }else {
+        session.name = '<startup>';
       }
-      if (!this._techConfig.exclude?.some((e: any) => e.test(this.currentSession?.location))) {
-        dispatchTraces(this.currentSession)
+      if (!this._techConfig.exclude?.some((e: any) => e.test(session?.location))) {
+        dispatchTraces(session)
       }
-      this.currentSession = undefined;
+      if(session === this.currentSession){
+        this.currentSession = undefined;
+      }
     }
     else{
       dispatchReport('updateSession', 'no active session');
@@ -81,11 +97,16 @@ export class SessionManager {
     return undefined;
   }
 
-  currentSessionID(): string | undefined {
+  currentSessionID(): UUID | undefined {
     return this.getCurrentSessionCallBack(s=> s.id);
   }
-
-  initRestRequest(mask: RequestMask){
+  markSessionFailed(){
+    return this.getCurrentSessionCallBack(s => {
+      s.status = 400;
+      return s.id
+    })
+  }
+  traceSessionMaskUpdate(mask: Mask){
     const req = this.getCurrentSessionCallBack(s=>{
       if ((s.requestMask & mask) !== mask) {
         s.requestMask |= mask;
@@ -101,14 +122,7 @@ export class SessionManager {
     return req || {};
   }
 
-  initUserAction(){
-    const req = this.getCurrentSessionCallBack(s=> ({sessionId:s.id}));
-    return req || {};
-  }
 
-  addException(exception: any) {
-    this.getCurrentSessionCallBack(s => s.exception = exception)
-  }
 
   info(message: string) {
     this.log("INFO", message);
@@ -122,9 +136,10 @@ export class SessionManager {
     this.log("ERROR", message);
   }
 
-  private log(level: LogLevel, message: string){
+  private log(type: string, message: string){
     if (message) {
-      this.getCurrentSessionCallBack(s=> dispatchLog(level, message, s.id));
+
+      this.getCurrentSessionCallBack(s=> dispatchLog(type, message, this.traceSessionMaskUpdate(Mask.EVENT).sessionId)); // update mask
     }
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, Inject, InjectionToken, Optional } from '@angular/core';
+import { Injectable, Inject, InjectionToken } from '@angular/core';
 import { HttpInterceptor, HttpEvent, HttpHandler, HttpRequest, HttpResponse, HttpErrorResponse, HttpResponseBase } from '@angular/common/http';
 import { finalize, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators'
