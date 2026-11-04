@@ -28,6 +28,8 @@ import {InstanceEnvironment} from "./trace.model";
 import {installConsoleCapture} from "./log.monitor";
 
 const COLLECTOR_CONFIG = new InjectionToken<CollectorConfig>('COLLECTOR_CONFIG');
+const initializedConfigs = new WeakSet<TechnicalConf>();
+let removeReloadListener: (() => void) | undefined;
 
 @NgModule()
 export class NgCollectorModule {
@@ -53,6 +55,11 @@ export class NgCollectorModule {
 
 export function initializeEventsFactory(config: {tech: TechnicalConf, instance: InstanceEnvironment }, router: Router) {
   return () => {
+    configureReporter(config.tech.reporter);
+    removeReloadListener?.();
+    removeReloadListener = addReloadListener(() => reloadCollector(config));
+    if (initializedConfigs.has(config.tech)) return;
+    initializedConfigs.add(config.tech);
     initNavigationMonitor(router);
    if (config.tech.analytics) {
       initUserActionMonitor();
@@ -63,12 +70,8 @@ export function initializeEventsFactory(config: {tech: TechnicalConf, instance: 
     if(config.tech.logger){
       installConsoleCapture();
     }
-    configureReporter(config.tech.reporter);
     //storageEventListener();
     //eventTraceDebugger(config.tech)
-    addReloadListener(e=>{
-        reloadCollector(config)
-    });
   }
 }
 

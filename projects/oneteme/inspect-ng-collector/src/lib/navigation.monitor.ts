@@ -1,11 +1,18 @@
 import { NavigationCancel, NavigationEnd, NavigationStart, Router } from "@angular/router";
+import { Subscription } from "rxjs";
 import { SessionManager } from "./session-manager.service";
 import { dispatchReload, dispatchReport, dispatchShutown } from "./event-bus";
 
+let monitoredRouter: Router | undefined;
+let routerSubscription: Subscription | undefined;
+
 export function initNavigationMonitor(router: Router){
+  if (monitoredRouter === router && !routerSubscription?.closed) return;
   try{
+    routerSubscription?.unsubscribe();
     initStartupSession();
-    router.events.subscribe(routeHandler);
+    routerSubscription = router.events.subscribe(routeHandler);
+    monitoredRouter = router;
     window.addEventListener('pageshow', bfCacheHandler);
     window.addEventListener("beforeunload", windowUnloadHandler);
   }

@@ -59,18 +59,21 @@ export function dispatchShutown(): void {
   eventTarget.dispatchEvent(new CustomEvent(SHUTDOWN));
 }
 
-export function addTraceListener(fn : EventListener): void {
+export function addTraceListener(fn : EventListener): () => void {
   eventTarget.addEventListener(TRACE, fn);
+  return () => eventTarget.removeEventListener(TRACE, fn);
 }
 
 export function addExportListener(fn : EventListener): void {
   eventTarget.addEventListener(EXPORT, fn);
 }
 
-export function addReloadListener(fn : EventListener): void {
+export function addReloadListener(fn : EventListener): () => void {
   eventTarget.addEventListener(RELOAD, fn);
+  return () => eventTarget.removeEventListener(RELOAD, fn);
 }
 
-export function addShutdownListener(fn : EventListener): void {
+export function addShutdownListener(fn : EventListener): () => void {
   eventTarget.addEventListener(SHUTDOWN, fn);
+  return () => eventTarget.removeEventListener(SHUTDOWN, fn);
 }

@@ -3,8 +3,11 @@ import {SessionManager} from "./session-manager.service";
 import {dispatchTraces} from "./event-bus";
 
 type Level = "WARN" | "ERROR";
+let captureInstalled = false;
 
 export function installConsoleCapture(): void {
+  if (captureInstalled) return;
+  captureInstalled = true;
   const originalWarn = console.warn;
   const originalError = console.error;
 

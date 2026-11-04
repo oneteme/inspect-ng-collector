@@ -19,6 +19,7 @@ export class SessionManager {
 
   currentSession?: MainSession;
   currentSessionCallBack?: MainSessionCallBack;
+  private readonly validatedSessions = new WeakSet<MainSession>();
 
   static get instance(): SessionManager {
     return SessionManager._instance;
@@ -68,6 +69,8 @@ export class SessionManager {
 
     private updateSession(session: MainSession | undefined, update: boolean = true) {
     if (session) {
+      if (this.validatedSessions.has(session)) return;
+      this.validatedSessions.add(session);
       if(update){
         session.name = document.title;
         session.location = document.URL;
