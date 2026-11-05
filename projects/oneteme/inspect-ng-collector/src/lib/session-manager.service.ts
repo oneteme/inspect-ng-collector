@@ -39,12 +39,14 @@ export class SessionManager {
         user: getOrCall<string>(this._techConfig.user),
         start: now,
         location: url,
-        requestMask: 0,
+        eventMask: 0,
+        status: 200,
       };
       this.currentSessionCallBack = {
         '@type': TRACE_TYPE_MAIN_SESSION_CALLBACK,
         id: id,
-        requestMask: 0
+        eventMask: 0,
+        status: 200
       }
     }
     return this.currentSession
@@ -108,13 +110,13 @@ export class SessionManager {
   }
   traceSessionMaskUpdate(mask: Mask){
     const req = this.getCurrentSessionCallBack(s=>{
-      if ((s.requestMask & mask) !== mask) {
-        s.requestMask |= mask;
+      if ((s.eventMask & mask) !== mask) {
+        s.eventMask |= mask;
         dispatchTraces({
           "@type": TRACE_TYPE_SESSION_MASK_UPDATE,
           id: s.id,
           main: true,
-          mask: s.requestMask
+          mask: s.eventMask
         } as SessionMaskUpdate);
       }
       return {sessionId:s.id};

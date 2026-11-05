@@ -122,8 +122,8 @@ class EventTraceScheduledDispatcherService {
           return EMPTY_ARRAY;
         }
         console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`);
-        if(res.status === 429 || res.status >= 500){
-          console.warn('Dispatch failed with status', res.status, 'retrying...');
+        if(res.status === 429 || (res.status >= 500 && res.headers?.get('Inspect-Trace-Retry') === '1')) {
+           console.warn('Dispatch failed with status', res.status, 'retrying...');
           this.lastPacket = packet;
         }
         return EMPTY_ARRAY // retry on 3XX
