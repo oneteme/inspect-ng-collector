@@ -66,14 +66,15 @@ export interface MainSession extends EventTrace {
   location: string;
   user?: string;
   start: number;
-  requestMask: number;
+  eventMask: number;
+  status: number;
 }
 
 export interface MainSessionCallBack extends EventTrace {
   '@type': typeof TRACE_TYPE_MAIN_SESSION_CALLBACK;
   id: UUID;
   end?: number;
-  requestMask: number;
+  eventMask: number;
   status?: number;
 }
 

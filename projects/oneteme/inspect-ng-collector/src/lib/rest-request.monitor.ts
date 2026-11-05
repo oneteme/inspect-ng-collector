@@ -14,7 +14,7 @@ import { HttpErrorResponse, HttpHeaders, HttpRequest, HttpResponse, HttpResponse
 import { SessionManager } from "./session-manager.service";
 import {createException} from "./configuration";
 
-export const TRACE_HEADER = 'x-tracert';
+export const TRACE_HEADER = 'Inspect-Trace-Id';
 
 export class RestRequestMonitor {
 

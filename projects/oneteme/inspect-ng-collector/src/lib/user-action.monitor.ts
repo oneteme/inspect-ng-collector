@@ -31,7 +31,7 @@ export function initUserActionMonitor() {
     globalThis.addEventListener('scroll', scrollHandler, true); // do costum handler with timeout
     globalThis.addEventListener('resize', resizeHandler, true);
     document.addEventListener('visibilitychange', visibilityHandler);
-    document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', ()=>{addActionUser('DOMContentLoaded', null, null)}, {once: true}) : addActionUser('DOMContentLoaded', null, null);
+    document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', ()=>{addActionUser('DOMContentLoaded', null)}, {once: true}) : addActionUser('DOMContentLoaded', null);
     traceBrowserConfig();
   } catch (e) {
     dispatchReport("initUserActionMonitor", e);
@@ -46,11 +46,12 @@ function globalHandler(event: Event) {
       return;
     } */
     const value = target.attributes.getNamedItem("data-inspect-track")?.value;
-    const scope = target.attributes.getNamedItem("data-inspect-scope")?.value;
-    const location = target.attributes.getNamedItem("data-inspect-location")?.value;
-    if (!value || !scope) {
+    if (!value) {
       return;
     }
+    const scope = target.attributes.getNamedItem("data-inspect-scope")?.value;
+    const location = target.attributes.getNamedItem("data-inspect-location")?.value;
+
 
     if (eventType === 'click') {
       const pendingClick = clickTimers.get(target);
@@ -77,7 +78,7 @@ function globalHandler(event: Event) {
   }
 }
 
-function addActionUser(eventType: string, value: string | null, scope: string | null, location?: string) {
+function addActionUser(eventType: string, value: string | null, scope?: string, location?: string) {
   const at = dateNow();
   dispatchTraces({
     ...SessionManager.instance.traceSessionMaskUpdate(Mask.EVENT),
@@ -121,9 +122,9 @@ function resizeHandler() {
       // Signed delta: '+' when zooming in, '-' when zooming out.
       const delta = Math.round((currentRatio - previousRatio) * 100);
       const sign = delta > 0 ? '+' : '';
-      addActionUser('zoom', `${sign}${delta}%`, null);
+      addActionUser('zoom', `${sign}${delta}%`);
     } else {
-      addActionUser('resize', `${innerWidth}x${innerHeight}`, null);
+      addActionUser('resize', `${innerWidth}x${innerHeight}`);
     }
     globalBrowserValues.c = currentRatio
   }, RESIZE_IDLE_DELAY);
@@ -136,13 +137,13 @@ function scrollHandler() {
 
   Timer = setTimeout(() => {
     Timer = undefined;
-    addActionUser('scroll', null, null); // todo to enhance  ( vertical / horizontal )
+    addActionUser('scroll', null); // todo to enhance  ( vertical / horizontal )
   }, SCROLL_IDLE_DELAY);
 }
 
 
 function visibilityHandler() {
-  addActionUser(document.hidden ? 'DOC_HIDDEN' : 'DOC_VISIBLE', null, null)
+  addActionUser(document.hidden ? 'DOC_HIDDEN' : 'DOC_VISIBLE', null)
 }
 
 // Debounced; only the selection length is reported, never its content (privacy).
@@ -154,7 +155,7 @@ function selectionHandler() {
     selectionTimer = undefined;
     const length = document.getSelection ? String(document.getSelection()).length : 0;
     if (length > 0) {
-      addActionUser('select', `length=${length}`, null);
+      addActionUser('select', `length=${length}`);
     }
   }, SELECTION_IDLE_DELAY);
 }
