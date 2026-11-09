@@ -12,7 +12,7 @@ import {dispatchReport, dispatchTraces} from "./event-bus";
 const eventHandlers: { [key: string]: (target: HTMLElement) => boolean } = {
   'click': (target: HTMLElement) => lookUpChild(target, 1),
 }
-
+export type EventType = "Initialisation" | "Click" | "Dblclick" | "Scroll" | "Change" | "Tab-focus" | "Tab-blur" | "Zoom" | "Resize";
 const RESIZE_IDLE_DELAY = 250;
 const SCROLL_IDLE_DELAY = 250;
 const SELECTION_IDLE_DELAY = 400;
@@ -31,7 +31,7 @@ export function initUserActionMonitor() {
     globalThis.addEventListener('scroll', scrollHandler, true); // do costum handler with timeout
     globalThis.addEventListener('resize', resizeHandler, true);
     document.addEventListener('visibilitychange', visibilityHandler);
-    document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', ()=>{addActionUser('DOMContentLoaded', null)}, {once: true}) : addActionUser('DOMContentLoaded', null);
+    document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', ()=>{addActionUser('Initialisation', null)}, {once: true}) : addActionUser('Initialisation', null);
     traceBrowserConfig();
   } catch (e) {
     dispatchReport("initUserActionMonitor", e);
@@ -40,7 +40,9 @@ export function initUserActionMonitor() {
 
 function globalHandler(event: Event) {
   const target = event.target as HTMLElement;
-  const eventType = event.type;
+  let e= getEventType(event.type)
+  if(!e)
+    return
   try {
     /*if (eventHandlers.hasOwnProperty(eventType) && !eventHandlers[eventType](target)) {
       return;
@@ -53,32 +55,42 @@ function globalHandler(event: Event) {
     const location = target.attributes.getNamedItem("data-inspect-location")?.value;
 
 
-    if (eventType === 'click') {
+    if (event.type === 'click') {
       const pendingClick = clickTimers.get(target);
       if (pendingClick) {
         clearTimeout(pendingClick);
       }
       const timer = setTimeout(() => {
         clickTimers.delete(target);
-        addActionUser('click', value, scope, location);
+        addActionUser(e, value, scope, location);
       }, CLICK_DELAY);
       clickTimers.set(target, timer);
       return;
     }
 
     const pendingClick = clickTimers.get(target);
-    if (eventType === 'dblclick' && pendingClick) {
+    if (event.type === 'dblclick' && pendingClick) {
       clearTimeout(pendingClick);
       clickTimers.delete(target);
     }
+    addActionUser(e, value, scope, location);
 
-    addActionUser(eventType, value, scope, location);
+
   } catch (err) {
     dispatchReport("UserACTION.globalHandler", err)
   }
 }
 
-function addActionUser(eventType: string, value: string | null, scope?: string, location?: string) {
+function getEventType(eventType: string): EventType | null {
+  switch (eventType){
+    case "click": return "Click";
+    case "dblclick": return "Dblclick"
+    case "change": return "Change";
+    default: return  null;
+  }
+}
+
+function addActionUser(eventType: EventType, value: string | null, scope?: string, location?: string) {
   const at = dateNow();
   dispatchTraces({
     ...SessionManager.instance.traceSessionMaskUpdate(Mask.EVENT),
@@ -122,9 +134,9 @@ function resizeHandler() {
       // Signed delta: '+' when zooming in, '-' when zooming out.
       const delta = Math.round((currentRatio - previousRatio) * 100);
       const sign = delta > 0 ? '+' : '';
-      addActionUser('zoom', `${sign}${delta}%`);
+      addActionUser('Zoom', `${sign}${delta}%`);
     } else {
-      addActionUser('resize', `${innerWidth}x${innerHeight}`);
+      addActionUser('Resize', `${innerWidth}x${innerHeight}`);
     }
     globalBrowserValues.c = currentRatio
   }, RESIZE_IDLE_DELAY);
@@ -137,17 +149,17 @@ function scrollHandler() {
 
   Timer = setTimeout(() => {
     Timer = undefined;
-    addActionUser('scroll', null); // todo to enhance  ( vertical / horizontal )
+    addActionUser('Scroll', null); // todo to enhance  ( vertical / horizontal )
   }, SCROLL_IDLE_DELAY);
 }
 
 
 function visibilityHandler() {
-  addActionUser(document.hidden ? 'DOC_HIDDEN' : 'DOC_VISIBLE', null)
+  addActionUser(document.hidden ? 'Tab-blur' : 'Tab-focus', null)
 }
 
 // Debounced; only the selection length is reported, never its content (privacy).
-function selectionHandler() {
+/*function selectionHandler() {
   if (selectionTimer) {
     clearTimeout(selectionTimer);
   }
@@ -159,7 +171,7 @@ function selectionHandler() {
     }
   }, SELECTION_IDLE_DELAY);
 }
-
+*/
 
 
 function lookUpChild(t: HTMLElement, depth: number): boolean {
