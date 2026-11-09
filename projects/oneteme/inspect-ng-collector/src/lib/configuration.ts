@@ -16,19 +16,19 @@ const DEFAULT_INTERVAL = 60_000;
 
 
 export interface CollectorConfig {
+  application: {
+    name: Provider<string>;
+    namespace: Provider<string>;
+    version?: Provider<string>;
+    env: Provider<string>;
+    user?: Provider<string>;
+    branche?: Provider<string>;
+    hash?: Provider<string>;
+  };
   collector: {
     enabled?: boolean; // default: false
     debugMode?: boolean;
     additionalProperties?: () => { [key: string]: any };
-    application: {
-      name: Provider<string>;
-      namespace: Provider<string>;
-      version?: Provider<string>;
-      env: Provider<string>;
-      user?: Provider<string>;
-      branche?: Provider<string>;
-      hash?: Provider<string>;
-    };
     scheduling?: {
       queueCapacity?: number; // default: 1000
       interval?: number; // default: 60s, in milliseconds
@@ -128,53 +128,35 @@ export function require(v: string | undefined, name: string){
 }
 
 export function adaptedConfig(conf: CollectorConfig) {
-  const collector = conf.collector ?? {};
-  const application = collector.application;
-  const remote = collector.tracing?.remote;
-  const pathExcludes = getOrCall<RegExp[]>(collector.monitoring?.httpRoute?.excludes?.path);
-  const { token: _token, ...publicRemote } = remote ?? {};
-
   return {
-    collector: {
-      ...collector,
-      additionalProperties: collector.additionalProperties?.(),
-      application: application ? {
-        ...application,
-        name: getOrCall<string>(application.name),
-        namespace: getOrCall<string>(application.namespace),
-        version: getOrCall<string>(application.version),
-        env: getOrCall<string>(application.env),
-        user: getOrCall<string>(application.user),
-        branche: getOrCall<string>(application.branche),
-        hash: getOrCall<string>(application.hash)
-      } : undefined,
-      scheduling: {
-        ...collector.scheduling,
-        interval: (collector.scheduling?.interval ?? DEFAULT_INTERVAL) / 1000,
-        queueCapacity: collector.scheduling?.queueCapacity ?? DEFAULT_QUEUE_CAPACITY
-      },
-      monitoring: {
-        ...collector.monitoring,
-        ...(collector.monitoring?.httpRoute ? {
-          httpRoute: {
-            ...collector.monitoring.httpRoute,
-            excludes: {
-              ...collector.monitoring.httpRoute.excludes,
-              ...(pathExcludes ? { path: pathExcludes.map(regex => regex.source) } : {})
-            }
-          }
-        } : {})
-      },
-      tracing: {
-        ...collector.tracing,
-        remote: {
-          ...publicRemote,
-          '@type': TRACE_TYPE_COLLECTOR_CONFIGURATION,
-          retentionMaxAge: {
-            audit: (remote?.retentionMaxAge?.audit ?? 7) * 60 * 60 * 24,
-            diagnostics: (remote?.retentionMaxAge?.diagnostics ?? 10) * 60 * 60 * 24
-          }
+    ...conf.collector,
+    scheduling: {
+      ...conf.collector.scheduling,
+      interval: conf.collector.scheduling?.interval && conf.collector.scheduling.interval / 1000
+    },
+    monitoring: {
+      ...conf.collector.monitoring,
+      additionalProperties: String(conf.collector.additionalProperties),
+      name: String(conf.application.name),
+      version: String(conf.application.version),
+      env: String(conf.application.env),
+      user: String(conf.application.user),
+      httpRoute: {
+        ...conf.collector.monitoring?.httpRoute,
+        excludes: {
+          path: (conf.collector.monitoring?.httpRoute?.excludes?.path as RegExp[]).map(r => r.source)
         }
+      }
+    },
+    tracing: {
+      ...conf.collector.tracing,
+      remote: {
+        ...conf.collector.tracing?.remote,
+        '@type': TRACE_TYPE_COLLECTOR_CONFIGURATION,
+        retentionMaxAge :  {
+          audit: (conf.collector.tracing?.remote?.retentionMaxAge?.audit ?? 7)  * 60 * 60 * 24,
+          diagnostic: (conf.collector.tracing?.remote?.retentionMaxAge?.diagnostics ?? 10)  * 60 * 60 * 24,
+        },
       }
     }
   }
@@ -182,7 +164,7 @@ export function adaptedConfig(conf: CollectorConfig) {
 
 export function validateAndGetConfig(conf: CollectorConfig, instanceId: string) : TechnicalConf {
   const collector = conf.collector;
-  const application = collector?.application;
+  const application = conf?.application;
   const remote = collector?.tracing?.remote;
   const host = matchRegex(getOrCall<string>(remote?.host), "host", HOST_PATERN, "http://localhost");
   return {
@@ -207,7 +189,7 @@ export function validateAndGetConfig(conf: CollectorConfig, instanceId: string) 
 export function createInstance(conf: CollectorConfig, instanceId: string): InstanceEnvironment {
 
   const collector = conf.collector;
-  const application = collector?.application;
+  const application = conf.application;
   const branche = getOrCall<string>(application?.branche);
   const hash = getOrCall<string>(application?.hash);
   return   {
