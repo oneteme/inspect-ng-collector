@@ -31,6 +31,7 @@ function routeHandler(event: any) {
 }
 
 function windowUnloadHandler() {
+  if (SessionManager.instance.hasValidateSessionBeenCalled())
   SessionManager.instance.navigate();
   dispatchShutown();
 }

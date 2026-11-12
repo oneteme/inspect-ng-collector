@@ -20,12 +20,14 @@ export class SessionManager {
   currentSession?: MainSession;
   currentSessionCallBack?: MainSessionCallBack;
   private readonly validatedSessions = new WeakSet<MainSession>();
+  private validateSessionCalled = false;
 
   static get instance(): SessionManager {
     return SessionManager._instance;
   }
 
   navigate(url?: string): MainSession | undefined  {
+    this.validateSessionCalled = false;
     const now = dateNow();
     if(this.currentSessionCallBack){
       this.endSession(now);
@@ -61,12 +63,17 @@ export class SessionManager {
   }
 
   validateSession(update: boolean = true, timeout: number = Number.NaN) {
+    this.validateSessionCalled = true;
     const s = this.currentSession;
     if (Number.isNaN(timeout)) {
       this.updateSession(s, false);
     } else {
       setTimeout(() => this.updateSession(s, true), 0);
     }
+  }
+
+  hasValidateSessionBeenCalled(): boolean {
+    return this.validateSessionCalled;
   }
 
     private updateSession(session: MainSession | undefined, update: boolean = true) {
