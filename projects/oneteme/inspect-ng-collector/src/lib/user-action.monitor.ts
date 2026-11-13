@@ -26,19 +26,85 @@ let selectionTimer: ReturnType<typeof setTimeout> | undefined;
 const clickTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
 
 export function initUserActionMonitor() {
+
   try {
     ELEMENT_EVENTS.forEach(type => document.addEventListener(type, globalHandler, true));
     globalThis.addEventListener('scroll', scrollHandler, true); // do costum handler with timeout
     globalThis.addEventListener('resize', resizeHandler, true);
     document.addEventListener('visibilitychange', visibilityHandler);
-    document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', ()=>{addActionUser('Initialisation', null)}, {once: true}) : addActionUser('Initialisation', null);
+    document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', ()=>{addActionUser(createBlankSessionEvent(),'Initialisation', null)}, {once: true}) : addActionUser(createBlankSessionEvent(),'Initialisation', null);
     traceBrowserConfig();
   } catch (e) {
     dispatchReport("initUserActionMonitor", e);
   }
 }
 
+
+
+function getEventType(eventType: string): EventType | null {
+  switch (eventType){
+    case "click": return "Click";
+    case "dblclick": return "Dblclick"
+    case "change": return "Change";
+    default: return  null;
+  }
+}
+
+
+function traceBrowserConfig() {
+  const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+  dispatchTraces({
+    '@type': TRACE_TYPE_ADDITIONAL_VALUES,
+    deviceDisplayResolution: `${screen?.width}x${screen?.height}`,
+    deviceOrientation: screen.orientation?.type ?? (innerWidth >= innerHeight ? 'landscape' : 'portrait'),
+    deviceConnectivity: connection?.effectiveType ?? 'unknown',
+    windowViewportBounds: `${innerWidth}x${innerHeight}`,
+    windowZoomLevel: String(visualViewport?.scale ?? devicePixelRatio),
+    userLanguage: navigator.language,
+    userTheme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+    saveData: connection?.saveData ?? undefined
+  } as BrowserConfig)
+}
+
+
+function resizeHandler() {
+  let ua = createBlankSessionEvent();
+  if (Timer) {
+    clearTimeout(Timer);
+  }
+
+  Timer = setTimeout(() => {
+    Timer = undefined;
+    const previousRatio = globalBrowserValues.c;
+    const currentRatio = globalThis.devicePixelRatio;
+    globalBrowserValues.o = `${innerWidth}x${innerHeight}`
+    if (previousRatio !== currentRatio) {
+      // Signed delta: '+' when zooming in, '-' when zooming out.
+      const delta = Math.round((currentRatio - previousRatio) * 100);
+      const sign = delta > 0 ? '+' : '';
+      addActionUser(ua, 'Zoom', `${sign}${delta}%`);
+    } else {
+      addActionUser(ua, 'Resize', `${innerWidth}x${innerHeight}`);
+    }
+    globalBrowserValues.c = currentRatio
+  }, RESIZE_IDLE_DELAY);
+}
+
+function scrollHandler() {
+  let ua = createBlankSessionEvent();
+  if (Timer) {
+    clearTimeout(Timer);
+  }
+
+  Timer = setTimeout(() => {
+    Timer = undefined;
+    addActionUser(ua, 'Scroll', null); // todo to enhance  ( vertical / horizontal )
+  }, SCROLL_IDLE_DELAY);
+}
+
+
 function globalHandler(event: Event) {
+  let ua = createBlankSessionEvent()
   const target = event.target as HTMLElement;
   let e= getEventType(event.type)
   if(!e)
@@ -62,7 +128,7 @@ function globalHandler(event: Event) {
       }
       const timer = setTimeout(() => {
         clickTimers.delete(target);
-        addActionUser(e, value, scope, location);
+        addActionUser(ua, e, value, scope, location);
       }, CLICK_DELAY);
       clickTimers.set(target, timer);
       return;
@@ -73,7 +139,7 @@ function globalHandler(event: Event) {
       clearTimeout(pendingClick);
       clickTimers.delete(target);
     }
-    addActionUser(e, value, scope, location);
+    addActionUser(ua,e, value, scope, location);
 
 
   } catch (err) {
@@ -81,82 +147,29 @@ function globalHandler(event: Event) {
   }
 }
 
-function getEventType(eventType: string): EventType | null {
-  switch (eventType){
-    case "click": return "Click";
-    case "dblclick": return "Dblclick"
-    case "change": return "Change";
-    default: return  null;
+
+function visibilityHandler() {
+  addActionUser(createBlankSessionEvent(), document.hidden ? 'Tab-blur' : 'Tab-focus', null)
+}
+
+function createBlankSessionEvent(){
+  return {
+    ...SessionManager.instance.traceSessionMaskUpdate(Mask.EVENT),
+    '@type': TRACE_TYPE_SESSION_EVENT,
+    instant: dateNow(),
   }
 }
 
-function addActionUser(eventType: EventType, value: string | null, scope?: string, location?: string) {
-  const at = dateNow();
+function addActionUser(ua: any,eventType: EventType, value: string | null, scope?: string, location?: string) {
   dispatchTraces({
-    ...SessionManager.instance.traceSessionMaskUpdate(Mask.EVENT),
-    '@type': TRACE_TYPE_SESSION_EVENT,
+    ...ua,
     type: eventType,
-    instant: at,
     value: value,
     scope: scope,
     location: location
   } as SessionEvent);
 }
 
-
-function traceBrowserConfig() {
-  const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-  dispatchTraces({
-    '@type': TRACE_TYPE_ADDITIONAL_VALUES,
-    deviceDisplayResolution: `${screen?.width}x${screen?.height}`,
-    deviceOrientation: screen.orientation?.type ?? (innerWidth >= innerHeight ? 'landscape' : 'portrait'),
-    deviceConnectivity: connection?.effectiveType ?? 'unknown',
-    windowViewportBounds: `${innerWidth}x${innerHeight}`,
-    windowZoomLevel: String(visualViewport?.scale ?? devicePixelRatio),
-    userLanguage: navigator.language,
-    userTheme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
-    saveData: connection?.saveData ?? undefined
-  } as BrowserConfig)
-}
-
-
-function resizeHandler() {
-  if (Timer) {
-    clearTimeout(Timer);
-  }
-
-  Timer = setTimeout(() => {
-    Timer = undefined;
-    const previousRatio = globalBrowserValues.c;
-    const currentRatio = globalThis.devicePixelRatio;
-    globalBrowserValues.o = `${innerWidth}x${innerHeight}`
-    if (previousRatio !== currentRatio) {
-      // Signed delta: '+' when zooming in, '-' when zooming out.
-      const delta = Math.round((currentRatio - previousRatio) * 100);
-      const sign = delta > 0 ? '+' : '';
-      addActionUser('Zoom', `${sign}${delta}%`);
-    } else {
-      addActionUser('Resize', `${innerWidth}x${innerHeight}`);
-    }
-    globalBrowserValues.c = currentRatio
-  }, RESIZE_IDLE_DELAY);
-}
-
-function scrollHandler() {
-  if (Timer) {
-    clearTimeout(Timer);
-  }
-
-  Timer = setTimeout(() => {
-    Timer = undefined;
-    addActionUser('Scroll', null); // todo to enhance  ( vertical / horizontal )
-  }, SCROLL_IDLE_DELAY);
-}
-
-
-function visibilityHandler() {
-  addActionUser(document.hidden ? 'Tab-blur' : 'Tab-focus', null)
-}
 
 // Debounced; only the selection length is reported, never its content (privacy).
 /*function selectionHandler() {
@@ -239,4 +252,5 @@ const MAP: { [key: string]: ((t: HTMLElement) => string | null)[] } = {
     t => t.getAttribute('for'),
   ],
 }
+
 
