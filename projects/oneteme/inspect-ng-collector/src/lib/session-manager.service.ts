@@ -63,7 +63,6 @@ export class SessionManager {
   }
 
   validateSession(update: boolean = true, timeout: number = Number.NaN) {
-    this.validateSessionCalled = true;
     const s = this.currentSession;
     if (Number.isNaN(timeout)) {
       this.updateSession(s, false);
@@ -88,6 +87,7 @@ export class SessionManager {
       }
       if (!this._techConfig.exclude?.some((e: any) => e.test(session?.location))) {
         dispatchTraces(session)
+        this.validateSessionCalled = true;
       }
       if(session === this.currentSession){
         this.currentSession = undefined;

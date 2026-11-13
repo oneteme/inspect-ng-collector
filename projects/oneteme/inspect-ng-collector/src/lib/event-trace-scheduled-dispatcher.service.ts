@@ -61,7 +61,7 @@ class EventTraceScheduledDispatcherService {
         if (success) {
           this.instanceDispatched = true;
         }else {
-          console.warn(`Error while attempting to send Environement instance, attempts ${this.dispatchAttempts}`);
+          dispatchReport(`Error while attempting to send Environement instance, attempts ${this.dispatchAttempts}`);
         }
       })
       .finally(() => { this.instanceDispatching = false; });
@@ -121,15 +121,15 @@ class EventTraceScheduledDispatcherService {
           this.dispatchAttempts = 0;
           return EMPTY_ARRAY;
         }
-        console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`);
+        dispatchReport(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`, res);
         if(res.status === 429 || (res.status >= 500 && res.headers?.get('Inspect-Trace-Retry') === '1')) {
-           console.warn('Dispatch failed with status', res.status, 'retrying...');
+          dispatchReport(`Dispatch failed with status ${res.status}, retrying...`, res);
           this.lastPacket = packet;
         }
         return EMPTY_ARRAY // retry on 3XX
       })
-      .catch(() => {
-        console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`); //no cnx !
+      .catch(error => {
+        dispatchReport(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`, error); //no cnx !
         this.lastPacket = packet;
         return EMPTY_ARRAY;
       });
@@ -154,20 +154,20 @@ class EventTraceScheduledDispatcherService {
         this.dispatchAttempts = 0;
         return;
       }
-      console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`);
+      dispatchReport(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`, res);
       if (res.status >= 500) {
         dispatchReport('EventTraceScheduledDispatcher.dispatchPrevious', res);
       }
 
-    }).catch(() => {
-      console.warn(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`);
+    }).catch(error => {
+      dispatchReport(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`, error);
       if (this.lastPacket === packet) this.discardLastPacketIfQueueCapacityExceeded();
     })
   }
 
   private discardLastPacketIfQueueCapacityExceeded() {
     if ((this.lastPacket?.size ?? 0) + this.traceQueue.length > this._techConfig.queueCapacity) {
-      console.warn(`Error while attempting to send ${this.lastPacket?.size} traces, giving up`);
+      dispatchReport(`Error while attempting to send ${this.lastPacket?.size} traces, giving up`);
       this.lastPacket = null;
       this.dispatchAttempts = 0;
     }
@@ -210,9 +210,10 @@ class EventTraceScheduledDispatcherService {
       return;
     }
     this.subscription?.unsubscribe();
+    dispatchExport(); // Collecter les dernières métriques avant de refuser les nouvelles traces.
+    this.wasDestroyed = true;
     this.removeTraceListener();
     this.removeShutdownListener();
-    this.wasDestroyed = true;
     this.instanceDispatched && this.dispatchTraces(true); // make sure instance is dispatched before sending the end signal
   }
 }

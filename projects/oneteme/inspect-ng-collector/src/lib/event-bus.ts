@@ -27,7 +27,7 @@ export function dispatchReport(message: string, error?: any) : void {
     "@type": TRACE_TYPE_LOG,
     instant: dateNow(),
     message : `${message} ${error && JSON.stringify(error)}`,
-    stackTraceRows: parseStackTrace(error.stack? error.stack : undefined),
+    stackTraceRows: parseStackTrace(error?.stack),
   } as LogEntry);
 }
 
