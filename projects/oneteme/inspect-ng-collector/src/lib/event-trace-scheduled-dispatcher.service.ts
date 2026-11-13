@@ -210,8 +210,6 @@ class EventTraceScheduledDispatcherService {
       return;
     }
     this.subscription?.unsubscribe();
-    dispatchExport(); // Collecter les dernières métriques avant de refuser les nouvelles traces.
-    this.wasDestroyed = true;
     this.removeTraceListener();
     this.removeShutdownListener();
     this.instanceDispatched && this.dispatchTraces(true); // make sure instance is dispatched before sending the end signal
