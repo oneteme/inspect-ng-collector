@@ -17,7 +17,7 @@ export function initNavigationMonitor(router: Router){
     window.addEventListener("beforeunload", windowUnloadHandler);
   }
   catch(e){
-    dispatchReport('initNavigationMonitor', e)
+    dispatchReport('Unable to initialize the navigation monitor.', 'navigation.monitor.initNavigationMonitor', e)
   }
 }
 

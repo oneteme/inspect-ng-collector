@@ -14,7 +14,7 @@ export class GlobalErrorHandler implements ErrorHandler {
         dispatchTraces(ex);
       }
     } catch (e) {
-      dispatchReport("GlobalErrorHandlerService.handleError", e);
+      dispatchReport("Unable to process an uncaught application error.",'global-error-handler.GlobalErrorHandlerService.handleError', e);
     }
   }
 }
