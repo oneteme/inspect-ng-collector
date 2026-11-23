@@ -8,7 +8,7 @@ export function initResourceUsageMonitor(){
     }
   }
   catch(e){
-    dispatchReport('initResourceUsageMonitor', e)
+    dispatchReport('Unable to initialize the resource usage monitor.', 'resource-usage.monitor.initResourceUsageMonitor', e)
   }
 }
 
@@ -23,6 +23,6 @@ function ressourceUsageHandler() {
       availableProcessors: navigator.hardwareConcurrency
     } as MachineRessourceUsage);
   } catch (e) {
-    dispatchReport('ressourceUsageHandler', e);
+    dispatchReport(' Unable to collect browser resource usage.', 'resource-usage.monitor.resourceUsageHandler', e);
   }
 }

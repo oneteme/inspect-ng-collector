@@ -245,7 +245,7 @@ function detectOs() {
     }
   }
   catch (e) {
-    dispatchReport("detectOs", e) ;
+    dispatchReport("Unable to detect the operating system.", "configuration.detectOs", e) ;
   }
   return undefined;
 }
@@ -269,7 +269,7 @@ function detectBrowser() {
     }
   }
   catch (e) {
-    dispatchReport("detectBrowser", e)
+    dispatchReport("Unable to detect the browser.", "configuration.detectBrowser", e)
   }
   return undefined;
 }
@@ -314,7 +314,7 @@ export function createException( error: Error | string | object, traceId: UUID |
       }
     }
   }catch(e){
-    dispatchReport("createException", e)
+    dispatchReport("Unable to create the exception payload.", "configuration.createException", e)
   }
   return undefined;
 }
@@ -338,7 +338,7 @@ export function parseStackTrace(stack?: string): StackTraceRow[] | undefined {
     });
     return rows.length > 0 ? rows : undefined;
   }catch (e) {
-    dispatchReport("parseStackTrace", e)
+    dispatchReport("Unable to parse the stack trace.","configuration.parseStackTrace", e)
   }
   return undefined;
 }

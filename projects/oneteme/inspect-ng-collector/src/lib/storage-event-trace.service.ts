@@ -12,7 +12,7 @@ export function storageEventListener(tech: TechnicalConf) {
       })
     }
   } catch (e) {
-    dispatchReport("storageEventListener", e);
+    dispatchReport("Unable to process a storage event for trace synchronization.", "storage-event-trace.storageEventListener", e);
   }
 }
 function subscribeToStorageEventPrototype() {
@@ -46,4 +46,3 @@ function subscribeToStorageEventPrototype() {
   });
 
 }
-

@@ -61,7 +61,7 @@ class EventTraceScheduledDispatcherService {
         if (success) {
           this.instanceDispatched = true;
         }else {
-          dispatchReport(`Error while attempting to send Environement instance, attempts ${this.dispatchAttempts}`);
+          dispatchReport(`Unable to send the environment instance after ${this.dispatchAttempts} attempt(s).`,'event-trace-scheduled-dispatcher.EventTraceScheduledDispatcher.updateInstance');
         }
       })
       .finally(() => { this.instanceDispatching = false; });
@@ -117,19 +117,19 @@ class EventTraceScheduledDispatcherService {
         body: packet.body
       })
       .then(res=> {
-        if (res.ok || res.status === 409) {
+        if (res.ok) {
           this.dispatchAttempts = 0;
           return EMPTY_ARRAY;
         }
-        dispatchReport(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`, res);
-        if(res.status === 429 || (res.status >= 500 && res.headers?.get('Inspect-Trace-Retry') === '1')) {
-          dispatchReport(`Dispatch failed with status ${res.status}, retrying...`, res);
-          this.lastPacket = packet;
+        if(res.status === 409 || (res.headers?.get('Inspect-Trace-Retry') === '0')) {
+          dispatchReport(`Session trace dispatch returned HTTP ${res.status}; the packet will not be retried.`, 'event-trace-scheduled-dispatcher.EventTraceScheduledDispatcher.dispatchQueuedTraces', res);
+          return EMPTY_ARRAY;
         }
+        this.lastPacket = packet;
         return EMPTY_ARRAY // retry on 3XX
       })
       .catch(error => {
-        dispatchReport(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`, error); //no cnx !
+        dispatchReport(`Unable to send session traces on attempt ${this.dispatchAttempts}; the request failed before receiving a response.`, 'event-trace-scheduled-dispatcher.EventTraceScheduledDispatcher.dispatchQueuedTraces', error);
         this.lastPacket = packet;
         return EMPTY_ARRAY;
       });
@@ -154,20 +154,20 @@ class EventTraceScheduledDispatcherService {
         this.dispatchAttempts = 0;
         return;
       }
-      dispatchReport(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`, res);
+      dispatchReport(`Unable to resend the pending session traces (HTTP ${res.status}) on attempt ${this.dispatchAttempts}.`, 'event-trace-scheduled-dispatcher.EventTraceScheduledDispatcher.dispatchPrevious', res);
       if (res.status >= 500) {
-        dispatchReport('EventTraceScheduledDispatcher.dispatchPrevious', res);
+        dispatchReport(`Pending session trace resend failed with server error HTTP ${res.status}.`, 'event-trace-scheduled-dispatcher.EventTraceScheduledDispatcher.dispatchPrevious', res);
       }
 
     }).catch(error => {
-      dispatchReport(`Error while attempting to send sessions, attempts: ${this.dispatchAttempts}`, error);
+      dispatchReport(`Unable to resend the pending session traces on attempt ${this.dispatchAttempts}; the request failed before receiving a response.`, 'event-trace-scheduled-dispatcher.EventTraceScheduledDispatcher.dispatchPrevious', error);
       if (this.lastPacket === packet) this.discardLastPacketIfQueueCapacityExceeded();
     })
   }
 
   private discardLastPacketIfQueueCapacityExceeded() {
     if ((this.lastPacket?.size ?? 0) + this.traceQueue.length > this._techConfig.queueCapacity) {
-      dispatchReport(`Error while attempting to send ${this.lastPacket?.size} traces, giving up`);
+      dispatchReport(`Dropping ${this.lastPacket?.size ?? 0} pending session trace(s) because the queue capacity was exceeded.`, 'event-trace-scheduled-dispatcher.EventTraceScheduledDispatcher.discardLastPacketIfQueueCapacityExceeded');
       this.lastPacket = null;
       this.dispatchAttempts = 0;
     }
@@ -189,7 +189,7 @@ class EventTraceScheduledDispatcherService {
           return true;
         }
         if (res.status >= 500) {
-          dispatchReport('EventTraceScheduledDispatcher.dispatchInstance', res);
+          dispatchReport(`Environment instance dispatch failed with server error HTTP ${res.status}.`, 'event-trace-scheduled-dispatcher.EventTraceScheduledDispatcher.dispatchInstance', res);
         }
         return false;
       })

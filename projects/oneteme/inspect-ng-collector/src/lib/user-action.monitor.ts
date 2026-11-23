@@ -35,7 +35,7 @@ export function initUserActionMonitor() {
     document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', ()=>{addActionUser(createBlankSessionEvent(),'Initialisation', null)}, {once: true}) : addActionUser(createBlankSessionEvent(),'Initialisation', null);
     traceBrowserConfig();
   } catch (e) {
-    dispatchReport("initUserActionMonitor", e);
+    dispatchReport("Unable to initialize the user action monitor.", "user-action.monitor.initUserActionMonitor", e);
   }
 }
 
@@ -105,7 +105,7 @@ function scrollHandler() {
 
 function globalHandler(event: Event) {
   let ua = createBlankSessionEvent()
-  const target = event.target as HTMLElement;
+  const eventTarget = event.target;
   let e= getEventType(event.type)
   if(!e)
     return
@@ -113,12 +113,16 @@ function globalHandler(event: Event) {
     /*if (eventHandlers.hasOwnProperty(eventType) && !eventHandlers[eventType](target)) {
       return;
     } */
-    const value = target.attributes.getNamedItem("data-inspect-track")?.value;
-    if (!value) {
+    if (!(eventTarget instanceof Element)) {
       return;
     }
-    const scope = target.attributes.getNamedItem("data-inspect-scope")?.value;
-    const location = target.attributes.getNamedItem("data-inspect-location")?.value;
+    const target = eventTarget.closest<HTMLElement>('[data-inspect-track]');
+    const value = target?.getAttribute("data-inspect-track");
+    if (!target || !value) {
+      return;
+    }
+    const scope = target.getAttribute("data-inspect-scope");
+    const location = target.getAttribute("data-inspect-location");
 
 
     if (event.type === 'click') {
@@ -143,7 +147,7 @@ function globalHandler(event: Event) {
 
 
   } catch (err) {
-    dispatchReport("UserACTION.globalHandler", err)
+    dispatchReport(` Unable to process the ${event.type} user action event.`, 'user-action.monitor.globalHandler', err)
   }
 }
 
@@ -160,7 +164,7 @@ function createBlankSessionEvent(){
   }
 }
 
-function addActionUser(ua: any,eventType: EventType, value: string | null, scope?: string, location?: string) {
+function addActionUser(ua: any,eventType: EventType, value: string | null, scope?: string |null, location?: string |null) {
   dispatchTraces({
     ...ua,
     type: eventType,
@@ -252,5 +256,3 @@ const MAP: { [key: string]: ((t: HTMLElement) => string | null)[] } = {
     t => t.getAttribute('for'),
   ],
 }
-
-

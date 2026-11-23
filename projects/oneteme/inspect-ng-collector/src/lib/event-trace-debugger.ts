@@ -34,7 +34,7 @@ export class EventTraceDebugger{
         printConfig: () => console.log(this._techConfig),
       }
     } catch (e) {
-      dispatchReport("EventTraceDebugger.constructor", e);
+      dispatchReport("Unable to initialize the event trace debugger.","event-trace-debugger.EventTraceDebugger.constructor", e);
     }
   }
 

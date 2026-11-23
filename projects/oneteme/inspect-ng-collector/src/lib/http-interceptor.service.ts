@@ -41,7 +41,7 @@ export class HttpInterceptorService implements HttpInterceptor {
         if (!response && !error) {
           error = new HttpErrorResponse({
             error: 'The request was cancelled before completion',
-            status: 0,
+            status: 10,
             statusText: 'Cancelled',
             url: req.url
           });

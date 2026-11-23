@@ -94,7 +94,7 @@ export class SessionManager {
       }
     }
     else{
-      dispatchReport('updateSession', 'no active session');
+      dispatchReport('Unable to update the session: no active session is available.', "session-manager.SessionManager.updateSession");
     }
   }
 
@@ -102,7 +102,7 @@ export class SessionManager {
     if (this.currentSessionCallBack) {
       return fn(this.currentSessionCallBack);
     }
-    dispatchReport('getCurrentSessionCallBack', 'no active session');
+    dispatchReport('Unable to execute the session callback: no active session is available.', 'session-manager.SessionManager.getCurrentSessionCallBack');
     return undefined;
   }
 

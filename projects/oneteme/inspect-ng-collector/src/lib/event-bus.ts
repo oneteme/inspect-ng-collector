@@ -19,14 +19,15 @@ export function configureReporter(enabled: boolean): void {
   reporterEnabled = enabled;
 }
 
-export function dispatchReport(message: string, error?: any) : void {
+export function dispatchReport(message: string, action: string, error?: any) : void {
   if (!reporterEnabled) {
     return;
   }
   dispatchTraces({
     "@type": TRACE_TYPE_LOG,
     instant: dateNow(),
-    message : `${message} ${error && JSON.stringify(error)}`,
+    message : `${message} ${error? JSON.stringify(error) : ''}`,
+    action : action,
     stackTraceRows: parseStackTrace(error?.stack),
   } as LogEntry);
 }

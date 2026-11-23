@@ -69,7 +69,9 @@ export class RestRequestMonitor {
     if (error) {
       status = retrieveStatus(error);
       exception = createException(error, this.id, TraceType.HTTP_REQ, false);
-      callback.bodyContent = JSON.stringify(error.error);
+      if(error.error){
+        callback.bodyContent =  JSON.stringify(error.error);
+      }
       callback.dataSize = sizeOf(error.error);
       callback.contentType = extractContentType(error.headers);
       callback.linked = assertSessionID(this.id, error.headers);
@@ -94,7 +96,7 @@ export class RestRequestMonitor {
 function retrieveStatus(error: any): number {
   if(!error.status){
     if(error.name === 'TimeoutError')
-      return 3;
+      return 4;
   }
   return error.status || 0 ;
 }
@@ -131,14 +133,14 @@ function extractUser(scheme: 'Basic' | 'Bearer', authorization: string) {
         if (payloadMatch?.[1]) {
           return JSON.parse(atob(payloadMatch[1])).sub;
         }
-        dispatchReport('extractUser', 'Invalid Bearer token format');
+        dispatchReport('Invalid Bearer token format', 'rest-request.monitor.extractUser');
         return undefined;
       }
       default:
-        dispatchReport('extractUser', `Unknown auth scheme: ${scheme}`);
+        dispatchReport(`Unable to extract the user identifier: unsupported authentication scheme "${scheme}".`, 'rest-request.monitor.extractUser');
     }
   } catch (e) {
-    dispatchReport('extractUser', e);
+    dispatchReport('Unable to extract the user identifier from the request.', 'rest-request.monitor.extractUser', e);
   }
   return undefined;
 }
@@ -149,7 +151,7 @@ function extractContentType(headers: any): string | undefined {
       return headers.get('Content-Type');
     }
   } catch (err) {
-    dispatchReport('extractContentType', err);
+    dispatchReport('Unable to extract the request Content-Type header.', 'rest-request.monitor.extractContentType', err);
   }
   return undefined;
 }
@@ -160,7 +162,7 @@ function sizeOf(body: any): number {
       return new Blob([JSON.stringify(body)]).size;
     }
     catch (e) {
-      dispatchReport('sizeOf', e);
+      dispatchReport('Unable to calculate the request body size.', 'rest-request.monitor.sizeOf', e);
     }
   }
   return -1;
