@@ -59,7 +59,7 @@ function traceBrowserConfig() {
     deviceOrientation: screen.orientation?.type ?? (innerWidth >= innerHeight ? 'landscape' : 'portrait'),
     deviceConnectivity: connection?.effectiveType ?? 'unknown',
     windowViewportBounds: `${innerWidth}x${innerHeight}`,
-    windowZoomLevel: String(visualViewport?.scale ?? devicePixelRatio),
+    windowZoomLevel: String(devicePixelRatio),
     userLanguage: navigator.language,
     userTheme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
     saveData: connection?.saveData ?? undefined
