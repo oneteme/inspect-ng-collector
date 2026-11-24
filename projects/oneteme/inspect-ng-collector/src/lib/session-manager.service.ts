@@ -87,12 +87,6 @@ export class SessionManager {
       }
       if (!this._techConfig.exclude?.some((e: any) => e.test(session?.location))) {
         dispatchTraces(session)
-        dispatchTraces({
-          "@type": TRACE_TYPE_SESSION_MASK_UPDATE,
-          id: session.id,
-          main: true,
-          mask: session.eventMask
-        } as SessionMaskUpdate);
         this.validateSessionCalled = true;
       }
       if(session === this.currentSession){
@@ -125,6 +119,14 @@ export class SessionManager {
     const req = this.getCurrentSessionCallBack(s=>{
       if ((s.eventMask & mask) !== mask) {
         s.eventMask |= mask;
+        if(this.hasValidateSessionBeenCalled()){
+          dispatchTraces({
+            "@type": TRACE_TYPE_SESSION_MASK_UPDATE,
+            id: s.id,
+            main: true,
+            mask: s.eventMask
+          } as SessionMaskUpdate);
+        }
       }
       return {sessionId:s.id};
     });
