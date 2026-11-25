@@ -119,12 +119,14 @@ export class SessionManager {
     const req = this.getCurrentSessionCallBack(s=>{
       if ((s.eventMask & mask) !== mask) {
         s.eventMask |= mask;
-        dispatchTraces({
-          "@type": TRACE_TYPE_SESSION_MASK_UPDATE,
-          id: s.id,
-          main: true,
-          mask: s.eventMask
-        } as SessionMaskUpdate);
+        if(this.hasValidateSessionBeenCalled()){
+          dispatchTraces({
+            "@type": TRACE_TYPE_SESSION_MASK_UPDATE,
+            id: s.id,
+            main: true,
+            mask: s.eventMask
+          } as SessionMaskUpdate);
+        }
       }
       return {sessionId:s.id};
     });
