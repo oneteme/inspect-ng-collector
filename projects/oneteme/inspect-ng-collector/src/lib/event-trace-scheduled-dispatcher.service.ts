@@ -7,8 +7,6 @@ const EMPTY_ARRAY : EventTrace[] = <[]>Object.freeze([]);
 
 class EventTraceScheduledDispatcherService {
 
-  static _instance: EventTraceScheduledDispatcherService;
-
   readonly subscription: Subscription
   private readonly removeTraceListener: () => void;
   private readonly removeShutdownListener: () => void;
@@ -48,7 +46,7 @@ class EventTraceScheduledDispatcherService {
 
   trace(instance: InstanceEnvironment) {
     this.instance = { ...instance };
-    this.updateInstance(); // Dispatch immédiatement au lieu d'attendre l'intervalle
+    void this.updateInstance(); // Dispatch immédiatement au lieu d'attendre l'intervalle
   }
 
   private updateInstance(): Promise<void> {
@@ -74,7 +72,7 @@ class EventTraceScheduledDispatcherService {
     if (this.instanceDispatching) return Promise.resolve(EMPTY_ARRAY); // attendre
     return this.updateInstance().then(() => {
       if (this.instanceDispatched) return this.dispatchTraces(); // seulement si confirmé
-      return Promise.reject(new Error('Instance not dispatched yet'));// instance pas encore dispatchée, traces non envoyées
+      throw new Error('Instance not dispatched yet');// instance pas encore dispatchée, traces non envoyées
     });
   }
 
@@ -214,11 +212,17 @@ class EventTraceScheduledDispatcherService {
     this.wasDestroyed = true;
     this.removeTraceListener();
     this.removeShutdownListener();
-    this.instanceDispatched && this.dispatchTraces(true); // make sure instance is dispatched before sending the end signal
+    if (this.instanceDispatched) {
+      void this.dispatchTraces(true); // make sure instance is dispatched before sending the end signal
+    }
   }
 }
 
+let currentDispatcher: EventTraceScheduledDispatcherService | undefined;
+
 export function eventTraceScheduledDispatcher(tech: TechnicalConf): EventTraceScheduledDispatcherService {
-  EventTraceScheduledDispatcherService._instance?.destroy();
-  return EventTraceScheduledDispatcherService._instance = new EventTraceScheduledDispatcherService({ ...tech });
+  currentDispatcher?.destroy();
+  const dispatcher = new EventTraceScheduledDispatcherService({ ...tech });
+  currentDispatcher = dispatcher;
+  return dispatcher;
 }

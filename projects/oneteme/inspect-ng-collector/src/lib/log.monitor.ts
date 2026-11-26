@@ -39,7 +39,8 @@ export function installConsoleCapture(): void {
 
 function formatArg(value: unknown): string {
   if (value instanceof Error) {
-    return `${value.name}: ${value.message}${value.stack ? `\n${value.stack}` : ""}`;
+    const stack = value.stack ? `\n${value.stack}` : "";
+    return `${value.name}: ${value.message}${stack}`;
   }
   if (typeof value === "string") return value;
 

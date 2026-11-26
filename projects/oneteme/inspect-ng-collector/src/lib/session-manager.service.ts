@@ -13,7 +13,12 @@ import {getOrCall, TechnicalConf} from "./configuration";
 
 export class SessionManager {
 
-   static _instance: SessionManager;
+   private static currentInstance?: SessionManager;
+
+   static get _instance(): SessionManager {
+     return SessionManager.currentInstance!;
+   }
+
    constructor(private readonly _techConfig: TechnicalConf) {
    }
 
@@ -23,15 +28,24 @@ export class SessionManager {
   private validateSessionCalled = false;
 
   static get instance(): SessionManager {
-    return SessionManager._instance;
+    return SessionManager.currentInstance!;
+  }
+
+  static initialize(tech: TechnicalConf): SessionManager {
+    const instance = new SessionManager(tech);
+    SessionManager.currentInstance = instance;
+    return instance;
   }
 
   navigate(url?: string): MainSession | undefined  {
-    this.validateSessionCalled = false;
     const now = dateNow();
     if(this.currentSessionCallBack){
+      if (this.currentSession) {
+        this.updateSession(this.currentSession, true);
+      }
       this.endSession(now);
     }
+    this.validateSessionCalled = false;
     if (url) {
       const id = crypto.randomUUID();
       this.currentSession = {
@@ -160,6 +174,6 @@ export function sessionlogger(): SessionManager {
 }
 
 export function sessionManager(tech: TechnicalConf){
-  SessionManager._instance = new SessionManager(tech);
-  WIN["inspect-session-manager"] = SessionManager._instance;
+  const instance = SessionManager.initialize(tech);
+  WIN["inspect-session-manager"] = instance;
 }

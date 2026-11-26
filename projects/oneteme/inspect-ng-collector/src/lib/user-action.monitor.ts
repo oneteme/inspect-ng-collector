@@ -98,7 +98,7 @@ function scrollHandler() {
 
   Timer = setTimeout(() => {
     Timer = undefined;
-    addActionUser(ua, 'Scroll', null); // todo to enhance  ( vertical / horizontal )
+    addActionUser(ua, 'Scroll', null);
   }, SCROLL_IDLE_DELAY);
 }
 
@@ -117,12 +117,12 @@ function globalHandler(event: Event) {
       return;
     }
     const target = eventTarget.closest<HTMLElement>('[data-inspect-track]');
-    const value = target?.getAttribute("data-inspect-track");
+    const value = target?.dataset['inspectTrack'];
     if (!target || !value) {
       return;
     }
-    const scope = target.getAttribute("data-inspect-scope");
-    const location = target.getAttribute("data-inspect-location");
+    const scope = target.dataset['inspectScope'];
+    const location = target.dataset['inspectLocation'];
 
 
     if (event.type === 'click') {

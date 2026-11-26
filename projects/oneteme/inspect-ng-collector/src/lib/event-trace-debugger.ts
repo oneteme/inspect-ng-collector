@@ -10,12 +10,17 @@ import {SessionManager} from "./session-manager.service";
 import {TechnicalConf} from "./configuration";
 
 export function eventTraceDebugger(tech: TechnicalConf){
-  EventTraceDebugger._instance = new EventTraceDebugger(tech);
+  EventTraceDebugger.init(tech);
 }
 
 export class EventTraceDebugger{
 
-  static _instance: EventTraceDebugger;
+  private static currentInstance?: EventTraceDebugger;
+
+  static get _instance(): EventTraceDebugger {
+    return EventTraceDebugger.currentInstance!;
+  }
+
   restRequests: RestRequest[] = [];
   httpRequestStages: HttpRequestStage[] = [];
   localRequests: LocalRequest[] = [];
@@ -43,9 +48,6 @@ export class EventTraceDebugger{
     if(trace && !(e as CustomEvent).detail.force){
       switch (trace['@type']){
         case 'main-ses':
-          if(trace.end){
-           // console.log(this.prettySessionFormat(SessionManager.instance.currentSession)); //TODO currentSession can be null
-          }
           break;
         case 'http-req':
           this.restRequests.push(trace);
@@ -70,7 +72,9 @@ export class EventTraceDebugger{
   }
 
   static init(tech: TechnicalConf){
-    return EventTraceDebugger._instance = new EventTraceDebugger(tech);
+    const instance = new EventTraceDebugger(tech);
+    EventTraceDebugger.currentInstance = instance;
+    return instance;
   }
 
   prettySessionFormat(session: MainSession){
