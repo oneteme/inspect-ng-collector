@@ -30,7 +30,7 @@ export class HttpInterceptorService implements HttpInterceptor {
         if (event instanceof HttpResponse) {
           response = event;
         }
-        //todo  autres types d'événements (UploadProgress, DownloadProgress, etc.) ignorés pour les traces
+        // Other event types (UploadProgress, DownloadProgress, etc.) are ignored for traces.
       },
       error: (err: HttpErrorResponse) => {
         error = err;

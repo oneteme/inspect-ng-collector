@@ -221,7 +221,8 @@ export function createInstance(conf: CollectorConfig, instanceId: string): Insta
 function getClientID() {
   let cid = localStorage.getItem("jarvis.inspect.cid");
   if (!cid) {
-    localStorage.setItem("jarvis.inspect.cid", cid = crypto.randomUUID());
+    cid = crypto.randomUUID();
+    localStorage.setItem("jarvis.inspect.cid", cid);
   }
   return cid;
 }
@@ -229,7 +230,7 @@ function getClientID() {
 function detectOs() {
   try {
     let versionMatch, version;
-    const agent = globalThis.navigator.userAgent.toLowerCase() //TODO see also  https://developer.mozilla.org/en-US/docs/Web/API/Navigator/userAgentData
+    const agent = globalThis.navigator.userAgent.toLowerCase();
     switch (true) {
       case (/windows/.test(agent)):
         versionMatch = /windows nt (\d+\.\d+)/.exec(agent);
@@ -307,7 +308,7 @@ export function createException( error: Error | string | object, traceId: UUID |
         '@type': TRACE_TYPE_EXCEPTION,
         type: isError ? error.name : undefined,
         message,
-        stackTraceRows: parseStack ? parseStackTrace(undefined) : undefined,
+        stackTraceRows: parseStack ? parseStackTrace() : undefined,
         traceId,
         traceType,
         offset: dateNow()
@@ -325,20 +326,56 @@ export function parseStackTrace(stack?: string): StackTraceRow[] | undefined {
       return undefined;
     }
     const rows = stack.split('\n').slice(1).flatMap(line => {
-      const match = /^at\s+(?:(.*?)\s+\()?(.+):(\d+):(\d+)\)?$/.exec(line.trim());
-      if (!match) {
+      const frame = parseStackFrame(line);
+      if (!frame) {
         return [];
       }
-
-      return [{
-        className: match[2],
-        methodName: match[1] || undefined,
-        lineNumber: Number(match[3])
-      }];
+      return [frame];
     });
     return rows.length > 0 ? rows : undefined;
   }catch (e) {
     dispatchReport("Unable to parse the stack trace.","configuration.parseStackTrace", e)
   }
   return undefined;
+}
+
+function parseStackFrame(line: string): StackTraceRow | undefined {
+  const frame = line.trim();
+  if (!frame.startsWith('at ')) {
+    return undefined;
+  }
+
+  const locationEnd = frame.endsWith(')') ? frame.length - 1 : frame.length;
+  const columnSeparator = frame.lastIndexOf(':', locationEnd - 1);
+  const lineSeparator = frame.lastIndexOf(':', columnSeparator - 1);
+  if (lineSeparator <= 3 || columnSeparator <= lineSeparator) {
+    return undefined;
+  }
+
+  const lineNumber = parseStackNumber(frame.slice(lineSeparator + 1, columnSeparator));
+  const columnNumber = parseStackNumber(frame.slice(columnSeparator + 1, locationEnd));
+  if (lineNumber === undefined || columnNumber === undefined) {
+    return undefined;
+  }
+
+  const source = frame.slice(3, lineSeparator).trim();
+  const methodSeparator = source.lastIndexOf('(');
+  const className = (methodSeparator >= 0 ? source.slice(methodSeparator + 1) : source).trim();
+  if (!className) {
+    return undefined;
+  }
+
+  return {
+    className,
+    methodName: methodSeparator >= 0 ? source.slice(0, methodSeparator).trim() : undefined,
+    lineNumber
+  };
+}
+
+function parseStackNumber(value: string): number | undefined {
+  if (!value || Array.from(value).some(character => character < '0' || character > '9')) {
+    return undefined;
+  }
+  const number = Number(value);
+  return Number.isSafeInteger(number) ? number : undefined;
 }

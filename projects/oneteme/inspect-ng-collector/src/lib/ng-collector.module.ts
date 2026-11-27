@@ -2,8 +2,9 @@ import {
   NgModule,
   ModuleWithProviders,
   ErrorHandler,
-  APP_INITIALIZER,
-  InjectionToken
+  InjectionToken,
+  Inject,
+  Optional
 } from '@angular/core';
 import { HTTP_INTERCEPTORS, } from '@angular/common/http';
 import { HttpInterceptorService } from './http-interceptor.service';
@@ -34,6 +35,15 @@ let removeReloadListener: (() => void) | undefined;
 @NgModule()
 export class NgCollectorModule {
 
+  constructor(
+    @Optional() @Inject(COLLECTOR_CONFIG) config: { tech: TechnicalConf, instance: InstanceEnvironment } | null,
+    @Optional() router: Router | null
+  ) {
+    if (config && router) {
+      initializeEventsFactory(config, router)();
+    }
+  }
+
   static forRoot(configuration: CollectorConfig): ModuleWithProviders<NgCollectorModule> {
     const providers = [];
     if (configuration?.collector?.enabled) {
@@ -41,7 +51,6 @@ export class NgCollectorModule {
         let config  = initializeCollector(configuration);
         providers.push(
           { provide: COLLECTOR_CONFIG, useValue: config },
-          { provide: APP_INITIALIZER, useFactory: initializeEventsFactory, deps: [COLLECTOR_CONFIG, Router], multi: true },
           { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, deps:[COLLECTOR_CONFIG], multi: true },
           { provide: ErrorHandler, useClass: GlobalErrorHandler }
          );
