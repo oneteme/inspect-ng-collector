@@ -42,7 +42,7 @@ describe('configuration', () => {
 
     it('accepts an empty but defined string', () => {
       expect(requireString('', 'key')).toBe('');
-      expect(() => requireString(undefined, 'key')).toThrowError('key pzefroperfty is required');
+      expect(() => requireString(undefined, 'key')).toThrowError('key property is required');
     });
   });
 
