@@ -144,7 +144,7 @@ export function adaptedConfig(conf: CollectorConfig) {
       httpRoute: {
         ...conf.collector.monitoring?.httpRoute,
         excludes: {
-          path: (conf.collector.monitoring?.httpRoute?.excludes?.path as RegExp[]).map(r => r.source)
+          path: (getOrCall(conf.collector.monitoring?.httpRoute?.excludes?.path) ?? []).map(r => r.source)
         }
       }
     },
@@ -203,7 +203,7 @@ export function createInstance(conf: CollectorConfig, instanceId: string): Insta
     re: detectBrowser(),
     user: undefined, // cannot get user
     type: "CLIENT",
-    collector: "inspect-ng-collector-1.3.4-beta.8",
+    collector: "inspect-ng-collector-1.3.4-beta.9",
     resource: { maxHeap: (('memory' in performance) && (performance as any).memory.jsHeapSizeLimit / (1024 * 1024)) || undefined,
                availableProcessors: navigator.hardwareConcurrency},
     additionalProperties: {
