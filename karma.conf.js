@@ -1,6 +1,6 @@
-const path = require('path');
+const path = require('node:path');
 
-module.exports = function (config) {
+module.exports = function karma (config) {
   config.set({
     basePath: '',
     frameworks: ['jasmine', '@angular-devkit/build-angular'],
