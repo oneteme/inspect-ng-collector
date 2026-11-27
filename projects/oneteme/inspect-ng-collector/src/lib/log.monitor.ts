@@ -3,13 +3,14 @@ import {SessionManager} from "./session-manager.service";
 import {dispatchTraces} from "./event-bus";
 
 type Level = "WARN" | "ERROR";
-let captureInstalled = false;
+type ConsoleTarget = Pick<Console, "warn" | "error">;
+const installedTargets = new WeakSet<ConsoleTarget>();
 
-export function installConsoleCapture(): void {
-  if (captureInstalled) return;
-  captureInstalled = true;
-  const originalWarn = console.warn;
-  const originalError = console.error;
+export function installConsoleCapture(target: ConsoleTarget = console): void {
+  if (installedTargets.has(target)) return;
+  installedTargets.add(target);
+  const originalWarn = target.warn;
+  const originalError = target.error;
 
   function capture(level: Level, args: unknown[]) {
     try {
@@ -22,17 +23,17 @@ export function installConsoleCapture(): void {
       } as SessionEvent);
     } catch (error) {
       // Report capture failures using the saved method, avoiding another capture.
-      originalError.call(console, "Failed to capture console message", error);
+      originalError.call(target, "Failed to capture console message", error);
     }
   }
 
-  console.warn = (...args: Parameters<typeof console.warn>) => {
-    originalWarn.apply(console, args);
+  target.warn = (...args: Parameters<ConsoleTarget["warn"]>) => {
+    originalWarn.apply(target, args);
     capture("WARN", args);
   };
 
-  console.error = (...args: Parameters<typeof console.error>) => {
-    originalError.apply(console, args);
+  target.error = (...args: Parameters<ConsoleTarget["error"]>) => {
+    originalError.apply(target, args);
     capture("ERROR", args);
   };
 }
